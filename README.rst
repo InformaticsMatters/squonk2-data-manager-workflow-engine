@@ -38,7 +38,7 @@ The project's written in Python and uses `Poetry`_ for dependency and package
 management. We also use `pre-commit`_ to manage our pre-commit hooks, which
 rely on `black`_, `mypy`_, `pylint`_, amongst others.
 
-Create your enverionewmnt::
+Create your environment::
 
     poetry shell
     poetry install --with dev
@@ -49,7 +49,7 @@ _clean_ project::
 
     pre-commit run --all
 
-And then running the tests::
+And then run the tests::
 
     pytest
 
