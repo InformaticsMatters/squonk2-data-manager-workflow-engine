@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "im-data-manager-workflow-decoder"
+version = "0.1.0"
+description = ""
+authors = ["Alan Christie <achristie@informaticsmatters.com>"]
+readme = "README.md"
+packages = [
+    { include = "workflow", from = "." }
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+jsonschema = "^4.21.1"
+pyyaml = ">= 5.3.1, < 7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
