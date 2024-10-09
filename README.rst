@@ -31,6 +31,34 @@ formed from the definition YAML file) with:
 
 .. _PyPI: https://pypi.org/project/im-data-manager-workflow-decoder
 
+Contributing
+============
+
+The project's written in Python and uses `Poetry`_ for dependency and package
+management. We also use `pre-commit`_ to manage our pre-commit hooks, which
+rely on `black`_, `mypy`_, `pylint`_, amongst others.
+
+Create your enverionewmnt::
+
+    poetry shell
+    poetry install --with dev
+    pre-commit install -t commit-msg -t pre-commit
+
+And then start by running the pre-commit hooks to ensure you're stating with a
+_clean_ project::
+
+    pre-commit run --all
+
+And then running the tests::
+
+    pytest
+
+.. _Poetry: https://python-poetry.org
+.. _pre-commit: https://pre-commit.com
+.. _black: https://github.com/psf/black
+.. _mypy: https://github.com/python/mypy
+.. _pylint: https://pypi.org/project/pylint/
+
 Get in touch
 ============
 

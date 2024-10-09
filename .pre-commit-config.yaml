@@ -8,7 +8,7 @@ repos:
 
 # Conventional Commit message checker (commitizen)
 - repo: https://github.com/commitizen-tools/commitizen
-  rev: v3.21.3
+  rev: v3.29.1
   hooks:
   - id: commitizen
     stages:
@@ -19,7 +19,7 @@ repos:
 
 # Standard pre-commit rules
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.1.0
+  rev: v5.0.0
   hooks:
   - id: check-case-conflict
   - id: check-docstring-first
@@ -32,9 +32,18 @@ repos:
   - id: trailing-whitespace
     args:
     - --markdown-linebreak-ext=md
+# isort (in black-compatibility mode)
+- repo: https://github.com/pycqa/isort
+  rev: 5.13.2
+  hooks:
+  - id: isort
+    args:
+    - --profile
+    - black
+    - --filter-files
 # Black (uncompromising) Python code formatter
 - repo: https://github.com/psf/black
-  rev: 24.3.0
+  rev: 24.10.0
   hooks:
   - id: black
     args:
@@ -42,7 +51,7 @@ repos:
     - py312
 # MyPy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.9.0
+  rev: v1.11.2
   hooks:
   - id: mypy
     files: ^workflow
@@ -56,7 +65,7 @@ repos:
   - id: yamllint
 # Pylint
 - repo: https://github.com/pycqa/pylint
-  rev: v3.1.0
+  rev: v3.3.1
   hooks:
   - id: pylint
     name: pylint
