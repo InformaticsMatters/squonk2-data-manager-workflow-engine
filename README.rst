@@ -1,16 +1,17 @@
 Informatics Matters Data Manager Workflow Decoder
 =================================================
 
-   :target: https://badge.fury.io/py/im-data-manager-workflow-decoder
-   :alt: PyPI package (latest)
+.. image:: https://badge.fury.io/py/im-data-manager-workflow-decoder.svg
+    :target: https://badge.fury.io/py/im-data-manager-workflow-decoder
+    :alt: PyPI package (latest)
 
 .. image:: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/build.yaml/badge.svg
-   :target: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/build.yaml
-   :alt: Build
+    :target: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/build.yaml
+    :alt: Build
 
 .. image:: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/publish.yaml/badge.svg
-   :target: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/publish.yaml
-   :alt: Publish
+    :target: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/publish.yaml
+    :alt: Publish
 
 A package that simplifies the validation and decoding of Data Manager
 Workflow definitions.
