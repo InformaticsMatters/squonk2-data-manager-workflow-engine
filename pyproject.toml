@@ -3,7 +3,7 @@ name = "im-data-manager-workflow-decoder"
 version = "0.1.0"
 description = ""
 authors = ["Alan Christie <achristie@informaticsmatters.com>"]
-readme = "README.md"
+readme = "README.rst"
 packages = [
     { include = "workflow", from = "." }
 ]

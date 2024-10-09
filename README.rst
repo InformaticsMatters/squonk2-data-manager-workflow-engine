@@ -1,0 +1,36 @@
+Informatics Matters Data Manager Workflow Decoder
+=================================================
+
+   :target: https://badge.fury.io/py/im-data-manager-workflow-decoder
+   :alt: PyPI package (latest)
+
+.. image:: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/build.yaml/badge.svg
+   :target: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/build.yaml
+   :alt: Build
+
+.. image:: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/publish.yaml/badge.svg
+   :target: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/publish.yaml
+   :alt: Publish
+
+A package that simplifies the validation and decoding of Data Manager
+Workflow definitions.
+
+## Installation (Python)
+The Job decoder is published on `PyPI`_ and can be installed from there:
+
+    pip install im-data-manager-workflow-decoder
+
+Once installed you can validate the workflow definition (expected to be a dictionary
+formed from the definition YAML file) with:
+
+    >>> from workflow import decoder
+    >>> error: Optional[str] = decoder.validate_schema(workflow)
+
+.. _PyPI: https://pypi.org/project/im-data-manager-workflow-decoder
+
+Get in touch
+============
+
+- Report bugs, suggest features or view the source code `on GitHub`_.
+
+.. _on GitHub: https://github.com/informaticsmatters/squonk2-data-manager-workflow-decoder
