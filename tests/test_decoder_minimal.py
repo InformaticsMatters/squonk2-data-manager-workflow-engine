@@ -7,7 +7,6 @@ pytestmark = pytest.mark.unit
 
 from workflow import decoder
 
-
 # A minimal Workflow Definition.
 # Tests can use this and adjust accordingly.
 _MINIMAL: Dict[str, Any] = {
