@@ -9,6 +9,8 @@ title: Data Manager Workflow Schema
 description: >-
   The Schema for Data Manager Workflows
 
+# The root-level object -------------------------------------------------------
+
 type: object
 properties:
   kind:
@@ -17,12 +19,47 @@ properties:
     enum:
     - '2024.1'
   name:
-    type: string
-    description: The name of the workflow
+    $ref: '#/definitions/rfc1035-label-name'
   description:
     type: string
     description: A description of the workflow
+  author:
+    type: string
+    description: The author of the workflow
+  last-editor:
+    type: string
+    description: The last person to modify the workflow
+  steps:
+    type: array
+    items:
+      $ref: "#/definitions/step"
 required:
 - kind
 - kind-version
 - name
+- steps
+
+# Sub-object definitions ------------------------------------------------------
+
+definitions:
+
+  # RFC 1035 Label Names (as used in Kubernetes)
+  # See https://kubernetes.io/docs/concepts/overview/working-with-objects/names/
+  rfc1035-label-name:
+    type: string
+    pattern: ^[a-z][a-z0-9-]{,63}(?<!-)$
+
+  step:
+    type: object
+    properties:
+      name:
+        $ref: '#/definitions/rfc1035-label-name'
+      description:
+        type: string
+        description: A description of the step
+      specification:
+        type: string
+        description: The Data Manager Job Specification, a JSON string
+    required:
+    - name
+    - specification

@@ -12,7 +12,13 @@ from workflow import decoder
 _MINIMAL: Dict[str, Any] = {
     "kind": "DataManagerWorkflow",
     "kind-version": "2024.1",
-    "name": "test-minimal",
+    "name": "workflow-minimal",
+    "steps": [
+        {
+            "name": "step-1",
+            "specification": "{}",
+        }
+    ],
 }
 
 
