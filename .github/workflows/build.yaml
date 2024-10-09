@@ -51,6 +51,7 @@ jobs:
     - name: Test
       run: |
         poetry run pre-commit run --all-files
+        poetry run pytest
     - name: Build
       run: |
         poetry build
