@@ -23,12 +23,6 @@ properties:
   description:
     type: string
     description: A description of the workflow
-  author:
-    type: string
-    description: The author of the workflow
-  last-editor:
-    type: string
-    description: The last person to modify the workflow
   steps:
     type: array
     items:

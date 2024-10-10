@@ -30,3 +30,29 @@ def test_validate_minimal():
 
     # Assert
     assert error is None
+
+
+def test_validate_without_name():
+    # Arrange
+    workflow = _MINIMAL.copy()
+    _ = workflow.pop("name", None)
+
+    # Act
+    error = decoder.validate_schema(workflow)
+
+    # Assert
+    assert error == "'name' is a required property"
+
+
+def test_validate_name_with_spaces():
+    # Arrange
+    workflow = _MINIMAL.copy()
+    workflow["name"] = "workflow with spaces"
+
+    # Act
+    error = decoder.validate_schema(workflow)
+
+    # Assert
+    assert (
+        error == "'workflow with spaces' does not match '^[a-z][a-z0-9-]{,63}(?<!-)$'"
+    )
