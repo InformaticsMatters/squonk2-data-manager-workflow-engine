@@ -51,7 +51,8 @@ _clean_ project::
 
 And then run the tests::
 
-    pytest
+    coverage run -m pytest
+    coverage report
 
 .. _Poetry: https://python-poetry.org
 .. _pre-commit: https://pre-commit.com
