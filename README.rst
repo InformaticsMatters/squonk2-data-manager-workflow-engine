@@ -1,16 +1,16 @@
-Informatics Matters Data Manager Workflow Decoder
-=================================================
+Informatics Matters Data Manager Workflow Engine
+================================================
 
-.. image:: https://badge.fury.io/py/im-data-manager-workflow-decoder.svg
-    :target: https://badge.fury.io/py/im-data-manager-workflow-decoder
+.. image:: https://badge.fury.io/py/im-data-manager-workflow-engine.svg
+    :target: https://badge.fury.io/py/im-data-manager-workflow-engine
     :alt: PyPI package (latest)
 
-.. image:: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/build.yaml/badge.svg
-    :target: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/build.yaml
+.. image:: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-engine/actions/workflows/build.yaml/badge.svg
+    :target: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-engine/actions/workflows/build.yaml
     :alt: Build
 
-.. image:: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/publish.yaml/badge.svg
-    :target: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-decoder/actions/workflows/publish.yaml
+.. image:: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-engine/actions/workflows/publish.yaml/badge.svg
+    :target: https://github.com/InformaticsMatters/squonk2-data-manager-workflow-engine/actions/workflows/publish.yaml
     :alt: Publish
 
 A package that simplifies the validation and decoding of Data Manager
@@ -21,7 +21,7 @@ Installation (Python)
 
 The Job decoder is published on `PyPI`_ and can be installed from there:
 
-    pip install im-data-manager-workflow-decoder
+    pip install im-data-manager-workflow-engine
 
 Once installed you can validate the workflow definition (expected to be a dictionary
 formed from the definition YAML file) with:
@@ -29,7 +29,7 @@ formed from the definition YAML file) with:
     >>> from workflow import decoder
     >>> error: Optional[str] = decoder.validate_schema(workflow)
 
-.. _PyPI: https://pypi.org/project/im-data-manager-workflow-decoder
+.. _PyPI: https://pypi.org/project/im-data-manager-workflow-engine
 
 Contributing
 ============
@@ -65,4 +65,4 @@ Get in touch
 
 - Report bugs, suggest features or view the source code `on GitHub`_.
 
-.. _on GitHub: https://github.com/informaticsmatters/squonk2-data-manager-workflow-decoder
+.. _on GitHub: https://github.com/informaticsmatters/squonk2-data-manager-workflow-engine

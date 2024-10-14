@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "im-data-manager-workflow-decoder"
+name = "im-data-manager-workflow-engine"
 version = "0.1.0"
-description = "The Data Manager workflow schema and decoder."
+description = "The Data Manager workflow engine, schema and decoder."
 authors = [
     "Alan Christie <achristie@informaticsmatters.com>",
     "Kalev Takkis <ktakkis@informaticsmatters.com>"
