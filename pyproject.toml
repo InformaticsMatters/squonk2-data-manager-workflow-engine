@@ -29,3 +29,8 @@ build-backend = "poetry.core.masonry.api"
 omit = [
     "tests/*",
 ]
+
+[tool.pylint]
+disable = [
+    "too-few-public-methods",
+]
