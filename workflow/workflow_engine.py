@@ -40,10 +40,8 @@ _SUCCESS_MESSAGE_RESULT: HandlePodMessageResult = HandlePodMessageResult(
 _SUCCESS_STOP_RESULT: StopResult = StopResult(error=0, error_msg=None)
 
 
-class WorkflowValidator:
-    """The workflow validator. Typically used from teh context of the API
-    to check workflow content prior to creation and execution.
-    """
+class WorkflowEngine:
+    """The workflow engine."""
 
     def __init__(
         self,
@@ -62,6 +60,11 @@ class WorkflowValidator:
     ) -> HandlePodMessageResult:
         """Given a PodMessage, we use it to identify the Pod (Instance) exit code,
         workflow and step and decide what to do next.
+
+        Only pod messages relating to workflow instances will be delivered to this method.
+        The Pod message has an 'instance' property that provides the UUID of
+        the instance that was run. This can be used to correlate the instance with the
+        running workflow step.
         """
         assert pod_msg
 
