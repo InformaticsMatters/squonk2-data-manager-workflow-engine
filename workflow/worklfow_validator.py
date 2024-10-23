@@ -48,7 +48,7 @@ class WorkflowValidator:
         *,
         level: ValidationLevel,
         workflow_definition: Dict[str, Any],
-        workflow_inputs: Optional[Dict[str, Any]],
+        workflow_inputs: Optional[Dict[str, Any]] = None,
     ) -> ValidationResult:
         """Validates the workflow definition (and inputs) based
         on the provided 'level'."""

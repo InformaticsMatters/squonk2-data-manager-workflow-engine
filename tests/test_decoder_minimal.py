@@ -1,32 +1,27 @@
 # Tests for the decoder package.
+import os
 from typing import Any, Dict
 
 import pytest
+import yaml
 
 pytestmark = pytest.mark.unit
 
 from workflow import decoder
 
-# A minimal Workflow Definition.
-# Tests can use this and adjust accordingly.
-_MINIMAL: Dict[str, Any] = {
-    "kind": "DataManagerWorkflow",
-    "kind-version": "2024.1",
-    "name": "workflow-minimal",
-    "steps": [
-        {
-            "name": "step-1",
-            "specification": "{}",
-        }
-    ],
-}
+_MINIMAL_WORKFLOW_FILE: str = os.path.join(
+    os.path.dirname(__file__), "workflow-definitions", "minimal.yaml"
+)
+with open(_MINIMAL_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
+    _MINIMAL_WORKFLOW: Dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+assert _MINIMAL_WORKFLOW
 
 
 def test_validate_minimal():
     # Arrange
 
     # Act
-    error = decoder.validate_schema(_MINIMAL)
+    error = decoder.validate_schema(_MINIMAL_WORKFLOW)
 
     # Assert
     assert error is None
@@ -34,7 +29,7 @@ def test_validate_minimal():
 
 def test_validate_without_name():
     # Arrange
-    workflow = _MINIMAL.copy()
+    workflow = _MINIMAL_WORKFLOW.copy()
     _ = workflow.pop("name", None)
 
     # Act
@@ -46,7 +41,7 @@ def test_validate_without_name():
 
 def test_validate_name_with_spaces():
     # Arrange
-    workflow = _MINIMAL.copy()
+    workflow = _MINIMAL_WORKFLOW.copy()
     workflow["name"] = "workflow with spaces"
 
     # Act
