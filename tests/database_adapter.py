@@ -15,7 +15,8 @@ assert _JOB_DEFINITIONS
 
 
 class UnitTestDatabaseAdapter(DatabaseAdapter):
-    """A minimal Database adapter simply to serve-up Job Definitions."""
+    """A minimal Database adapter simply to serve-up Job Definitions
+    from the job-definitions/job-definitions.yaml file."""
 
     def get_workflow(self, *, workflow_definition_id: str) -> Optional[Dict[str, Any]]:
         return {}
