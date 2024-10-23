@@ -1,0 +1,23 @@
+---
+# Job definitions used exclusively for unit testing.
+# They provide sufficient information to 'masquerade' as real jobs
+# and are served up by the UnitTestDatabaseAdapter (found in the tests directory).
+#
+# This offers bare-essential job definitions that are used to test
+# the workflow engine. It does not fully comply with the Job definition schema -
+# only those that we need for testing the Workflow Engine.
+#
+# All jobs used for unit testing must be defined in this file.
+#
+# For each job you must provide: -
+# - Job version (and only one version for each Job)
+# - Job command
+
+collection: workflow-engine-unit-test-jobs
+
+jobs:
+
+  nop:
+    version: "1.0.0"
+    command: >-
+      python --version

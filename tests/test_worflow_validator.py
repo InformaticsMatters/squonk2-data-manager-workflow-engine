@@ -1,34 +1,17 @@
-# Tests for the decoder package.
-from typing import Any, Dict
+# Tests for the WorkflowValidator
 
 import pytest
 
 pytestmark = pytest.mark.unit
 
+from tests.database_adapter import UnitTestDatabaseAdapter
 from tests.test_decoder_minimal import _MINIMAL_WORKFLOW
-from workflow.worklfow_validator import (
-    DatabaseAdapter,
-    ValidationLevel,
-    WorkflowValidator,
-)
-
-
-class DummyDatabaseAdapter(DatabaseAdapter):
-    """A minimal Database adapter simply to satisfy the tests in this file."""
-
-    def get_workflow(self, *, workflow_definition_id: str) -> Dict[str, Any]:
-        return _MINIMAL_WORKFLOW
-
-    def get_workflow_by_name(self, *, name: str, version: str) -> Dict[str, Any]:
-        return _MINIMAL_WORKFLOW
-
-    def get_job(self, *, collection: str, job: str, version: str) -> Dict[str, Any]:
-        return {}
+from workflow.worklfow_validator import ValidationLevel, WorkflowValidator
 
 
 def test_validate_minimal_for_create():
     # Arrange
-    db_adapter = DummyDatabaseAdapter()
+    db_adapter = UnitTestDatabaseAdapter()
     validator = WorkflowValidator(db_adapter=db_adapter)
 
     # Act
