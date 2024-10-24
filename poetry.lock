@@ -158,13 +158,13 @@ license = ["ukkonen"]
 
 [[package]]
 name = "im-protobuf"
-version = "7.0.0"
+version = "7.1.0"
 description = "Cross-product protocol buffers"
 optional = false
 python-versions = "*"
 files = [
-    {file = "im-protobuf-7.0.0.tar.gz", hash = "sha256:082202125195994dbbe65b6e5e52ac3d611d447b881a3b7f7bf6106352897d45"},
-    {file = "im_protobuf-7.0.0-py3-none-any.whl", hash = "sha256:85285fd45a47df980bdf3f0caf393995e41570f93b705531f65fa601496b8583"},
+    {file = "im_protobuf-7.1.0-py3-none-any.whl", hash = "sha256:22f41867f9fa60c50b7a0e2c6ab0524d1d43ff57e4f44c5845ace6d816375f8d"},
+    {file = "im_protobuf-7.1.0.tar.gz", hash = "sha256:d94b473e02b329fa0aba53cd29ccf0705cc1a631618317eeea1efcdd6f262c59"},
 ]
 
 [package.dependencies]
@@ -539,4 +539,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "c2cf650a855540df0cf4c855f79802a65de61a230a0403df0cb9636fb4f5b695"
+content-hash = "15898d7274a26e96d4f3d27d32c3fdc1f45fb9c9ca81feb29b9af46b320cb6a2"
