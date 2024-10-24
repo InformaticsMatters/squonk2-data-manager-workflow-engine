@@ -6,7 +6,7 @@ from typing import Optional
 
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 
-from .workflow_abc import DatabaseAdapter, InstanceLauncher, MessageDispatcher
+from .workflow_abc import DatabaseAdapter, InstanceLauncher
 
 
 @dataclass
@@ -33,12 +33,10 @@ class WorkflowEngine:
         *,
         instance_launcher: InstanceLauncher,
         db_adapter: DatabaseAdapter,
-        msg_dispatcher: MessageDispatcher,
     ):
         # Keep the dependent objects
         self._instance_launcher = instance_launcher
         self._db_adapter = db_adapter
-        self._msg_dispatcher = msg_dispatcher
 
     def handle_pod_message(
         self,

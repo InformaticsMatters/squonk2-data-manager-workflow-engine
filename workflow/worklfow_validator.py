@@ -67,8 +67,8 @@ class WorkflowValidator:
         workflow_definition: Dict[str, Any],
         workflow_inputs: Optional[Dict[str, Any]] = None,
     ) -> ValidationResult:
-        """Validates the workflow definition (and inputs) based
-        on the provided 'level'."""
+        """Validates the workflow definition (and inputs)
+        based on the provided 'level'."""
         assert level in ValidationLevel
         assert isinstance(workflow_definition, dict)
         if workflow_inputs:

@@ -18,6 +18,7 @@ class LaunchResult:
     error_msg: Optional[str]
     instance_id: Optional[str]
     task_id: Optional[str]
+    command: Optional[str]
 
 
 class InstanceLauncher(ABC):

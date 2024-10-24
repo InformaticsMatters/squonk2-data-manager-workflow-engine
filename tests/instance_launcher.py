@@ -9,13 +9,6 @@ from workflow.workflow_abc import InstanceLauncher, LaunchResult
 
 _JOB_DIRECTORY: str = os.path.join(os.path.dirname(__file__), "jobs")
 
-_SUCCESS_LAUNCH_RESULT: LaunchResult = LaunchResult(
-    error=0,
-    error_msg=None,
-    instance_id="instance-00000000-0000-0000-0000-000000000000",
-    task_id="task-00000000-0000-0000-0000-000000000000",
-)
-
 
 class UnitTestInstanceLauncher(InstanceLauncher):
     """A unit test instance launcher, which runs the
@@ -47,4 +40,10 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         completed_process: CompletedProcess = subprocess.run(job_cmd, check=True)
         assert completed_process.returncode == 0
 
-        return _SUCCESS_LAUNCH_RESULT
+        return LaunchResult(
+            error=0,
+            error_msg=None,
+            instance_id="instance-00000000-0000-0000-0000-000000000000",
+            task_id="task-00000000-0000-0000-0000-000000000000",
+            command=" ".join(job_cmd),
+        )

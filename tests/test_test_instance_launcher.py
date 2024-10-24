@@ -23,3 +23,5 @@ def test_get_nop_job():
 
     # Assert
     assert result.error == 0
+    assert result.command.startswith("python ")
+    assert result.command.endswith("tests/jobs/nop.py")
