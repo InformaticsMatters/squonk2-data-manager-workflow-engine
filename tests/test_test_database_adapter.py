@@ -1,9 +1,6 @@
 # Tests for the decoder package.
-import os
-from typing import Any, Dict
 
 import pytest
-import yaml
 
 pytestmark = pytest.mark.unit
 

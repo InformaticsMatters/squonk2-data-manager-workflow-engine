@@ -29,12 +29,9 @@ class UnitTestDatabaseAdapter(DatabaseAdapter):
     def get_job(
         self, *, collection: str, job: str, version: str
     ) -> Optional[Dict[str, Any]]:
-        if collection != _JOB_DEFINITIONS["collection"]:
-            return 1
-        if job not in _JOB_DEFINITIONS["jobs"]:
-            return 2
-        if version != _JOB_DEFINITIONS["jobs"][job]["version"]:
-            return 3
+        assert collection == _JOB_DEFINITIONS["collection"]
+        assert job in _JOB_DEFINITIONS["jobs"]
+
         jd = _JOB_DEFINITIONS["jobs"][job]
         response = {"command": jd["command"]}
         if "variables" in jd:

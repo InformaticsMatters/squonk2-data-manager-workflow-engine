@@ -10,14 +10,17 @@
 # All jobs used for unit testing must be defined in this file.
 #
 # For each job you must provide: -
-# - Job version (and only one version for each Job)
 # - Job command
+#
+# The command is meaningless as the job that is run is expected to be
+# a Python 3 module called <job>.py in the tests/jobs directory.
+# So a nop job would have a corresponding Python module called nop.py.
+# The test instance_launcher module will run the job.
 
 collection: workflow-engine-unit-test-jobs
 
 jobs:
 
   nop:
-    version: "1.0.0"
     command: >-
       python --version

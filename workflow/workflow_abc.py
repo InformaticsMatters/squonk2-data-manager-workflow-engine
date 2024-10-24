@@ -4,7 +4,10 @@ Interface definitions of class instances that must be provided to the Engine.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
+
+from google.protobuf.message import Message
+from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 
 
 @dataclass
@@ -29,6 +32,7 @@ class InstanceLauncher(ABC):
         workflow_definition: Dict[str, Any],
         step: str,
         step_specification: Dict[str, Any],
+        completion_callback: Optional[Callable[[PodMessage], None]],
     ) -> LaunchResult:
         """Launch a (Job) Instance"""
 
@@ -43,6 +47,11 @@ class InstanceLauncher(ABC):
         # step_specification by the WE? Remember that we have to deal with
         # "input Handlers" that manipulate the specification variables.
         # See _instance_preamble() in the DM's api_instance.py module.
+        #
+        # The completion_callback is only used in local testing and is a function
+        # that should be able to process a PodMessage that indicates a workflow Job
+        # has completed. When the WorkflowEngine is embedded in the data Manager
+        # the Data Manager will not permit the use of this parameter.
 
 
 class DatabaseAdapter(ABC):
@@ -79,3 +88,11 @@ class DatabaseAdapter(ABC):
         version: str,
     ) -> Optional[Dict[str, Any]]:
         """Get a Job"""
+
+
+class MessageDispatcher(ABC):
+    """The class handling the sending of messages (on the Data Manager message bus)."""
+
+    @abstractmethod
+    def send(self, message: Message) -> None:
+        """Send a message"""
