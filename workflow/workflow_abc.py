@@ -64,6 +64,14 @@ class DatabaseAdapter(ABC):
     records for example."""
 
     @abstractmethod
+    def save_workflow(
+        self,
+        *,
+        workflow_definition: Dict[str, Any],
+    ) -> str:
+        """Save a Workflow, getting an ID in return"""
+
+    @abstractmethod
     def get_workflow(
         self,
         *,
