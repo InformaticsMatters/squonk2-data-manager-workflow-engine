@@ -12,16 +12,20 @@ from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.message_queue import UnitTestMessageQueue
 
 
-def test_get_nop_job():
-    # Arrange
+@pytest.fixture
+def basic_dispatcher():
     utmq = UnitTestMessageQueue()
-    utmd = UnitTestMessageDispatcher(msg_queue=utmq)
+    return UnitTestMessageDispatcher(msg_queue=utmq)
+
+
+def test_get_nop_job(basic_dispatcher):
+    # Arrange
     msg = WorkflowMessage()
     msg.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
     msg.action = "START"
     msg.running_workflow = "r-workflow-00000000-0000-0000-0000-000000000000"
 
     # Act
-    utmd.send(msg)
+    basic_dispatcher.send(msg)
 
     # Assert

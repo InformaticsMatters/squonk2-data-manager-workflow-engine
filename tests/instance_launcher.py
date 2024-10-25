@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 
+from tests.message_dispatcher import UnitTestMessageDispatcher
 from workflow.workflow_abc import InstanceLauncher, LaunchResult
 
 _JOB_DIRECTORY: str = os.path.join(os.path.dirname(__file__), "jobs")
@@ -13,7 +14,14 @@ _JOB_DIRECTORY: str = os.path.join(os.path.dirname(__file__), "jobs")
 class UnitTestInstanceLauncher(InstanceLauncher):
     """A unit test instance launcher, which runs the
     Python module that matches the job name in the provided specification.
+    It also uses the UnitTestMessageDispatcher to send the simulated
+    'end of instance' PodMessage (to the WorkflowEngine).
     """
+
+    def __init__(self, msg_dispatcher: UnitTestMessageDispatcher):
+        super().__init__()
+
+        self._msg_dispatcher = msg_dispatcher
 
     def launch(
         self,

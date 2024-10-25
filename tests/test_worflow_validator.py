@@ -11,15 +11,21 @@ from tests.test_decoder_minimal import _MINIMAL_WORKFLOW
 from workflow.worklfow_validator import ValidationLevel, WorkflowValidator
 
 
-def test_validate_minimal_for_create():
-    # Arrange
-    msg_queue = UnitTestMessageQueue()
+@pytest.fixture
+def basic_validator():
+    # A 'basic' unit-test WorkflowAdapter needs a DB adapter and Message Dispatcher.
+    # For testing outside of the DM the Message Dispatcher also needs a Message Queue
     db_adapter = UnitTestDatabaseAdapter()
+    msg_queue = UnitTestMessageQueue()
     msg_dispatcher = UnitTestMessageDispatcher(msg_queue=msg_queue)
-    validator = WorkflowValidator(db_adapter=db_adapter, msg_dispatcher=msg_dispatcher)
+    return WorkflowValidator(db_adapter=db_adapter, msg_dispatcher=msg_dispatcher)
+
+
+def test_validate_minimal_for_create(basic_validator):
+    # Arrange
 
     # Act
-    error = validator.validate(
+    error = basic_validator.validate(
         level=ValidationLevel.CREATE,
         workflow_definition=_MINIMAL_WORKFLOW,
     )

@@ -5,14 +5,22 @@ import pytest
 pytestmark = pytest.mark.unit
 
 from tests.instance_launcher import UnitTestInstanceLauncher
+from tests.message_dispatcher import UnitTestMessageDispatcher
+from tests.message_queue import UnitTestMessageQueue
 
 
-def test_get_nop_job():
+@pytest.fixture
+def basic_launcher():
+    utmq = UnitTestMessageQueue()
+    utmd = UnitTestMessageDispatcher(msg_queue=utmq)
+    return UnitTestInstanceLauncher(msg_dispatcher=utmd)
+
+
+def test_get_nop_job(basic_launcher):
     # Arrange
-    util = UnitTestInstanceLauncher()
 
     # Act
-    result = util.launch(
+    result = basic_launcher.launch(
         project_id="project-00000000-0000-0000-0000-000000000000",
         workflow_id="workflow-00000000-0000-0000-0000-000000000000",
         workflow_definition={},

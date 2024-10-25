@@ -19,41 +19,41 @@ class Receiver:
         print(f"Received message ({type(msg).__name__})")
 
 
-def test_start_and_stop():
-    # Arrange
+@pytest.fixture
+def basic_queue():
     receiver = Receiver()
     utmq = UnitTestMessageQueue(receiver=receiver.handle_msg)
     utmq.start()
-
-    # Act
+    yield utmq
     utmq.stop()
     utmq.join()
+
+
+def test_start_and_stop(basic_queue):
+    # Arrange
+
+    # Act
+    pass
 
     # Assert
 
 
-def test_send_messages():
+def test_send_messages(basic_queue):
     # Arrange
-    receiver = Receiver()
-    utmq = UnitTestMessageQueue(receiver=receiver.handle_msg)
-    utmq.start()
 
     # Act
     msg = WorkflowMessage()
     msg.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
     msg.action = "START"
     msg.running_workflow = "r-workflow-00000000-0000-0000-0000-000000000000"
-    utmq.put(msg)
+    basic_queue.put(msg)
 
     msg = WorkflowMessage()
     msg.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
     msg.action = "STOP"
     msg.running_workflow = "r-workflow-00000000-0000-0000-0000-000000000000"
-    utmq.put(msg)
+    basic_queue.put(msg)
 
     time.sleep(0.5)
-
-    utmq.stop()
-    utmq.join()
 
     # Assert
