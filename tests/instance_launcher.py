@@ -35,7 +35,6 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         workflow_id: str,
         running_workflow_step_id: str,
         workflow_definition: Dict[str, Any],
-        step: str,
         step_specification: Dict[str, Any],
     ) -> LaunchResult:
         assert project_id
