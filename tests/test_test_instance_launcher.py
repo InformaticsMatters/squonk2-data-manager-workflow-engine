@@ -15,22 +15,31 @@ def basic_launcher():
     api_adapter = UnitTestAPIAdapter()
     message_queue = UnitTestMessageQueue()
     message_dispatcher = UnitTestMessageDispatcher(msg_queue=message_queue)
-    return UnitTestInstanceLauncher(
+    instance_launcher = UnitTestInstanceLauncher(
         api_adapter=api_adapter, msg_dispatcher=message_dispatcher
     )
+    return [api_adapter, instance_launcher]
 
 
 def test_get_nop_job(basic_launcher):
     # Arrange
+    utaa = basic_launcher[0]
+    launcher = basic_launcher[1]
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    response = utaa.create_running_workflow(workflow_definition_id=response["id"])
+    response = utaa.create_running_workflow_step(
+        running_workflow_id=response["id"], step="step-1"
+    )
+    rwfsid = response["id"]
 
     # Act
-    result = basic_launcher.launch(
+    result = launcher.launch(
         project_id="project-00000000-0000-0000-0000-000000000000",
         workflow_id="workflow-00000000-0000-0000-0000-000000000000",
+        running_workflow_step_id=rwfsid,
         workflow_definition={},
         step="step-1",
         step_specification={"job": "nop"},
-        completion_callback=None,
     )
 
     # Assert

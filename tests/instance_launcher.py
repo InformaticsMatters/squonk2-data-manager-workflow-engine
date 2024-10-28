@@ -1,7 +1,8 @@
 import os
 import subprocess
+from datetime import datetime, timezone
 from subprocess import CompletedProcess
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List
 
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 
@@ -32,14 +33,26 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         *,
         project_id: str,
         workflow_id: str,
+        running_workflow_step_id: str,
         workflow_definition: Dict[str, Any],
         step: str,
         step_specification: Dict[str, Any],
-        completion_callback: Optional[Callable[[PodMessage], None]],
     ) -> LaunchResult:
         assert project_id
         assert workflow_id
         assert step_specification
+
+        # We're passed a RunningWorkflowStep ID but a record is expected to have been
+        # created bt the caller, we simply create instance records.
+        response = self._api_adapter.get_running_workflow_step(
+            running_workflow_step_id=running_workflow_step_id
+        )
+        assert "running_workflow_step" in response
+        # Now simulate the creation of an Instance record
+        response = self._api_adapter.create_instance(
+            running_workflow_step_id=running_workflow_step_id
+        )
+        instance_id = response["instance_id"]
 
         # Just run the Python module that matched the 'job' in the step specification.
         # Don't care about 'version' or 'collection'.
@@ -52,10 +65,20 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         completed_process: CompletedProcess = subprocess.run(job_cmd, check=True)
         assert completed_process.returncode == 0
 
+        # Simulate a PodMessage (that will contain the instance ID),
+        # filling-in only the fields that are of use to the Engine.
+        pod_message = PodMessage()
+        pod_message.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
+        pod_message.phase = "Completed"
+        pod_message.instance = instance_id
+        pod_message.has_exit_code = True
+        pod_message.exit_code = 0
+        self._msg_dispatcher.send(pod_message)
+
         return LaunchResult(
             error=0,
             error_msg=None,
-            instance_id="instance-00000000-0000-0000-0000-000000000000",
+            instance_id=instance_id,
             task_id="task-00000000-0000-0000-0000-000000000000",
             command=" ".join(job_cmd),
         )
