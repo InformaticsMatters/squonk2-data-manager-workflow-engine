@@ -20,7 +20,9 @@ def basic_engine():
     api_adapter = UnitTestAPIAdapter()
     message_queue = UnitTestMessageQueue()
     message_dispatcher = UnitTestMessageDispatcher(msg_queue=message_queue)
-    instance_launcher = UnitTestInstanceLauncher(msg_dispatcher=message_dispatcher)
+    instance_launcher = UnitTestInstanceLauncher(
+        api_adapter=api_adapter, msg_dispatcher=message_dispatcher
+    )
     return [
         api_adapter,
         message_dispatcher,
@@ -34,7 +36,7 @@ def test_workflow_engine_with_example_1(basic_engine):
     # LOAD THE EXAMPLE-1 WORKFLOW DEFINITION INTO THE DATABASE
     # TODO
     # SIMULATE THE API CREATION OF A RUNNING WORKFLOW FROM THE WORKFLOW
-    wfid = da.save_workflow(workflow_definition={"name": "example-1"})
+    wfid = da.create_workflow(workflow_definition={"name": "example-1"})
     assert wfid
     response = da.create_running_workflow(workflow_definition_id=wfid)
     r_wfid = response["id"]
@@ -57,7 +59,7 @@ def test_workflow_engine_with_example_1(basic_engine):
     r_wf = None
     while not done:
         response = da.get_running_workflow(running_workflow_id=r_wfid)
-        r_wf = response["running-workflow"]
+        r_wf = response["running_workflow"]
         if r_wf["done"]:
             done = True
         else:
@@ -73,6 +75,6 @@ def test_workflow_engine_with_example_1(basic_engine):
     response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
     # TODO - The following should not be zero but the implementation does not set it yet
     assert response["count"] == 0
-    for step in response["running-workflow-steps"]:
-        assert step["running-workflow-step"]["done"]
-        assert step["running-workflow-step"]["success"]
+    for step in response["running_workflow_steps"]:
+        assert step["running_workflow_step"]["done"]
+        assert step["running_workflow_step"]["success"]

@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 
+from tests.api_adapter import UnitTestAPIAdapter
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from workflow.workflow_abc import InstanceLauncher, LaunchResult
 
@@ -18,9 +19,12 @@ class UnitTestInstanceLauncher(InstanceLauncher):
     'end of instance' PodMessage (to the WorkflowEngine).
     """
 
-    def __init__(self, msg_dispatcher: UnitTestMessageDispatcher):
+    def __init__(
+        self, api_adapter: UnitTestAPIAdapter, msg_dispatcher: UnitTestMessageDispatcher
+    ):
         super().__init__()
 
+        self._api_adapter = api_adapter
         self._msg_dispatcher = msg_dispatcher
 
     def launch(

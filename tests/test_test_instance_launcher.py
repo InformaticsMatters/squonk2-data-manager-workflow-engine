@@ -4,6 +4,7 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
+from tests.api_adapter import UnitTestAPIAdapter
 from tests.instance_launcher import UnitTestInstanceLauncher
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.message_queue import UnitTestMessageQueue
@@ -11,9 +12,12 @@ from tests.message_queue import UnitTestMessageQueue
 
 @pytest.fixture
 def basic_launcher():
-    utmq = UnitTestMessageQueue()
-    utmd = UnitTestMessageDispatcher(msg_queue=utmq)
-    return UnitTestInstanceLauncher(msg_dispatcher=utmd)
+    api_adapter = UnitTestAPIAdapter()
+    message_queue = UnitTestMessageQueue()
+    message_dispatcher = UnitTestMessageDispatcher(msg_queue=message_queue)
+    return UnitTestInstanceLauncher(
+        api_adapter=api_adapter, msg_dispatcher=message_dispatcher
+    )
 
 
 def test_get_nop_job(basic_launcher):

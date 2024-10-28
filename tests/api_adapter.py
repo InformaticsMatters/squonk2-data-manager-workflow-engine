@@ -13,6 +13,7 @@ with open(_JOB_DEFINITION_FILE, "r", encoding="utf8") as jd_file:
     _JOB_DEFINITIONS: Dict[str, Any] = yaml.load(jd_file, Loader=yaml.FullLoader)
 assert _JOB_DEFINITIONS
 
+_INSTANCE_ID_FORMAT: str = "instance-00000000-0000-0000-0000-{id:012d}"
 _WORKFLOW_DEFINITION_ID_FORMAT: str = "workflow-00000000-0000-0000-0000-{id:012d}"
 _RUNNING_WORKFLOW_ID_FORMAT: str = "r-workflow-00000000-0000-0000-0000-{id:012d}"
 _RUNNING_WORKFLOW_STEP_ID_FORMAT: str = (
@@ -31,8 +32,9 @@ class UnitTestAPIAdapter(APIAdapter):
         self._workflow_definitions: Dict[str, Dict[str, Any]] = {}
         self._running_workflow: Dict[str, Dict[str, Any]] = {}
         self._running_workflow_steps: Dict[str, Dict[str, Any]] = {}
+        self._instances: Dict[str, Dict[str, Any]] = {}
 
-    def save_workflow(self, *, workflow_definition: Dict[str, Any]) -> str:
+    def create_workflow(self, *, workflow_definition: Dict[str, Any]) -> str:
         next_id: int = len(self._workflow_definitions) + 1
         workflow_definition_id: str = _WORKFLOW_DEFINITION_ID_FORMAT.format(id=next_id)
         self._workflow_definitions[workflow_definition_id] = workflow_definition
@@ -60,17 +62,20 @@ class UnitTestAPIAdapter(APIAdapter):
     def get_running_workflow(self, *, running_workflow_id: str) -> Dict[str, Any]:
         if running_workflow_id not in self._running_workflow:
             return {}
-        return {"running-workflow": self._running_workflow[running_workflow_id]}
+        return {"running_workflow": self._running_workflow[running_workflow_id]}
 
-    def create_running_workflow_step(self, *, running_workflow_id: str) -> str:
+    def create_running_workflow_step(
+        self, *, running_workflow_id: str, step: str
+    ) -> str:
         next_id: int = len(self._running_workflow_steps) + 1
         running_workflow_step_id: str = _RUNNING_WORKFLOW_STEP_ID_FORMAT.format(
             id=next_id
         )
         record = {
+            "step": step,
             "done": False,
             "success": False,
-            "running-workflow": running_workflow_id,
+            "running_workflow": running_workflow_id,
         }
         self._running_workflow_steps[running_workflow_step_id] = record
         return {"id": running_workflow_step_id}
@@ -80,17 +85,35 @@ class UnitTestAPIAdapter(APIAdapter):
     ) -> Dict[str, Any]:
         if running_workflow_step_id not in self._running_workflow_steps:
             return {}
-        return {"id": self._running_workflow_steps[running_workflow_step_id]}
+        return {
+            "running_workflow_step": self._running_workflow_steps[
+                running_workflow_step_id
+            ]
+        }
 
     def get_running_workflow_steps(
         self, *, running_workflow_id: str
     ) -> List[Dict[str, Any]]:
         steps = []
         for key, value in self._running_workflow_steps.items():
-            if value["running-workflow"] == running_workflow_id:
-                item = {"running-workflow-step": value, "id": key}
+            if value["running_workflow"] == running_workflow_id:
+                item = {"running_workflow_step": value, "id": key}
                 steps.append(item)
-        return {"count": len(steps), "running-workflow-steps": steps}
+        return {"count": len(steps), "running_workflow_steps": steps}
+
+    def create_instance(self, *, running_workflow_step_id: str) -> Dict[str, Any]:
+        next_id: int = len(self._instances) + 1
+        instance_id: str = _INSTANCE_ID_FORMAT.format(id=next_id)
+        record = {
+            "running_workflow_step": running_workflow_step_id,
+        }
+        self._instances[instance_id] = record
+        return {"instance_id": running_workflow_step_id}
+
+    def get_instance(self, *, instance_id: str) -> Dict[str, Any]:
+        if instance_id not in self._instances:
+            return {}
+        return {self._instances[instance_id]}
 
     def get_job(
         self, *, collection: str, job: str, version: str

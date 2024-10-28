@@ -61,12 +61,12 @@ class APIAdapter(ABC):
     records returning dictionary (API-like) responses."""
 
     @abstractmethod
-    def save_workflow(
+    def create_workflow(
         self,
         *,
         workflow_definition: Dict[str, Any],
-    ) -> str:
-        """Save a Workflow, getting an ID in return"""
+    ) -> Dict[str, Any]:
+        """Create a Workflow, getting an ID in return"""
         # Should return:
         # {
         #    "id": "workflow-00000000-0000-0000-0000-000000000001",
@@ -103,7 +103,7 @@ class APIAdapter(ABC):
         self,
         *,
         workflow_definition_id: str,
-    ) -> str:
+    ) -> Dict[str, Any]:
         """Create a RunningWorkflow Record (from a Workflow)"""
         # Should return:
         # {
@@ -115,7 +115,7 @@ class APIAdapter(ABC):
         """Get a RunningWorkflow Record"""
         # Should return:
         # {
-        #    "running-workflow": {
+        #    "running_workflow": {
         #       "done": False,
         #       "success": false,
         #       "workflow": "workflow-000",
@@ -127,7 +127,7 @@ class APIAdapter(ABC):
         self,
         *,
         running_workflow_id: str,
-    ) -> str:
+    ) -> Dict[str, Any]:
         """Create a RunningWorkflowStep Record (from a RunningWorkflow)"""
         # Should return:
         # {
@@ -141,10 +141,11 @@ class APIAdapter(ABC):
         """Get a RunningWorkflowStep Record"""
         # Should return:
         # {
-        #    "running-workflow-step": {
+        #    "running_workflow_step": {
+        #       "step:": "step-1234",
         #       "done": False,
         #       "success": false,
-        #       "running-workflow": "r-workflow-000",
+        #       "running_workflow": "r-workflow-000",
         #    },
         # }
 
@@ -156,16 +157,35 @@ class APIAdapter(ABC):
         # Should return:
         # {
         #    "count": 1,
-        #    "running-workflow-steps": [
+        #    "running_workflow_steps": [
         #       {
         #           "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
-        #           "running-workflow-step": {
+        #           "running_workflow_step": {
+        #               "step:": "step-1234",
         #               "done": False,
         #               "success": false,
         #               "workflow": "workflow-000",
         #           }
         #       ...
         #    ]
+        # }
+
+    @abstractmethod
+    def create_instance(self, running_workflow_step_id: str) -> Dict[str, Any]:
+        """Create an Instance Record (for a RunningWorkflowStep)"""
+        # Should return:
+        # {
+        #    "instance_id": "instance-00000000-0000-0000-0000-000000000001",
+        #    "task_id": "task-00000000-0000-0000-0000-000000000001",
+        # }
+
+    @abstractmethod
+    def get_instance(self, *, instance_id: str) -> Dict[str, Any]:
+        """Get an Instance Record"""
+        # Should return:
+        # {
+        #    "running_workflow_step": "r-workflow-step-00000000-0000-0000-0000-000000000001",
+        #    [...],
         # }
 
     @abstractmethod
