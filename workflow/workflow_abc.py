@@ -55,13 +55,10 @@ class InstanceLauncher(ABC):
         # the Data Manager will not permit the use of this parameter.
 
 
-class DatabaseAdapter(ABC):
-    """The DatabaseAdapter will not need to provide a save/commit service.
-    Instead it should be assumed that new database records are the
-    responsibility of the governing application code. The WE simply has
-    to implement engine logic and launch instance. The InstanceLauncher
-    is responsible for creating RunningWorkflow and RunningWorkflowStep
-    records for example."""
+class APIAdapter(ABC):
+    """The APIAdapter providing read/write access to the Model. It provides
+    the ability to create and retrieve Workflow, RunningWorkflow and RunningWorkflowStep
+    records returning dictionary (API-like) responses."""
 
     @abstractmethod
     def save_workflow(

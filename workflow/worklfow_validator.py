@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from .decoder import validate_schema
-from .workflow_abc import DatabaseAdapter, MessageDispatcher
+from .workflow_abc import APIAdapter, MessageDispatcher
 
 
 class ValidationLevel(Enum):
@@ -52,12 +52,10 @@ class WorkflowValidator:
     to check workflow content prior to creation and execution.
     """
 
-    def __init__(
-        self, *, db_adapter: DatabaseAdapter, msg_dispatcher: MessageDispatcher
-    ):
-        assert db_adapter
+    def __init__(self, *, api_adapter: APIAdapter, msg_dispatcher: MessageDispatcher):
+        assert api_adapter
 
-        self._db_adapter = db_adapter
+        self._api_adapter = api_adapter
         self._msg_dispatcher = msg_dispatcher
 
     def validate(

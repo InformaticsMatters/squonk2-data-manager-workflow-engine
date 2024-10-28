@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from workflow.workflow_abc import DatabaseAdapter
+from workflow.workflow_abc import APIAdapter
 
 # Load the Unit test Job Definitions file now.
 _JOB_DEFINITION_FILE: str = os.path.join(
@@ -20,8 +20,8 @@ _RUNNING_WORKFLOW_STEP_ID_FORMAT: str = (
 )
 
 
-class UnitTestDatabaseAdapter(DatabaseAdapter):
-    """A minimal Database adapter. It serves-up Job Definitions
+class UnitTestAPIAdapter(APIAdapter):
+    """A minimal API adapter. It serves-up Job Definitions
     from the job-definitions/job-definitions.yaml file and provides basic
     (in-memory) storage for Workflow Definitions and related tables."""
 

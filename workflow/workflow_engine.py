@@ -3,7 +3,7 @@
 
 from google.protobuf.message import Message
 
-from .workflow_abc import DatabaseAdapter, InstanceLauncher
+from .workflow_abc import APIAdapter, InstanceLauncher
 
 
 class WorkflowEngine:
@@ -15,11 +15,11 @@ class WorkflowEngine:
     def __init__(
         self,
         *,
-        db_adapter: DatabaseAdapter,
+        api_adapter: APIAdapter,
         instance_launcher: InstanceLauncher,
     ):
         # Keep the dependent objects
-        self._db_adapter = db_adapter
+        self._api_adapter = api_adapter
         self._instance_launcher = instance_launcher
 
     def handle_message(self, msg: Message) -> None:

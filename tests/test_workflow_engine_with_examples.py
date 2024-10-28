@@ -8,7 +8,7 @@ pytestmark = pytest.mark.unit
 
 from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
 
-from tests.database_adapter import UnitTestDatabaseAdapter
+from tests.api_adapter import UnitTestAPIAdapter
 from tests.instance_launcher import UnitTestInstanceLauncher
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.message_queue import UnitTestMessageQueue
@@ -17,16 +17,20 @@ from workflow.workflow_engine import WorkflowEngine
 
 @pytest.fixture
 def basic_engine():
-    utda = UnitTestDatabaseAdapter()
-    utmq = UnitTestMessageQueue()
-    utmd = UnitTestMessageDispatcher(msg_queue=utmq)
-    util = UnitTestInstanceLauncher(msg_dispatcher=utmd)
-    return [utda, utmd, WorkflowEngine(db_adapter=utda, instance_launcher=util)]
+    api_adapter = UnitTestAPIAdapter()
+    message_queue = UnitTestMessageQueue()
+    message_dispatcher = UnitTestMessageDispatcher(msg_queue=message_queue)
+    instance_launcher = UnitTestInstanceLauncher(msg_dispatcher=message_dispatcher)
+    return [
+        api_adapter,
+        message_dispatcher,
+        WorkflowEngine(api_adapter=api_adapter, instance_launcher=instance_launcher),
+    ]
 
 
 def test_workflow_engine_with_example_1(basic_engine):
     # Arrange
-    da, md, engine = basic_engine
+    da, md, _ = basic_engine
     # LOAD THE EXAMPLE-1 WORKFLOW DEFINITION INTO THE DATABASE
     # TODO
     # SIMULATE THE API CREATION OF A RUNNING WORKFLOW FROM THE WORKFLOW
