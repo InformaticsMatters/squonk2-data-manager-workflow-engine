@@ -109,18 +109,17 @@ class UnitTestAPIAdapter(APIAdapter):
             "running_workflow_step": running_workflow_step_id,
         }
         self._instances[instance_id] = record
-        return {"id": running_workflow_step_id}
+        return {"id": instance_id}
 
     def get_instance(self, *, instance_id: str) -> Dict[str, Any]:
         if instance_id not in self._instances:
             return {}
-        return {self._instances[instance_id]}
+        return self._instances[instance_id]
 
     def create_task(self, *, instance_id: str) -> Dict[str, Any]:
         next_id: int = len(self._instances) + 1
         task_id: str = _INSTANCE_ID_FORMAT.format(id=next_id)
         record = {
-            "instance_id": instance_id,
             "done": False,
             "exit_code": 0,
         }
@@ -130,7 +129,7 @@ class UnitTestAPIAdapter(APIAdapter):
     def get_task(self, *, task_id: str) -> Dict[str, Any]:
         if task_id not in self._tasks:
             return {}
-        return {self._tasks[task_id]}
+        return self._tasks[task_id]
 
     def get_job(
         self, *, collection: str, job: str, version: str

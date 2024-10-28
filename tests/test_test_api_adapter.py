@@ -158,3 +158,52 @@ def test_get_running_workflow_steps():
     assert rwfs["running_workflow_step"]["step"] == "step-1"
     assert not rwfs["running_workflow_step"]["done"]
     assert rwfs["running_workflow_step"]["running_workflow"] == rwfid
+
+
+def test_create_instance():
+    # Arrange
+    utaa = UnitTestAPIAdapter()
+
+    # Act
+    response = utaa.create_instance(running_workflow_step_id="r-workflow-step-000")
+
+    # Assert
+    assert "id" in response
+
+
+def test_create_and_get_instance():
+    # Arrange
+    utaa = UnitTestAPIAdapter()
+    response = utaa.create_instance(running_workflow_step_id="r-workflow-step-000")
+    instance_id = response["id"]
+
+    # Act
+    response = utaa.get_instance(instance_id=instance_id)
+
+    # Assert
+    assert response["running_workflow_step"] == "r-workflow-step-000"
+
+
+def test_create_task():
+    # Arrange
+    utaa = UnitTestAPIAdapter()
+
+    # Act
+    response = utaa.create_task(instance_id="instance-000")
+
+    # Assert
+    assert "id" in response
+
+
+def test_create_and_get_task():
+    # Arrange
+    utaa = UnitTestAPIAdapter()
+    response = utaa.create_task(instance_id="instance-000")
+    task_id = response["id"]
+
+    # Act
+    response = utaa.get_task(task_id=task_id)
+
+    # Assert
+    assert not response["done"]
+    assert response["exit_code"] == 0
