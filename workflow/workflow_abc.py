@@ -4,7 +4,7 @@ Interface definitions of class instances that must be provided to the Engine.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from google.protobuf.message import Message
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
@@ -70,14 +70,22 @@ class DatabaseAdapter(ABC):
         workflow_definition: Dict[str, Any],
     ) -> str:
         """Save a Workflow, getting an ID in return"""
+        # Should return:
+        # {
+        #    "id": "workflow-00000000-0000-0000-0000-000000000001",
+        # }
 
     @abstractmethod
     def get_workflow(
         self,
         *,
         workflow_definition_id: str,
-    ) -> Optional[Dict[str, Any]]:
-        """Get a Workflow by ID"""
+    ) -> Dict[str, Any]:
+        """Get a Workflow Record by ID."""
+        # If present this should return:
+        # {
+        #    "workflow": <workflow>,
+        # }
 
     @abstractmethod
     def get_workflow_by_name(
@@ -85,8 +93,83 @@ class DatabaseAdapter(ABC):
         *,
         name: str,
         version: str,
-    ) -> Optional[Dict[str, Any]]:
-        """Get a Workflow by name"""
+    ) -> Dict[str, Any]:
+        """Get a Workflow Record by name"""
+        # If present this should return:
+        # {
+        #    "id": "workflow-00000000-0000-0000-0000-000000000001",
+        #    "workflow": <workflow>,
+        # }
+
+    @abstractmethod
+    def create_running_workflow(
+        self,
+        *,
+        workflow_definition_id: str,
+    ) -> str:
+        """Create a RunningWorkflow Record (from a Workflow)"""
+        # Should return:
+        # {
+        #    "id": "r-workflow-00000000-0000-0000-0000-000000000001",
+        # }
+
+    @abstractmethod
+    def get_running_workflow(self, *, running_workflow_id: str) -> Dict[str, Any]:
+        """Get a RunningWorkflow Record"""
+        # Should return:
+        # {
+        #    "running-workflow": {
+        #       "done": False,
+        #       "success": false,
+        #       "workflow": "workflow-000",
+        #    }
+        # }
+
+    @abstractmethod
+    def create_running_workflow_step(
+        self,
+        *,
+        running_workflow_id: str,
+    ) -> str:
+        """Create a RunningWorkflowStep Record (from a RunningWorkflow)"""
+        # Should return:
+        # {
+        #    "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
+        # }
+
+    @abstractmethod
+    def get_running_workflow_step(
+        self, *, running_workflow_step_id: str
+    ) -> Dict[str, Any]:
+        """Get a RunningWorkflowStep Record"""
+        # Should return:
+        # {
+        #    "running-workflow-step": {
+        #       "done": False,
+        #       "success": false,
+        #       "running-workflow": "r-workflow-000",
+        #    },
+        # }
+
+    @abstractmethod
+    def get_running_workflow_steps(
+        self, *, running_workflow_id: str
+    ) -> List[Dict[str, Any]]:
+        """Gets all the RunningWorkflowStep Records (for a RunningWorkflow)"""
+        # Should return:
+        # {
+        #    "count": 1,
+        #    "running-workflow-steps": [
+        #       {
+        #           "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
+        #           "running-workflow-step": {
+        #               "done": False,
+        #               "success": false,
+        #               "workflow": "workflow-000",
+        #           }
+        #       ...
+        #    ]
+        # }
 
     @abstractmethod
     def get_job(

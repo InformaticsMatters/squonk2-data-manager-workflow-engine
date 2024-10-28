@@ -25,12 +25,12 @@ def test_get_unknown_workflow():
     utda = UnitTestDatabaseAdapter()
 
     # Act
-    wfid = utda.get_workflow(
+    wfd = utda.get_workflow(
         workflow_definition_id="workflow-00000000-0000-0000-0000-000000000001"
     )
 
     # Assert
-    assert wfid is None
+    assert wfd == {}
 
 
 def test_save_workflow():
@@ -41,28 +41,30 @@ def test_save_workflow():
     wfid = utda.save_workflow(workflow_definition={"name": "blah"})
 
     # Assert
-    assert wfid == "workflow-00000000-0000-0000-0000-000000000001"
+    assert wfid == {"id": "workflow-00000000-0000-0000-0000-000000000001"}
 
 
 def test_get_workflow():
     # Arrange
     utda = UnitTestDatabaseAdapter()
-    wfid = utda.save_workflow(workflow_definition={"name": "blah"})
+    response = utda.save_workflow(workflow_definition={"name": "blah"})
+    wfid = response["id"]
 
     # Act
     wf = utda.get_workflow(workflow_definition_id=wfid)
 
     # Assert
-    assert wf == {"name": "blah"}
+    assert wf["workflow"]["name"] == "blah"
 
 
 def test_get_workflow_by_name():
     # Arrange
     utda = UnitTestDatabaseAdapter()
-    wfid = utda.save_workflow(workflow_definition={"name": "blah"})
+    _ = utda.save_workflow(workflow_definition={"name": "blah"})
 
     # Act
-    wf = utda.get_workflow_by_name(name="blah", version="1.0.0")
+    response = utda.get_workflow_by_name(name="blah", version="1.0.0")
 
     # Assert
-    assert wf == {"name": "blah"}
+    assert response["workflow"]["name"] == "blah"
+    assert "id" in response

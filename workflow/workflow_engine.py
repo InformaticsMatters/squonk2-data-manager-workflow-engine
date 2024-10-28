@@ -15,12 +15,12 @@ class WorkflowEngine:
     def __init__(
         self,
         *,
-        instance_launcher: InstanceLauncher,
         db_adapter: DatabaseAdapter,
+        instance_launcher: InstanceLauncher,
     ):
         # Keep the dependent objects
-        self._instance_launcher = instance_launcher
         self._db_adapter = db_adapter
+        self._instance_launcher = instance_launcher
 
     def handle_message(self, msg: Message) -> None:
         """Given a Pod Message, we use it to identify the Pod (Instance) exit code,
