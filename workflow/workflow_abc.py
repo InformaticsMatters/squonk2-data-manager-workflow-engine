@@ -182,6 +182,24 @@ class APIAdapter(ABC):
         # }
 
     @abstractmethod
+    def create_task(self, instance_id: str) -> Dict[str, Any]:
+        """Create a Task Record (for amn Instance)"""
+        # Should return:
+        # {
+        #    "id": "task-00000000-0000-0000-0000-000000000001",
+        # }
+
+    @abstractmethod
+    def get_task(self, *, task_id: str) -> Dict[str, Any]:
+        """Get a Task Record"""
+        # Should return:
+        # {
+        #    "done": True,
+        #    "exit_code": 0,
+        #    [...],
+        # }
+
+    @abstractmethod
     def get_job(
         self,
         *,

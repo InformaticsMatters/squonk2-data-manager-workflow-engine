@@ -47,11 +47,13 @@ class UnitTestInstanceLauncher(InstanceLauncher):
             running_workflow_step_id=running_workflow_step_id
         )
         assert "running_workflow_step" in response
-        # Now simulate the creation of an Instance record
+        # Now simulate the creation of a Task and Instance record
         response = self._api_adapter.create_instance(
             running_workflow_step_id=running_workflow_step_id
         )
-        instance_id = response["instance_id"]
+        instance_id = response["id"]
+        response = self._api_adapter.create_task(instance_id=instance_id)
+        task_id = response["id"]
 
         # Just run the Python module that matched the 'job' in the step specification.
         # Don't care about 'version' or 'collection'.
@@ -70,14 +72,16 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         pod_message.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
         pod_message.phase = "Completed"
         pod_message.instance = instance_id
+        pod_message.task = task_id
         pod_message.has_exit_code = True
         pod_message.exit_code = 0
         self._msg_dispatcher.send(pod_message)
 
         return LaunchResult(
+            # The errors returned here are the launch errors, not the Job's errors.
             error=0,
             error_msg=None,
             instance_id=instance_id,
-            task_id="task-00000000-0000-0000-0000-000000000000",
+            task_id=task_id,
             command=" ".join(job_cmd),
         )

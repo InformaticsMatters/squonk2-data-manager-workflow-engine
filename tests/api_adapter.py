@@ -33,6 +33,7 @@ class UnitTestAPIAdapter(APIAdapter):
         self._running_workflow: Dict[str, Dict[str, Any]] = {}
         self._running_workflow_steps: Dict[str, Dict[str, Any]] = {}
         self._instances: Dict[str, Dict[str, Any]] = {}
+        self._tasks: Dict[str, Dict[str, Any]] = {}
 
     def create_workflow(self, *, workflow_definition: Dict[str, Any]) -> str:
         next_id: int = len(self._workflow_definitions) + 1
@@ -108,12 +109,28 @@ class UnitTestAPIAdapter(APIAdapter):
             "running_workflow_step": running_workflow_step_id,
         }
         self._instances[instance_id] = record
-        return {"instance_id": running_workflow_step_id}
+        return {"id": running_workflow_step_id}
 
     def get_instance(self, *, instance_id: str) -> Dict[str, Any]:
         if instance_id not in self._instances:
             return {}
         return {self._instances[instance_id]}
+
+    def create_task(self, *, instance_id: str) -> Dict[str, Any]:
+        next_id: int = len(self._instances) + 1
+        task_id: str = _INSTANCE_ID_FORMAT.format(id=next_id)
+        record = {
+            "instance_id": instance_id,
+            "done": False,
+            "exit_code": 0,
+        }
+        self._tasks[task_id] = record
+        return {"id": task_id}
+
+    def get_task(self, *, task_id: str) -> Dict[str, Any]:
+        if task_id not in self._tasks:
+            return {}
+        return {self._tasks[task_id]}
 
     def get_job(
         self, *, collection: str, job: str, version: str
