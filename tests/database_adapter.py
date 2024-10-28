@@ -90,11 +90,7 @@ class UnitTestDatabaseAdapter(DatabaseAdapter):
             if value["running-workflow"] == running_workflow_id:
                 item = {"running-workflow-step": value, "id": key}
                 steps.append(item)
-        count = len(steps)
-        response = {"count": len(steps)}
-        if count:
-            response["running-workflow-steps"] = steps
-        return response
+        return {"count": len(steps), "running-workflow-steps": steps}
 
     def get_job(
         self, *, collection: str, job: str, version: str
