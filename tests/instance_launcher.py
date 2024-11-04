@@ -16,8 +16,19 @@ _JOB_DIRECTORY: str = os.path.join(os.path.dirname(__file__), "jobs")
 class UnitTestInstanceLauncher(InstanceLauncher):
     """A unit test instance launcher, which runs the
     Python module that matches the job name in the provided specification.
-    It also uses the UnitTestMessageDispatcher to send the simulated
-    'end of instance' PodMessage (to the WorkflowEngine).
+
+    The Python module used to satisfy the step matches the job name in the
+    step specification. If the step_specification's 'job' is 'my_job', then the launcher
+    will run the Python module 'my_job.py' in the 'jobs' directory. The
+    module is run synchronously - i.e. the launch() method waits for the
+    module to complete.
+
+    It then uses the UnitTestMessageDispatcher to send a simulated
+    'end of instance' PodMessage  that will be received by the WorkflowEngine's
+    'handle_message()' method. The 'exit code' of the module is passed to the
+    WorkflowEngine through the PodMessage - so if the module fails (i.e. returns
+    a non-zero exit code) then the WorkflowEngine will see that the PodMessage.
+    This allows you to write jobs that fail and see how the WorkflowEngine responds.
     """
 
     def __init__(
@@ -63,8 +74,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
 
         job_cmd: List[str] = ["python", job_module]
         print(f"Running job command: {job_cmd}")
-        completed_process: CompletedProcess = subprocess.run(job_cmd, check=True)
-        assert completed_process.returncode == 0
+        completed_process: CompletedProcess = subprocess.run(job_cmd, check=False)
 
         # Simulate a PodMessage (that will contain the instance ID),
         # filling-in only the fields that are of use to the Engine.
@@ -74,7 +84,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         pod_message.instance = instance_id
         pod_message.task = task_id
         pod_message.has_exit_code = True
-        pod_message.exit_code = 0
+        pod_message.exit_code = completed_process.returncode
         self._msg_dispatcher.send(pod_message)
 
         return LaunchResult(

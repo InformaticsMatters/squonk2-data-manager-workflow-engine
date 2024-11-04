@@ -15,6 +15,7 @@ with open(_JOB_DEFINITION_FILE, "r", encoding="utf8") as jd_file:
     _JOB_DEFINITIONS: Dict[str, Any] = yaml.load(jd_file, Loader=yaml.FullLoader)
 assert _JOB_DEFINITIONS
 
+# Table UUID formats
 _INSTANCE_ID_FORMAT: str = "instance-00000000-0000-0000-0000-{id:012d}"
 _TASK_ID_FORMAT: str = "task-00000000-0000-0000-0000-{id:012d}"
 _WORKFLOW_DEFINITION_ID_FORMAT: str = "workflow-00000000-0000-0000-0000-{id:012d}"
@@ -23,6 +24,7 @@ _RUNNING_WORKFLOW_STEP_ID_FORMAT: str = (
     "r-workflow-step-00000000-0000-0000-0000-{id:012d}"
 )
 
+# Pickle files (representing each 'Table')
 _WORKFLOW_PICKLE_FILE: str = "workflow.pickle"
 _RUNNING_WORKFLOW_PICKLE_FILE: str = "running-workflow.pickle"
 _RUNNING_WORKFLOW_STEP_PICKLE_FILE: str = "running-workflow-step.pickle"
@@ -33,7 +35,11 @@ _TASK_PICKLE_FILE: str = "task.pickle"
 class UnitTestAPIAdapter(APIAdapter):
     """A minimal API adapter. It serves-up Job Definitions
     from the job-definitions/job-definitions.yaml file and provides basic
-    (in-memory) storage for Workflow Definitions and related tables."""
+    storage for Workflow Definitions and related tables.
+
+    Because the adapter is used by the multi-processing test suite, it uses both a lock
+    and pickle files to store data, so that data can be shared between processes.
+    """
 
     mp_lock = Lock()
 
@@ -74,9 +80,7 @@ class UnitTestAPIAdapter(APIAdapter):
             workflow = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
-        if workflow_id not in workflow:
-            return {}
-        return {"workflow": workflow[workflow_id]}
+        return {"workflow": workflow[workflow_id]} if workflow_id in workflow else {}
 
     def get_workflow_by_name(self, *, name: str, version: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
@@ -224,9 +228,7 @@ class UnitTestAPIAdapter(APIAdapter):
             instances = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
-        if instance_id not in instances:
-            return {}
-        return instances[instance_id]
+        return {} if instance_id not in instances else instances[instance_id]
 
     def create_task(self, *, instance_id: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
@@ -253,9 +255,7 @@ class UnitTestAPIAdapter(APIAdapter):
             tasks = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
-        if task_id not in tasks:
-            return {}
-        return tasks[task_id]
+        return {} if task_id not in tasks else tasks[task_id]
 
     def get_job(
         self, *, collection: str, job: str, version: str
