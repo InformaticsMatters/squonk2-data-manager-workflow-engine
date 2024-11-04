@@ -69,7 +69,7 @@ class APIAdapter(ABC):
     def get_workflow(
         self,
         *,
-        workflow_definition_id: str,
+        workflow_id: str,
     ) -> Dict[str, Any]:
         """Get a Workflow Record by ID."""
         # If present this should return:
@@ -104,6 +104,12 @@ class APIAdapter(ABC):
         # }
 
     @abstractmethod
+    def set_running_workflow_done(
+        self, *, running_workflow_id: str, success: bool
+    ) -> None:
+        """Set the success value for a RunningWorkflow Record"""
+
+    @abstractmethod
     def get_running_workflow(self, *, running_workflow_id: str) -> Dict[str, Any]:
         """Get a RunningWorkflow Record"""
         # Should return:
@@ -120,6 +126,7 @@ class APIAdapter(ABC):
         self,
         *,
         running_workflow_id: str,
+        step: str,
     ) -> Dict[str, Any]:
         """Create a RunningWorkflowStep Record (from a RunningWorkflow)"""
         # Should return:
@@ -141,6 +148,12 @@ class APIAdapter(ABC):
         #       "running_workflow": "r-workflow-000",
         #    },
         # }
+
+    @abstractmethod
+    def set_running_workflow_step_done(
+        self, *, running_workflow_step_id: str, success: bool
+    ) -> None:
+        """Set the success value for a RunningWorkflowStep Record"""
 
     @abstractmethod
     def get_running_workflow_steps(

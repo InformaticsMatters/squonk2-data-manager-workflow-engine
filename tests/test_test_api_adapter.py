@@ -25,9 +25,7 @@ def test_get_unknown_workflow():
     utaa = UnitTestAPIAdapter()
 
     # Act
-    wfd = utaa.get_workflow(
-        workflow_definition_id="workflow-00000000-0000-0000-0000-000000000001"
-    )
+    wfd = utaa.get_workflow(workflow_id="workflow-00000000-0000-0000-0000-000000000001")
 
     # Assert
     assert wfd == {}
@@ -51,7 +49,7 @@ def test_get_workflow():
     wfid = response["id"]
 
     # Act
-    wf = utaa.get_workflow(workflow_definition_id=wfid)
+    wf = utaa.get_workflow(workflow_id=wfid)
 
     # Assert
     assert wf["workflow"]["name"] == "blah"

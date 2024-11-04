@@ -97,6 +97,7 @@ def test_workflow_engine_with_two_step_nop(basic_engine):
     mq.join()
     print("Stopped")
     assert r_wf
+    assert r_wf["done"]
     assert r_wf["success"]
     # Now check there are the right number of RunningWorkflowStep Records
     # (and they're all set to success/done)

@@ -4,6 +4,16 @@ kind-version: "2024.1"
 name: two-step-nop
 steps:
 - name: step-1
-  specification: "{'collection': 'workflow-engine-unit-test-jobs', 'job': 'nop', 'version: '1.0.0'}"
+  specification: >-
+    {
+      'collection': 'workflow-engine-unit-test-jobs',
+      'job': 'nop',
+      'version': '1.0.0'
+    }
 - name: step-2
-  specification: "{'collection': 'workflow-engine-unit-test-jobs', 'job': 'nop', 'version: '1.0.0'}"
+  specification: >-
+    {
+      'collection': 'workflow-engine-unit-test-jobs',
+      'job': 'nop',
+      'version': '1.0.0'
+    }

@@ -68,15 +68,15 @@ class UnitTestAPIAdapter(APIAdapter):
 
         return {"id": workflow_definition_id}
 
-    def get_workflow(self, *, workflow_definition_id: str) -> Dict[str, Any]:
+    def get_workflow(self, *, workflow_id: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
         with open(f"tests/{_WORKFLOW_PICKLE_FILE}", "rb") as pickle_file:
             workflow = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
-        if workflow_definition_id not in workflow:
+        if workflow_id not in workflow:
             return {}
-        return {"workflow": workflow[workflow_definition_id]}
+        return {"workflow": workflow[workflow_id]}
 
     def get_workflow_by_name(self, *, name: str, version: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
@@ -105,6 +105,21 @@ class UnitTestAPIAdapter(APIAdapter):
         UnitTestAPIAdapter.mp_lock.release()
 
         return {"id": running_workflow_id}
+
+    def set_running_workflow_done(
+        self, *, running_workflow_id: str, success: bool
+    ) -> None:
+        UnitTestAPIAdapter.mp_lock.acquire()
+        with open(f"tests/{_RUNNING_WORKFLOW_PICKLE_FILE}", "rb") as pickle_file:
+            running_workflow = Unpickler(pickle_file).load()
+
+        assert running_workflow_id in running_workflow
+        running_workflow[running_workflow_id]["done"] = True
+        running_workflow[running_workflow_id]["success"] = success
+
+        with open(f"tests/{_RUNNING_WORKFLOW_PICKLE_FILE}", "wb") as pickle_file:
+            Pickler(pickle_file).dump(running_workflow)
+        UnitTestAPIAdapter.mp_lock.release()
 
     def get_running_workflow(self, *, running_workflow_id: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
@@ -154,6 +169,21 @@ class UnitTestAPIAdapter(APIAdapter):
         return {
             "running_workflow_step": running_workflow_step[running_workflow_step_id]
         }
+
+    def set_running_workflow_step_done(
+        self, *, running_workflow_step_id: str, success: bool
+    ) -> None:
+        UnitTestAPIAdapter.mp_lock.acquire()
+        with open(f"tests/{_RUNNING_WORKFLOW_STEP_PICKLE_FILE}", "rb") as pickle_file:
+            running_workflow_step = Unpickler(pickle_file).load()
+
+        assert running_workflow_step_id in running_workflow_step
+        running_workflow_step[running_workflow_step_id]["done"] = True
+        running_workflow_step[running_workflow_step_id]["success"] = success
+
+        with open(f"tests/{_RUNNING_WORKFLOW_STEP_PICKLE_FILE}", "wb") as pickle_file:
+            Pickler(pickle_file).dump(running_workflow_step)
+        UnitTestAPIAdapter.mp_lock.release()
 
     def get_running_workflow_steps(
         self, *, running_workflow_id: str
