@@ -24,12 +24,15 @@ _RUNNING_WORKFLOW_STEP_ID_FORMAT: str = (
     "r-workflow-step-00000000-0000-0000-0000-{id:012d}"
 )
 
-# Pickle files (representing each 'Table')
-_WORKFLOW_PICKLE_FILE: str = "workflow.pickle"
-_RUNNING_WORKFLOW_PICKLE_FILE: str = "running-workflow.pickle"
-_RUNNING_WORKFLOW_STEP_PICKLE_FILE: str = "running-workflow-step.pickle"
-_INSTANCE_PICKLE_FILE: str = "instance.pickle"
-_TASK_PICKLE_FILE: str = "task.pickle"
+# Pickle files (for each 'Table')
+_PICKLE_DIRECTORY: str = "tests/pickle-files"
+_WORKFLOW_PICKLE_FILE: str = f"{_PICKLE_DIRECTORY}/workflow.pickle"
+_RUNNING_WORKFLOW_PICKLE_FILE: str = f"{_PICKLE_DIRECTORY}/running-workflow.pickle"
+_RUNNING_WORKFLOW_STEP_PICKLE_FILE: str = (
+    f"{_PICKLE_DIRECTORY}/running-workflow-step.pickle"
+)
+_INSTANCE_PICKLE_FILE: str = f"{_PICKLE_DIRECTORY}/instance.pickle"
+_TASK_PICKLE_FILE: str = f"{_PICKLE_DIRECTORY}/task.pickle"
 
 
 class UnitTestAPIAdapter(APIAdapter):
@@ -46,29 +49,30 @@ class UnitTestAPIAdapter(APIAdapter):
     def __init__(self):
         super().__init__()
         # Safely initialise the pickle files
+        if not os.path.exists(_PICKLE_DIRECTORY):
+            os.makedirs(_PICKLE_DIRECTORY)
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_WORKFLOW_PICKLE_FILE}", "wb") as pickle_file:
-            Pickler(pickle_file).dump({})
-        with open(f"tests/{_RUNNING_WORKFLOW_PICKLE_FILE}", "wb") as pickle_file:
-            Pickler(pickle_file).dump({})
-        with open(f"tests/{_RUNNING_WORKFLOW_STEP_PICKLE_FILE}", "wb") as pickle_file:
-            Pickler(pickle_file).dump({})
-        with open(f"tests/{_INSTANCE_PICKLE_FILE}", "wb") as pickle_file:
-            Pickler(pickle_file).dump({})
-        with open(f"tests/{_TASK_PICKLE_FILE}", "wb") as pickle_file:
-            Pickler(pickle_file).dump({})
+        for file in [
+            _WORKFLOW_PICKLE_FILE,
+            _RUNNING_WORKFLOW_PICKLE_FILE,
+            _RUNNING_WORKFLOW_STEP_PICKLE_FILE,
+            _INSTANCE_PICKLE_FILE,
+            _TASK_PICKLE_FILE,
+        ]:
+            with open(file, "wb") as pickle_file:
+                Pickler(pickle_file).dump({})
         UnitTestAPIAdapter.mp_lock.release()
 
     def create_workflow(self, *, workflow_definition: Dict[str, Any]) -> str:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_WORKFLOW_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             workflow = Unpickler(pickle_file).load()
 
         next_id: int = len(workflow) + 1
         workflow_definition_id: str = _WORKFLOW_DEFINITION_ID_FORMAT.format(id=next_id)
         workflow[workflow_definition_id] = workflow_definition
 
-        with open(f"tests/{_WORKFLOW_PICKLE_FILE}", "wb") as pickle_file:
+        with open(_WORKFLOW_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(workflow)
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -76,7 +80,7 @@ class UnitTestAPIAdapter(APIAdapter):
 
     def get_workflow(self, *, workflow_id: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_WORKFLOW_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             workflow = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -84,7 +88,7 @@ class UnitTestAPIAdapter(APIAdapter):
 
     def get_workflow_by_name(self, *, name: str, version: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_WORKFLOW_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             workflow = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -96,7 +100,7 @@ class UnitTestAPIAdapter(APIAdapter):
 
     def create_running_workflow(self, *, workflow_id: str) -> str:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_RUNNING_WORKFLOW_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             running_workflow = Unpickler(pickle_file).load()
 
         next_id: int = len(running_workflow) + 1
@@ -104,7 +108,7 @@ class UnitTestAPIAdapter(APIAdapter):
         record = {"done": False, "success": False, "workflow": workflow_id}
         running_workflow[running_workflow_id] = record
 
-        with open(f"tests/{_RUNNING_WORKFLOW_PICKLE_FILE}", "wb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(running_workflow)
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -114,20 +118,20 @@ class UnitTestAPIAdapter(APIAdapter):
         self, *, running_workflow_id: str, success: bool
     ) -> None:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_RUNNING_WORKFLOW_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             running_workflow = Unpickler(pickle_file).load()
 
         assert running_workflow_id in running_workflow
         running_workflow[running_workflow_id]["done"] = True
         running_workflow[running_workflow_id]["success"] = success
 
-        with open(f"tests/{_RUNNING_WORKFLOW_PICKLE_FILE}", "wb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(running_workflow)
         UnitTestAPIAdapter.mp_lock.release()
 
     def get_running_workflow(self, *, running_workflow_id: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_RUNNING_WORKFLOW_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             running_workflow = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -139,7 +143,7 @@ class UnitTestAPIAdapter(APIAdapter):
         self, *, running_workflow_id: str, step: str
     ) -> str:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_RUNNING_WORKFLOW_STEP_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
 
         next_id: int = len(running_workflow_step) + 1
@@ -154,7 +158,7 @@ class UnitTestAPIAdapter(APIAdapter):
         }
         running_workflow_step[running_workflow_step_id] = record
 
-        with open(f"tests/{_RUNNING_WORKFLOW_STEP_PICKLE_FILE}", "wb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(running_workflow_step)
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -164,7 +168,7 @@ class UnitTestAPIAdapter(APIAdapter):
         self, *, running_workflow_step_id: str
     ) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_RUNNING_WORKFLOW_STEP_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -178,14 +182,14 @@ class UnitTestAPIAdapter(APIAdapter):
         self, *, running_workflow_step_id: str, success: bool
     ) -> None:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_RUNNING_WORKFLOW_STEP_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
 
         assert running_workflow_step_id in running_workflow_step
         running_workflow_step[running_workflow_step_id]["done"] = True
         running_workflow_step[running_workflow_step_id]["success"] = success
 
-        with open(f"tests/{_RUNNING_WORKFLOW_STEP_PICKLE_FILE}", "wb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(running_workflow_step)
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -193,7 +197,7 @@ class UnitTestAPIAdapter(APIAdapter):
         self, *, running_workflow_id: str
     ) -> List[Dict[str, Any]]:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_RUNNING_WORKFLOW_STEP_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -206,7 +210,7 @@ class UnitTestAPIAdapter(APIAdapter):
 
     def create_instance(self, *, running_workflow_step_id: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_INSTANCE_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_INSTANCE_PICKLE_FILE, "rb") as pickle_file:
             instances = Unpickler(pickle_file).load()
 
         next_id: int = len(instances) + 1
@@ -216,7 +220,7 @@ class UnitTestAPIAdapter(APIAdapter):
         }
         instances[instance_id] = record
 
-        with open(f"tests/{_INSTANCE_PICKLE_FILE}", "wb") as pickle_file:
+        with open(_INSTANCE_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(instances)
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -224,7 +228,7 @@ class UnitTestAPIAdapter(APIAdapter):
 
     def get_instance(self, *, instance_id: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_INSTANCE_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_INSTANCE_PICKLE_FILE, "rb") as pickle_file:
             instances = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -232,7 +236,7 @@ class UnitTestAPIAdapter(APIAdapter):
 
     def create_task(self, *, instance_id: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_TASK_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_TASK_PICKLE_FILE, "rb") as pickle_file:
             tasks = Unpickler(pickle_file).load()
 
         next_id: int = len(tasks) + 1
@@ -243,7 +247,7 @@ class UnitTestAPIAdapter(APIAdapter):
         }
         tasks[task_id] = record
 
-        with open(f"tests/{_TASK_PICKLE_FILE}", "wb") as pickle_file:
+        with open(_TASK_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(tasks)
         UnitTestAPIAdapter.mp_lock.release()
 
@@ -251,7 +255,7 @@ class UnitTestAPIAdapter(APIAdapter):
 
     def get_task(self, *, task_id: str) -> Dict[str, Any]:
         UnitTestAPIAdapter.mp_lock.acquire()
-        with open(f"tests/{_TASK_PICKLE_FILE}", "rb") as pickle_file:
+        with open(_TASK_PICKLE_FILE, "rb") as pickle_file:
             tasks = Unpickler(pickle_file).load()
         UnitTestAPIAdapter.mp_lock.release()
 
