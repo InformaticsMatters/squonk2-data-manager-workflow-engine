@@ -29,29 +29,31 @@ def basic_engine():
         api_adapter=api_adapter, instance_launcher=instance_launcher
     )
     message_queue.set_receiver(workflow_engine.handle_message)
-    return [
+    print("Starting message queue...")
+    message_queue.start()
+
+    yield [
         api_adapter,
         message_queue,
         message_dispatcher,
         workflow_engine,
     ]
 
+    print("Stopping message queue...")
+    message_queue.stop()
+    message_queue.join()
+    print("Stopped")
 
-def test_workflow_engine_with_two_step_nop(basic_engine):
-    # Arrange
-    da, mq, md, _ = basic_engine
 
-    # Act
-    # To test the WorkflowEngine we need to:
-    # 1. Start the message queue
-    # 2. Load and create a Workflow Definition
-    # 3. Create a Running Workflow record
-    # 4. Send a Workflow START message
+def start_workflow(md, da, workflow_file_name) -> str:
+    """A convenience function to handle all the 'START' logic for a workflow."""
+
+    # To start a workflow we need to:
+    # 1. Load and create a Workflow Definition
+    # 2. Create a Running Workflow record
+    # 3. Send a Workflow START message
     #
-    # 1. (Start the message queue)
-    mq.start()
-    # 2. (Load/create the workflow definition to be tested)
-    workflow_file_name = "example-two-step-nop"
+    # 1.
     workflow_path = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", f"{workflow_file_name}.yaml"
     )
@@ -61,12 +63,12 @@ def test_workflow_engine_with_two_step_nop(basic_engine):
     wfid = da.create_workflow(workflow_definition=wf_definition)
     assert wfid
     print(f"Created workflow definition {wfid}")
-    # 3. (Create a running workflow record)
+    # 2.
     response = da.create_running_workflow(workflow_definition_id=wfid)
     r_wfid = response["id"]
     assert r_wfid
     print(f"Created running workflow {r_wfid}")
-    # 4. (Send the Workflow START message)
+    # 3.
     msg = WorkflowMessage()
     msg.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
     msg.action = "START"
@@ -74,9 +76,17 @@ def test_workflow_engine_with_two_step_nop(basic_engine):
     md.send(msg)
     print("Sent START message")
 
-    # Assert
-    # Wait until the workflow is done (successfully)
-    # But don't wait for ever!
+    return r_wfid
+
+
+def wait_for_workflow(da, mq, r_wfid, expect_success=True):
+    """A convenience function to wait for and check a workflow execution
+    (by inspecting the anticipated DB/API records)."""
+
+    # We wait for the workflow to complete by polling the API and checking
+    # the running workflow's 'done' status. The user can specify whether
+    # the workflow is expected to succeed or fail. Any further checks
+    # are the responsibility of the caller.
     attempts = 0
     done = False
     r_wf = None
@@ -91,18 +101,42 @@ def test_workflow_engine_with_two_step_nop(basic_engine):
             if attempts > 10:
                 break
             time.sleep(0.5)
-    # Stop the message queue
-    print("Stopping message queue...")
-    mq.stop()
-    mq.join()
-    print("Stopped")
     assert r_wf
     assert r_wf["done"]
-    assert r_wf["success"]
-    # Now check there are the right number of RunningWorkflowStep Records
+    assert r_wf["success"] == expect_success
+
+
+def test_workflow_engine_with_two_step_nop(basic_engine):
+    # Arrange
+    da, mq, md, _ = basic_engine
+
+    # Act
+    r_wfid = start_workflow(md, da, "example-two-step-nop")
+
+    # Assert
+    wait_for_workflow(da, mq, r_wfid)
+    # Additional, detailed checks...
+    # Check there are the right number of RunningWorkflowStep Records
     # (and they're all set to success/done)
     response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
     assert response["count"] == 2
     for step in response["running_workflow_steps"]:
         assert step["running_workflow_step"]["done"]
         assert step["running_workflow_step"]["success"]
+
+
+def test_workflow_engine_with_nop_fail(basic_engine):
+    # Arrange
+    da, mq, md, _ = basic_engine
+
+    # Act
+    r_wfid = start_workflow(md, da, "example-nop-fail")
+
+    # Assert
+    wait_for_workflow(da, mq, r_wfid, expect_success=False)
+    # Additional, detailed checks...
+    # Check we only haver one step, and it failed
+    response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert response["count"] == 1
+    assert response["running_workflow_steps"][0]["running_workflow_step"]["done"]
+    assert not response["running_workflow_steps"][0]["running_workflow_step"]["success"]
