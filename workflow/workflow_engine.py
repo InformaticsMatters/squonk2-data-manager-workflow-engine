@@ -167,7 +167,7 @@ class WorkflowEngine:
         response = self._api_adapter.get_workflow(workflow_id=workflow_id)
         workflow = response["workflow"]
 
-        end_of_workflow: bool = False
+        end_of_workflow: bool = True
         if success:
             # Given the step for the instance just finished,
             # find the next step in the workflow and launch it.
@@ -195,9 +195,8 @@ class WorkflowEngine:
                             workflow_definition=workflow,
                             step_specification=step_specification,
                         )
+                        end_of_workflow = False
                         break
-                    else:
-                        end_of_workflow = True
 
         if end_of_workflow:
             self._api_adapter.set_running_workflow_done(
