@@ -26,7 +26,7 @@ def test_get_nop_job(basic_launcher):
     utaa = basic_launcher[0]
     launcher = basic_launcher[1]
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
-    response = utaa.create_running_workflow(workflow_definition_id=response["id"])
+    response = utaa.create_running_workflow(workflow_id=response["id"])
     response = utaa.create_running_workflow_step(
         running_workflow_id=response["id"], step="step-1"
     )

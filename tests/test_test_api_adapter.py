@@ -74,7 +74,7 @@ def test_create_running_workflow():
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
 
     # Act
-    response = utaa.create_running_workflow(workflow_definition_id=response["id"])
+    response = utaa.create_running_workflow(workflow_id=response["id"])
 
     # Assert
     assert response["id"] == "r-workflow-00000000-0000-0000-0000-000000000001"
@@ -85,7 +85,7 @@ def test_get_running_workflow():
     utaa = UnitTestAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     wfid = response["id"]
-    response = utaa.create_running_workflow(workflow_definition_id=wfid)
+    response = utaa.create_running_workflow(workflow_id=wfid)
     rwfid = response["id"]
 
     # Act
@@ -97,11 +97,43 @@ def test_get_running_workflow():
     assert rwf["workflow"] == wfid
 
 
+def test_set_running_workflow_done_when_success():
+    # Arrange
+    utaa = UnitTestAPIAdapter()
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    response = utaa.create_running_workflow(workflow_id=response["id"])
+    rwfid = response["id"]
+
+    # Act
+    utaa.set_running_workflow_done(running_workflow_id=rwfid, success=True)
+
+    # Assert
+    response = utaa.get_running_workflow(running_workflow_id=rwfid)
+    assert response["running_workflow"]["done"]
+    assert response["running_workflow"]["success"]
+
+
+def test_set_running_workflow_done_when_failed():
+    # Arrange
+    utaa = UnitTestAPIAdapter()
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    response = utaa.create_running_workflow(workflow_id=response["id"])
+    rwfid = response["id"]
+
+    # Act
+    utaa.set_running_workflow_done(running_workflow_id=rwfid, success=False)
+
+    # Assert
+    response = utaa.get_running_workflow(running_workflow_id=rwfid)
+    assert response["running_workflow"]["done"]
+    assert not response["running_workflow"]["success"]
+
+
 def test_create_running_workflow_step():
     # Arrange
     utaa = UnitTestAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
-    response = utaa.create_running_workflow(workflow_definition_id=response["id"])
+    response = utaa.create_running_workflow(workflow_id=response["id"])
 
     # Act
     response = utaa.create_running_workflow_step(
@@ -117,7 +149,7 @@ def test_get_running_workflow_step():
     utaa = UnitTestAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     wfid = response["id"]
-    response = utaa.create_running_workflow(workflow_definition_id=wfid)
+    response = utaa.create_running_workflow(workflow_id=wfid)
     rwfid = response["id"]
     response = utaa.create_running_workflow_step(
         running_workflow_id=rwfid, step="step-1"
@@ -139,7 +171,7 @@ def test_get_running_workflow_steps():
     utaa = UnitTestAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     wfid = response["id"]
-    response = utaa.create_running_workflow(workflow_definition_id=wfid)
+    response = utaa.create_running_workflow(workflow_id=wfid)
     rwfid = response["id"]
     response = utaa.create_running_workflow_step(
         running_workflow_id=rwfid, step="step-1"

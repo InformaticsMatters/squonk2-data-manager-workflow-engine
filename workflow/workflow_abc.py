@@ -95,7 +95,7 @@ class APIAdapter(ABC):
     def create_running_workflow(
         self,
         *,
-        workflow_definition_id: str,
+        workflow_id: str,
     ) -> Dict[str, Any]:
         """Create a RunningWorkflow Record (from a Workflow)"""
         # Should return:

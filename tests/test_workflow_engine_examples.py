@@ -46,7 +46,14 @@ def basic_engine():
 
 
 def start_workflow(md, da, workflow_file_name) -> str:
-    """A convenience function to handle all the 'START' logic for a workflow."""
+    """A convenience function to handle all the 'START' logic for a workflow.
+    It is given the message dispatcher, data adapter, and the base-name of the
+    workflow definition - i.e. the filename without the '.yaml' extension
+    (expected to be in the workflow-definitions directory).
+
+    It loads the workflow definition into the API adapter, creates a running workflow
+    from it and then sends a 'START' message which should cause the workflow engine to
+    start the workflow."""
 
     # To start a workflow we need to:
     # 1. Load and create a Workflow Definition
@@ -64,7 +71,7 @@ def start_workflow(md, da, workflow_file_name) -> str:
     assert wfid
     print(f"Created workflow definition {wfid}")
     # 2.
-    response = da.create_running_workflow(workflow_definition_id=wfid)
+    response = da.create_running_workflow(workflow_id=wfid)
     r_wfid = response["id"]
     assert r_wfid
     print(f"Created running workflow {r_wfid}")
@@ -81,7 +88,10 @@ def start_workflow(md, da, workflow_file_name) -> str:
 
 def wait_for_workflow(da, mq, r_wfid, expect_success=True):
     """A convenience function to wait for and check a workflow execution
-    (by inspecting the anticipated DB/API records)."""
+    (by inspecting the anticipated DB/API records). The workflow is expected
+    to start (because start_workflow() has been called), this function
+    waits for the running workflow to complete (by polling the API).
+    """
 
     # We wait for the workflow to complete by polling the API and checking
     # the running workflow's 'done' status. The user can specify whether
@@ -106,7 +116,7 @@ def wait_for_workflow(da, mq, r_wfid, expect_success=True):
     assert r_wf["success"] == expect_success
 
 
-def test_workflow_engine_with_two_step_nop(basic_engine):
+def test_workflow_engine_example_two_step_nop(basic_engine):
     # Arrange
     da, mq, md, _ = basic_engine
 
@@ -125,7 +135,7 @@ def test_workflow_engine_with_two_step_nop(basic_engine):
         assert step["running_workflow_step"]["success"]
 
 
-def test_workflow_engine_with_nop_fail(basic_engine):
+def test_workflow_engine_example_nop_fail(basic_engine):
     # Arrange
     da, mq, md, _ = basic_engine
 
