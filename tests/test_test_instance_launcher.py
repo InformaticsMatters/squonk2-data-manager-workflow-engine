@@ -38,7 +38,7 @@ def test_get_nop_job(basic_launcher):
         workflow_id="workflow-00000000-0000-0000-0000-000000000000",
         running_workflow_step_id=rwfsid,
         workflow_definition={},
-        step_specification={"job": "nop"},
+        step_specification={"job": "nop", "variables": {"x": 1}},
     )
 
     # Assert

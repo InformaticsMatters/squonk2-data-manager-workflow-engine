@@ -18,6 +18,11 @@ class UnitTestMessageQueue(Process):
         self._queue = Queue()
         self._receiver = receiver
 
+    def set_receiver(self, receiver: Callable[[Message], None]):
+        """Set or replace the receiver function, used unit-testing the WorkflowEngine."""
+        assert receiver
+        self._receiver = receiver
+
     def run(self):
         while not self._stop.is_set():
             with suppress(Empty):

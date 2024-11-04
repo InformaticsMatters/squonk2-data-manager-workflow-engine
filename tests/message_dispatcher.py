@@ -12,4 +12,5 @@ class UnitTestMessageDispatcher(MessageDispatcher):
         self._msg_queue: UnitTestMessageQueue = msg_queue
 
     def send(self, message: Message) -> None:
+        print(f"UnitTestMessageDispatcher.send:\n{message}")
         self._msg_queue.put(message)

@@ -1,9 +1,18 @@
 """The WorkflowEngine execution logic.
 """
 
+import logging
+import sys
+
 from google.protobuf.message import Message
+from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
+from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
 
 from .workflow_abc import APIAdapter, InstanceLauncher
+
+_LOGGER: logging.Logger = logging.getLogger(__name__)
+_LOGGER.setLevel(logging.INFO)
+_LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 
 
 class WorkflowEngine:
@@ -35,3 +44,32 @@ class WorkflowEngine:
         start and stop workflows.
         """
         assert msg
+
+        _LOGGER.info("> WE.handle_message() : GOT WorkflowMessage:\n%s", str(msg))
+
+        # Is this a WorkflowMessage or a PodMessage?
+        if isinstance(msg, PodMessage):
+            self._handle_pod_message(msg)
+        else:
+            self._handle_workflow_message(msg)
+
+    def _handle_workflow_message(self, msg: WorkflowMessage) -> None:
+        assert msg
+
+        _LOGGER.info("WE> WorkflowMessage:\n%s", str(msg))
+        if msg.action == "START":
+            _LOGGER.info("action=%s", msg.action)
+            # Load the workflow definition and run the first step...
+            rf = self._api_adapter.get_running_workflow(
+                running_workflow_id=msg.running_workflow
+            )
+            assert rf
+            _LOGGER.info("RunningWorkflow: %s", rf)
+
+        else:
+            _LOGGER.info("action=%s", msg.action)
+
+    def _handle_pod_message(self, msg: PodMessage) -> None:
+        assert msg
+
+        _LOGGER.info("WE> PodMessage:\n%s", str(msg))
