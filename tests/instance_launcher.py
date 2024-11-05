@@ -74,8 +74,8 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         response = self._api_adapter.create_task(instance_id=instance_id)
         task_id = response["id"]
 
-        # Where to run the job (i.e. in the project directory)
-        execution_directory = f"project-root/{project_id}"
+        # Where to run the job (i.e. in the test project directory)
+        execution_directory = f"tests/project-root/{project_id}"
         os.makedirs(execution_directory, exist_ok=True)
 
         # Apply variables to the step's Job command.
