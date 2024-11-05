@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 
 from tests.api_adapter import UnitTestAPIAdapter
+from tests.config import TEST_PROJECT_ID
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from workflow.workflow_abc import InstanceLauncher, LaunchResult
 
@@ -52,8 +53,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         assert workflow_id
         assert step_specification
 
-        # Project must be `project-00000000-0000-0000-0000-000000000001`
-        assert project_id == "project-00000000-0000-0000-0000-000000000001"
+        assert project_id == TEST_PROJECT_ID
 
         # We're passed a RunningWorkflowStep ID but a record is expected to have been
         # created bt the caller, we simply create instance records.

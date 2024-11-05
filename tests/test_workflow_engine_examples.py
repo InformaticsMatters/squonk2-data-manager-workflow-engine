@@ -11,6 +11,7 @@ pytestmark = pytest.mark.unit
 from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
 
 from tests.api_adapter import UnitTestAPIAdapter
+from tests.config import TEST_PROJECT_ID
 from tests.instance_launcher import UnitTestInstanceLauncher
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.message_queue import UnitTestMessageQueue
@@ -71,9 +72,7 @@ def start_workflow(md, da, workflow_file_name) -> str:
     assert wfid
     print(f"Created workflow definition {wfid}")
     # 2.
-    response = da.create_running_workflow(
-        workflow_id=wfid, project_id="project-00000000-0000-0000-0000-000000000001"
-    )
+    response = da.create_running_workflow(workflow_id=wfid, project_id=TEST_PROJECT_ID)
     r_wfid = response["id"]
     assert r_wfid
     print(f"Created running workflow {r_wfid}")

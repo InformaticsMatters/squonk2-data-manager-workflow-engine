@@ -5,6 +5,7 @@ import pytest
 pytestmark = pytest.mark.unit
 
 from tests.api_adapter import UnitTestAPIAdapter
+from tests.config import TEST_PROJECT_ID
 
 
 def test_get_nop_job():
@@ -76,7 +77,7 @@ def test_create_running_workflow():
     # Act
     response = utaa.create_running_workflow(
         workflow_id=response["id"],
-        project_id="project-00000000-0000-0000-0000-000000000001",
+        project_id=TEST_PROJECT_ID,
     )
 
     # Assert
@@ -89,7 +90,7 @@ def test_get_running_workflow():
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     wfid = response["id"]
     response = utaa.create_running_workflow(
-        workflow_id=wfid, project_id="project-00000000-0000-0000-0000-000000000001"
+        workflow_id=wfid, project_id=TEST_PROJECT_ID
     )
     rwfid = response["id"]
 
@@ -108,7 +109,7 @@ def test_set_running_workflow_done_when_success():
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     response = utaa.create_running_workflow(
         workflow_id=response["id"],
-        project_id="project-00000000-0000-0000-0000-000000000001",
+        project_id=TEST_PROJECT_ID,
     )
     rwfid = response["id"]
 
@@ -127,7 +128,7 @@ def test_set_running_workflow_done_when_failed():
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     response = utaa.create_running_workflow(
         workflow_id=response["id"],
-        project_id="project-00000000-0000-0000-0000-000000000001",
+        project_id=TEST_PROJECT_ID,
     )
     rwfid = response["id"]
 
@@ -146,7 +147,7 @@ def test_create_running_workflow_step():
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     response = utaa.create_running_workflow(
         workflow_id=response["id"],
-        project_id="project-00000000-0000-0000-0000-000000000001",
+        project_id=TEST_PROJECT_ID,
     )
 
     # Act
@@ -164,7 +165,7 @@ def test_get_running_workflow_step():
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     wfid = response["id"]
     response = utaa.create_running_workflow(
-        workflow_id=wfid, project_id="project-00000000-0000-0000-0000-000000000001"
+        workflow_id=wfid, project_id=TEST_PROJECT_ID
     )
     rwfid = response["id"]
     response = utaa.create_running_workflow_step(
@@ -188,7 +189,7 @@ def test_get_running_workflow_steps():
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     wfid = response["id"]
     response = utaa.create_running_workflow(
-        workflow_id=wfid, project_id="project-00000000-0000-0000-0000-000000000001"
+        workflow_id=wfid, project_id=TEST_PROJECT_ID
     )
     rwfid = response["id"]
     response = utaa.create_running_workflow_step(
