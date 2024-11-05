@@ -17,8 +17,7 @@ _LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 
 class WorkflowEngine:
     """The workflow engine. An event-driven engine that manages the execution
-    of workflow instances. The engine is responsible for launching instances or
-    reporting failures and conclusions.
+    of validated workflow definitions.
     """
 
     def __init__(
@@ -32,20 +31,24 @@ class WorkflowEngine:
         self._instance_launcher = instance_launcher
 
     def handle_message(self, msg: Message) -> None:
-        """Given a Pod Message, we use it to identify the Pod (Instance) exit code,
-        workflow and step and decide what to do next.
+        """Expect Pod and Workflow messages.
+
+        WorkflowMessages signal the need to start (or stop) validated workflows -
+        i.e. take a workflow and create a running workflows (and its steps).
+
+        PodMessages signal the completion of a Pod (an Instance/Job) that is part
+        of a running workflow. Given a Pod Message, we use it to identify the
+        Instance exit code, running workflow, and step and decide what to do next,
+        which might be to run the next step in the workflow or abandon the workflow.
 
         Only pod messages relating to workflow instances will be delivered to this method.
         The Pod message has an 'instance' property that provides the UUID of
-        the instance that was run. This can be used to correlate the instance with the
+        the instance that was run. This is used to correlate the instance with the
         running workflow step.
-
-        Additionally we will encounter WorkflowMessages that signal the need to
-        start and stop workflows.
         """
         assert msg
 
-        _LOGGER.info("> WE.handle_message() : GOT WorkflowMessage:\n%s", str(msg))
+        _LOGGER.debug("> WE.handle_message() : GOT WorkflowMessage:\n%s", str(msg))
 
         # Is this a WorkflowMessage or a PodMessage?
         if isinstance(msg, PodMessage):
@@ -66,7 +69,8 @@ class WorkflowEngine:
         # THE STEPS HAVE NO INPUTS OR OUTPUTS.
         # THIS FUNCTION PROBABLY NEEDS TO BE A LOT MORE SOPHISTICATED!
 
-        _LOGGER.info("WE> WorkflowMessage:\n%s", str(msg))
+        _LOGGER.debug("WE> WorkflowMessage:\n%s", str(msg))
+
         if msg.action == "START":
             # Using the running workflow get the workflow definition
             response = self._api_adapter.get_running_workflow(
@@ -75,11 +79,11 @@ class WorkflowEngine:
             assert "running_workflow" in response
             running_workflow = response["running_workflow"]
             _LOGGER.info("RunningWorkflow: %s", running_workflow)
-            project_id = running_workflow["project_id"]
+
             workflow_id = running_workflow["workflow"]["id"]
-            variables = running_workflow["variables"]
             response = self._api_adapter.get_workflow(workflow_id=workflow_id)
             assert "workflow" in response
+
             workflow = response["workflow"]
             # Now find the first step
             # and create a RunningWorkflowStep record prior to launching the instance
@@ -92,6 +96,8 @@ class WorkflowEngine:
             # The step specification is a string here - pass it directly to the launcher
             # which will get the Job command and apply the provided variables to it.
             step = workflow["steps"][0]
+            project_id = running_workflow["project_id"]
+            variables = running_workflow["variables"]
             self._instance_launcher.launch(
                 project_id=project_id,
                 running_workflow_id=msg.running_workflow,
@@ -117,7 +123,7 @@ class WorkflowEngine:
         assert msg
 
         # The PodMessage has a 'instance', 'has_exit_code', and 'exit_code' values.
-        _LOGGER.info("WE> PodMessage:\n%s", str(msg))
+        _LOGGER.debug("WE> PodMessage:\n%s", str(msg))
 
         # ALL THIS CODE ADDED SIMPLY TO DEMONSTRATE THE USE OF THE API ADAPTER
         # AND THE INSTANCE LAUNCHER FOR THE SIMPLEST OF WORKFLOWS: -
@@ -133,7 +139,7 @@ class WorkflowEngine:
 
         instance_id: str = msg.instance
         exit_code: int = msg.exit_code
-        _LOGGER.info(
+        _LOGGER.debug(
             "WE> PodMessage: instance=%s, exit_code=%d", instance_id, exit_code
         )
 
@@ -161,9 +167,8 @@ class WorkflowEngine:
         response = self._api_adapter.get_running_workflow(
             running_workflow_id=running_workflow_id
         )
-        project_id = response["running_workflow"]["project_id"]
-        workflow_id = response["running_workflow"]["workflow"]["id"]
-        variables = response["running_workflow"]["variables"]
+        running_workflow = response["running_workflow"]
+        workflow_id = running_workflow["workflow"]["id"]
         assert workflow_id
         response = self._api_adapter.get_workflow(workflow_id=workflow_id)
 
@@ -186,6 +191,8 @@ class WorkflowEngine:
                         )
                         assert "id" in response
                         running_workflow_step_id = response["id"]
+                        project_id = running_workflow["project_id"]
+                        variables = running_workflow["variables"]
                         self._instance_launcher.launch(
                             project_id=project_id,
                             running_workflow_id=running_workflow_id,
