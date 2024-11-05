@@ -68,7 +68,10 @@ def start_workflow(md, da, workflow_file_name, variables) -> str:
     print(f"Created workflow definition {wfid}")
     # 2.
     response = da.create_running_workflow(
-        workflow_id=wfid, project_id=TEST_PROJECT_ID, variables=variables
+        user_id="dlister",
+        workflow_id=wfid,
+        project_id=TEST_PROJECT_ID,
+        variables=variables,
     )
     r_wfid = response["id"]
     assert r_wfid

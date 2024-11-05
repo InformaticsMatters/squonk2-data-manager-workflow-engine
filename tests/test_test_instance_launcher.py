@@ -28,7 +28,9 @@ def test_launch_nop(basic_launcher):
     utaa = basic_launcher[0]
     launcher = basic_launcher[1]
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    rwfid = response["id"]
     response = utaa.create_running_workflow(
+        user_id="dlister",
         workflow_id=response["id"],
         project_id=TEST_PROJECT_ID,
         variables={},
@@ -41,7 +43,7 @@ def test_launch_nop(basic_launcher):
     # Act
     result = launcher.launch(
         project_id=TEST_PROJECT_ID,
-        running_workflow_id="r-workflow-00000000-0000-0000-0000-000000000001",
+        running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
         step_specification=json.dumps(
             {"collection": "workflow-engine-unit-test-jobs", "job": "nop"}
@@ -61,10 +63,12 @@ def test_launch_nop_fail(basic_launcher):
     launcher = basic_launcher[1]
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     response = utaa.create_running_workflow(
+        user_id="dlister",
         workflow_id=response["id"],
         project_id=TEST_PROJECT_ID,
         variables={},
     )
+    rwfid = response["id"]
     response = utaa.create_running_workflow_step(
         running_workflow_id=response["id"], step="step-1"
     )
@@ -73,7 +77,7 @@ def test_launch_nop_fail(basic_launcher):
     # Act
     result = launcher.launch(
         project_id=TEST_PROJECT_ID,
-        running_workflow_id="r-workflow-00000000-0000-0000-0000-000000000001",
+        running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
         step_specification=json.dumps(
             {"collection": "workflow-engine-unit-test-jobs", "job": "nop-fail"}
@@ -93,10 +97,12 @@ def test_launch_smiles_to_file(basic_launcher):
     launcher = basic_launcher[1]
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     response = utaa.create_running_workflow(
+        user_id="dlister",
         workflow_id=response["id"],
         project_id=TEST_PROJECT_ID,
         variables={},
     )
+    rwfid = response["id"]
     response = utaa.create_running_workflow_step(
         running_workflow_id=response["id"], step="step-1"
     )
@@ -105,7 +111,7 @@ def test_launch_smiles_to_file(basic_launcher):
     # Act
     result = launcher.launch(
         project_id=TEST_PROJECT_ID,
-        running_workflow_id="r-workflow-00000000-0000-0000-0000-000000000001",
+        running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
         step_specification=json.dumps(
             {

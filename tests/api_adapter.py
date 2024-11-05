@@ -99,8 +99,14 @@ class UnitTestAPIAdapter(APIAdapter):
         return item
 
     def create_running_workflow(
-        self, *, workflow_id: str, project_id: str, variables: Dict[str, Any]
+        self,
+        *,
+        user_id: str,
+        workflow_id: str,
+        project_id: str,
+        variables: Dict[str, Any],
     ) -> str:
+        assert user_id
         assert isinstance(variables, dict)
 
         UnitTestAPIAdapter.lock.acquire()
@@ -110,6 +116,7 @@ class UnitTestAPIAdapter(APIAdapter):
         next_id: int = len(running_workflow) + 1
         running_workflow_id: str = _RUNNING_WORKFLOW_ID_FORMAT.format(id=next_id)
         record = {
+            "user_id": user_id,
             "done": False,
             "success": False,
             "workflow": workflow_id,
