@@ -1,7 +1,7 @@
 ---
 kind: DataManagerWorkflow
 kind-version: "2024.1"
-name: two-step-nop
+name: nop-fail
 description: >-
   A workflow with one step that fails
 steps:

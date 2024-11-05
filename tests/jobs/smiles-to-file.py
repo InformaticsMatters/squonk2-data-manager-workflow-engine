@@ -2,7 +2,7 @@ import argparse
 
 parser = argparse.ArgumentParser(
     prog="smiles-to-file",
-    description="Takes an input SMILES string and writes it to a file",
+    description="Takes a SMILES string and writes it to a file",
 )
 parser.add_argument("-s", "--smiles", required=True)
 parser.add_argument("-o", "--outputFile", required=True)

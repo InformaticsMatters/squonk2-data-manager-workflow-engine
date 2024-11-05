@@ -1,21 +1,23 @@
 ---
+
 # Job definitions used exclusively for unit testing.
 # They provide sufficient information to 'masquerade' as real jobs
-# and are served up by the UnitTestDatabaseAdapter (found in the tests directory).
+# and are served up by the UnitTestAPIAdapter (in 'tests/api_adapter.py').
 #
-# This offers bare-essential job definitions that are used to test
+# This offers bare-essential definitions that are used simply to test
 # the workflow engine. It does not fully comply with the Job definition schema -
-# only those that we need for testing the Workflow Engine.
+# only those parts that we need for testing the Workflow Engine.
 #
-# All jobs used for unit testing must be defined in this file.
+# All jobs used for unit testing are defined in this file.
 #
-# For each job you must provide: -
-# - Job command
+# The 'command' module is expected to be found implemented as a Python 3 module in the
+# 'tests/jobs' directory. So the smiles-to-file 'command' module ('smiles-to-file.py')
+# must be placed in the 'jobs' directory, and it must comply with the variables
+# defined here.
 #
-# The command is meaningless as the job that is run is expected to be
-# a Python 3 module called <job>.py in the tests/jobs directory.
-# So a nop job would have a corresponding Python module called nop.py.
-# The test instance_launcher module will run the job.
+# Jobs are executed in the 'project-root/project-00000000-0000-0000-0000-000000000001'
+# directory that is created (and wiped) by the UnitTestInstanceLauncher
+# (in 'tests/instance_launcher.py').
 
 collection: workflow-engine-unit-test-jobs
 
