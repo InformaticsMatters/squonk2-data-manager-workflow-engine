@@ -1,9 +1,12 @@
+import json
 import os
 import subprocess
 from datetime import datetime, timezone
 from subprocess import CompletedProcess
 from typing import Any, Dict, List
 
+from decoder import decoder as job_decoder
+from decoder.decoder import TextEncoding
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 
 from tests.api_adapter import UnitTestAPIAdapter
@@ -44,14 +47,16 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         self,
         *,
         project_id: str,
-        workflow_id: str,
+        running_workflow_id: str,
         running_workflow_step_id: str,
-        workflow_definition: Dict[str, Any],
-        step_specification: Dict[str, Any],
+        step_specification: str,
+        variables: Dict[str, Any],
     ) -> LaunchResult:
         assert project_id
-        assert workflow_id
+        assert running_workflow_id
         assert step_specification
+        assert isinstance(step_specification, str)
+        assert isinstance(variables, dict)
 
         assert project_id == TEST_PROJECT_ID
 
@@ -73,17 +78,36 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         execution_directory = f"project-root/{project_id}"
         os.makedirs(execution_directory, exist_ok=True)
 
-        # Just run the Python module that matched the 'job' in the step specification.
-        # Don't care about 'version' or 'collection'. It will be relative to the
-        # execution directory.
-        job: str = step_specification["job"]
-        job_module = f"{_JOB_DIRECTORY}/{job}.py"
-        assert os.path.isfile(job_module)
+        # Apply variables to the step's Job command.
+        step_specification_map = json.loads(step_specification)
+        job = self._api_adapter.get_job(
+            collection=step_specification_map["collection"],
+            job=step_specification_map["job"],
+            version="do-not-care",
+        )
+        assert job
 
-        job_cmd: List[str] = ["python", job_module]
-        print(f"Running job command: {job_module}")
+        # Now apply the variables to the command
+        decoded_command, status = job_decoder.decode(
+            job["command"],
+            variables,
+            running_workflow_step_id,
+            TextEncoding.JINJA2_3_0,
+        )
+        print(f"Decoded command: {decoded_command}")
+        print(f"Status: {status}")
+        assert status
+
+        # Now run the decoded command, which will be in the _JOB_DIRECTORY
+        command = f"{_JOB_DIRECTORY}/{decoded_command}"
+        command_list = command.split()
+        module = command_list[0]
+        print(f"Module: {module}")
+        assert os.path.isfile(module)
+        subprocess_cmd: List[str] = ["python"] + command_list
+        print(f"Subprocess command: {subprocess_cmd}")
         completed_process: CompletedProcess = subprocess.run(
-            job_cmd, check=False, cwd=execution_directory
+            subprocess_cmd, check=False, cwd=execution_directory
         )
 
         # Simulate a PodMessage (that will contain the instance ID),
@@ -103,5 +127,5 @@ class UnitTestInstanceLauncher(InstanceLauncher):
             error_msg=None,
             instance_id=instance_id,
             task_id=task_id,
-            command=" ".join(job_cmd),
+            command=" ".join(subprocess_cmd),
         )

@@ -1,10 +1,8 @@
 """The WorkflowEngine execution logic.
 """
 
-import ast
 import logging
 import sys
-from typing import Any, Dict
 
 from google.protobuf.message import Message
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
@@ -79,6 +77,7 @@ class WorkflowEngine:
             _LOGGER.info("RunningWorkflow: %s", running_workflow)
             project_id = running_workflow["project_id"]
             workflow_id = running_workflow["workflow"]["id"]
+            variables = running_workflow["variables"]
             response = self._api_adapter.get_workflow(workflow_id=workflow_id)
             assert "workflow" in response
             workflow = response["workflow"]
@@ -90,16 +89,15 @@ class WorkflowEngine:
             )
             assert "id" in response
             running_workflow_step_id = response["id"]
-            # The specification is a string here.
-            # It needs to be a dictionary for the launch() method.
+            # The step specification is a string here - pass it directly to the launcher
+            # which will get the Job command and apply the provided variables to it.
             step = workflow["steps"][0]
-            step_specification: Dict[str, Any] = ast.literal_eval(step["specification"])
             self._instance_launcher.launch(
                 project_id=project_id,
-                workflow_id=workflow_id,
+                running_workflow_id=msg.running_workflow,
                 running_workflow_step_id=running_workflow_step_id,
-                workflow_definition=workflow,
-                step_specification=step_specification,
+                step_specification=step["specification"],
+                variables=variables,
             )
 
         else:
@@ -165,6 +163,7 @@ class WorkflowEngine:
         )
         project_id = response["running_workflow"]["project_id"]
         workflow_id = response["running_workflow"]["workflow"]["id"]
+        variables = response["running_workflow"]["variables"]
         assert workflow_id
         response = self._api_adapter.get_workflow(workflow_id=workflow_id)
         workflow = response["workflow"]
@@ -187,15 +186,12 @@ class WorkflowEngine:
                         )
                         assert "id" in response
                         running_workflow_step_id = response["id"]
-                        step_specification: Dict[str, Any] = ast.literal_eval(
-                            next_step["specification"]
-                        )
                         self._instance_launcher.launch(
                             project_id=project_id,
-                            workflow_id=workflow_id,
+                            running_workflow_id=running_workflow_id,
                             running_workflow_step_id=running_workflow_step_id,
-                            workflow_definition=workflow,
-                            step_specification=step_specification,
+                            step_specification=next_step["specification"],
+                            variables=variables,
                         )
                         end_of_workflow = False
                         break

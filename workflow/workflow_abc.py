@@ -28,10 +28,10 @@ class InstanceLauncher(ABC):
         self,
         *,
         project_id: str,
-        workflow_id: str,
+        running_workflow_id: str,
         running_workflow_step_id: str,
-        workflow_definition: Dict[str, Any],
-        step_specification: Dict[str, Any],
+        step_specification: str,
+        variables: Dict[str, Any],
     ) -> LaunchResult:
         """Launch a (Job) Instance"""
 

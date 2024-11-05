@@ -8,7 +8,7 @@ steps:
 - name: step-1
   specification: >-
     {
-      'collection': 'workflow-engine-unit-test-jobs',
-      'job': 'nop-fail',
-      'version': '1.0.0'
+      "collection": "workflow-engine-unit-test-jobs",
+      "job": "nop-fail",
+      "version": "1.0.0"
     }

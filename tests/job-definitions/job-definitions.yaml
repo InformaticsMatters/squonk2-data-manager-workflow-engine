@@ -31,7 +31,7 @@ jobs:
 
   smiles-to-file:
     command: >-
-      string-to-file.py --smiles {{ smiles }} --output {{ outputFile }}
+      smiles-to-file.py --smiles {{ smiles }} --output {{ outputFile }}
     variables:
       outputs:
         type: object

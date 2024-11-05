@@ -276,6 +276,7 @@ class UnitTestAPIAdapter(APIAdapter):
     ) -> Optional[Dict[str, Any]]:
         assert collection == _JOB_DEFINITIONS["collection"]
         assert job in _JOB_DEFINITIONS["jobs"]
+        assert version
 
         jd = _JOB_DEFINITIONS["jobs"][job]
         response = {"command": jd["command"]}
