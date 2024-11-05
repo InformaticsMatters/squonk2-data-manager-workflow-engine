@@ -84,12 +84,22 @@ def start_workflow(md, da, workflow_file_name, variables) -> str:
     return r_wfid
 
 
-def wait_for_workflow(da, r_wfid, expect_success=True):
+def wait_for_workflow(
+    da,
+    r_wfid,
+    *,
+    expect_success=True,
+    completion_attempts=20,
+    completion_poll_period_s=0.25,
+) -> None:
     """A convenience function to wait for and check a workflow execution
     (by inspecting the anticipated DB/API records). The workflow is expected
     to start (because start_workflow() has been called), this function
-    waits for the running workflow to complete (by polling the API).
+    waits for the running workflow to complete (by polling the API)
+    while also checking the expected success/failure status.
     """
+    assert isinstance(da, UnitTestAPIAdapter)
+    assert isinstance(r_wfid, str)
 
     # We wait for the workflow to complete by polling the API and checking
     # the running workflow's 'done' status. The user can specify whether
@@ -97,7 +107,6 @@ def wait_for_workflow(da, r_wfid, expect_success=True):
     # are the responsibility of the caller.
     attempts = 0
     done = False
-    r_wf = None
     while not done:
         response = da.get_running_workflow(running_workflow_id=r_wfid)
         assert "running_workflow" in response
@@ -106,10 +115,11 @@ def wait_for_workflow(da, r_wfid, expect_success=True):
             done = True
         else:
             attempts += 1
-            if attempts > 10:
+            if attempts > completion_attempts:
                 break
-            time.sleep(0.5)
-    assert r_wf
+            time.sleep(completion_poll_period_s)
+    # When we get here the workflow must have finished (not timed-out),
+    # and it must have passed (or failed) according the the caller's expectation.
     assert r_wf["done"]
     assert r_wf["success"] == expect_success
 
