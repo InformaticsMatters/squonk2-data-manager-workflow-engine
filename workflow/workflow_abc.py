@@ -96,6 +96,7 @@ class APIAdapter(ABC):
         self,
         *,
         workflow_id: str,
+        project_id: str,
     ) -> Dict[str, Any]:
         """Create a RunningWorkflow Record (from a Workflow)"""
         # Should return:
@@ -117,7 +118,8 @@ class APIAdapter(ABC):
         #    "running_workflow": {
         #       "done": False,
         #       "success": false,
-        #       "workflow": "workflow-000",
+        #       "workflow": {"id": "workflow-000"},
+        #       "project_id": "project-000",
         #    }
         # }
 

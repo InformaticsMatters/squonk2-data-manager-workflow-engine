@@ -52,6 +52,9 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         assert workflow_id
         assert step_specification
 
+        # Project must be `project-00000000-0000-0000-0000-000000000001`
+        assert project_id == "project-00000000-0000-0000-0000-000000000001"
+
         # We're passed a RunningWorkflowStep ID but a record is expected to have been
         # created bt the caller, we simply create instance records.
         response = self._api_adapter.get_running_workflow_step(
@@ -66,15 +69,22 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         response = self._api_adapter.create_task(instance_id=instance_id)
         task_id = response["id"]
 
+        # Where to run the job (i.e. in the project directory)
+        execution_directory = f"project-root/{project_id}"
+        os.makedirs(execution_directory, exist_ok=True)
+
         # Just run the Python module that matched the 'job' in the step specification.
-        # Don't care about 'version' or 'collection'.
+        # Don't care about 'version' or 'collection'. It will be relative to the
+        # execution directory.
         job: str = step_specification["job"]
         job_module = f"{_JOB_DIRECTORY}/{job}.py"
         assert os.path.isfile(job_module)
 
         job_cmd: List[str] = ["python", job_module]
-        print(f"Running job command: {job_cmd}")
-        completed_process: CompletedProcess = subprocess.run(job_cmd, check=False)
+        print(f"Running job command: {job_module}")
+        completed_process: CompletedProcess = subprocess.run(
+            job_cmd, check=False, cwd=execution_directory
+        )
 
         # Simulate a PodMessage (that will contain the instance ID),
         # filling-in only the fields that are of use to the Engine.

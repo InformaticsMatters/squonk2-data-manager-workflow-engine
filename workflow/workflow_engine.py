@@ -77,6 +77,7 @@ class WorkflowEngine:
             assert "running_workflow" in response
             running_workflow = response["running_workflow"]
             _LOGGER.info("RunningWorkflow: %s", running_workflow)
+            project_id = running_workflow["project_id"]
             workflow_id = running_workflow["workflow"]["id"]
             response = self._api_adapter.get_workflow(workflow_id=workflow_id)
             assert "workflow" in response
@@ -94,7 +95,7 @@ class WorkflowEngine:
             step = workflow["steps"][0]
             step_specification: Dict[str, Any] = ast.literal_eval(step["specification"])
             self._instance_launcher.launch(
-                project_id="project-000",
+                project_id=project_id,
                 workflow_id=workflow_id,
                 running_workflow_step_id=running_workflow_step_id,
                 workflow_definition=workflow,
@@ -162,6 +163,7 @@ class WorkflowEngine:
         response = self._api_adapter.get_running_workflow(
             running_workflow_id=running_workflow_id
         )
+        project_id = response["running_workflow"]["project_id"]
         workflow_id = response["running_workflow"]["workflow"]["id"]
         assert workflow_id
         response = self._api_adapter.get_workflow(workflow_id=workflow_id)
@@ -189,7 +191,7 @@ class WorkflowEngine:
                             next_step["specification"]
                         )
                         self._instance_launcher.launch(
-                            project_id="project-000",
+                            project_id=project_id,
                             workflow_id=workflow_id,
                             running_workflow_step_id=running_workflow_step_id,
                             workflow_definition=workflow,
