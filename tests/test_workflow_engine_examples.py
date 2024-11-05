@@ -33,12 +33,7 @@ def basic_engine():
     print("Starting message queue...")
     message_queue.start()
 
-    yield [
-        api_adapter,
-        message_queue,
-        message_dispatcher,
-        workflow_engine,
-    ]
+    yield [api_adapter, message_dispatcher]
 
     print("Stopping message queue...")
     message_queue.stop()
@@ -89,7 +84,7 @@ def start_workflow(md, da, workflow_file_name, variables) -> str:
     return r_wfid
 
 
-def wait_for_workflow(da, mq, r_wfid, expect_success=True):
+def wait_for_workflow(da, r_wfid, expect_success=True):
     """A convenience function to wait for and check a workflow execution
     (by inspecting the anticipated DB/API records). The workflow is expected
     to start (because start_workflow() has been called), this function
@@ -121,13 +116,13 @@ def wait_for_workflow(da, mq, r_wfid, expect_success=True):
 
 def test_workflow_engine_example_two_step_nop(basic_engine):
     # Arrange
-    da, mq, md, _ = basic_engine
+    da, md = basic_engine
 
     # Act
     r_wfid = start_workflow(md, da, "example-two-step-nop", {})
 
     # Assert
-    wait_for_workflow(da, mq, r_wfid)
+    wait_for_workflow(da, r_wfid)
     # Additional, detailed checks...
     # Check there are the right number of RunningWorkflowStep Records
     # (and they're all set to success/done)
@@ -140,13 +135,13 @@ def test_workflow_engine_example_two_step_nop(basic_engine):
 
 def test_workflow_engine_example_nop_fail(basic_engine):
     # Arrange
-    da, mq, md, _ = basic_engine
+    da, md = basic_engine
 
     # Act
     r_wfid = start_workflow(md, da, "example-nop-fail", {})
 
     # Assert
-    wait_for_workflow(da, mq, r_wfid, expect_success=False)
+    wait_for_workflow(da, r_wfid, expect_success=False)
     # Additional, detailed checks...
     # Check we only haver one step, and it failed
     response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
