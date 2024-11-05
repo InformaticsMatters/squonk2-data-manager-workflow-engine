@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import subprocess
 from datetime import datetime, timezone
 from subprocess import CompletedProcess
@@ -14,7 +15,16 @@ from tests.config import TEST_PROJECT_ID
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from workflow.workflow_abc import InstanceLauncher, LaunchResult
 
-_JOB_DIRECTORY: str = os.path.join(os.path.dirname(__file__), "jobs")
+# Full path to the 'jobs' directory
+_JOB_PATH: str = os.path.join(os.path.dirname(__file__), "jobs")
+# Relative path to the execution (project) directory
+_EXECUTION_DIRECTORY: str = os.path.join("tests", "project-root", TEST_PROJECT_ID)
+
+
+def project_file_exists(file_name: str) -> bool:
+    """A convenient test function to verify a file exists
+    in the execution (project) directory."""
+    return os.path.isfile(os.path.join(_EXECUTION_DIRECTORY, file_name))
 
 
 class UnitTestInstanceLauncher(InstanceLauncher):
@@ -43,6 +53,11 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         self._api_adapter = api_adapter
         self._msg_dispatcher = msg_dispatcher
 
+        # Every launcher starts with an empty execution directory...
+        print(f"Removing execution directory ({_EXECUTION_DIRECTORY})")
+        assert _EXECUTION_DIRECTORY.startswith("tests/project-root")
+        shutil.rmtree(_EXECUTION_DIRECTORY, ignore_errors=True)
+
     def launch(
         self,
         *,
@@ -60,6 +75,8 @@ class UnitTestInstanceLauncher(InstanceLauncher):
 
         assert project_id == TEST_PROJECT_ID
 
+        os.makedirs(_EXECUTION_DIRECTORY, exist_ok=True)
+
         # We're passed a RunningWorkflowStep ID but a record is expected to have been
         # created bt the caller, we simply create instance records.
         response = self._api_adapter.get_running_workflow_step(
@@ -73,10 +90,6 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         instance_id = response["id"]
         response = self._api_adapter.create_task(instance_id=instance_id)
         task_id = response["id"]
-
-        # Where to run the job (i.e. in the test project directory)
-        execution_directory = f"tests/project-root/{project_id}"
-        os.makedirs(execution_directory, exist_ok=True)
 
         # Apply variables to the step's Job command.
         step_specification_map = json.loads(step_specification)
@@ -99,7 +112,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         assert status
 
         # Now run the decoded command, which will be in the _JOB_DIRECTORY
-        command = f"{_JOB_DIRECTORY}/{decoded_command}"
+        command = f"{_JOB_PATH}/{decoded_command}"
         command_list = command.split()
         module = command_list[0]
         print(f"Module: {module}")
@@ -107,7 +120,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         subprocess_cmd: List[str] = ["python"] + command_list
         print(f"Subprocess command: {subprocess_cmd}")
         completed_process: CompletedProcess = subprocess.run(
-            subprocess_cmd, check=False, cwd=execution_directory
+            subprocess_cmd, check=False, cwd=_EXECUTION_DIRECTORY
         )
 
         # Simulate a PodMessage (that will contain the instance ID),
