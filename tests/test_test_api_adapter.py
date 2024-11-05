@@ -1,5 +1,3 @@
-# Tests for the decoder package.
-
 import pytest
 
 pytestmark = pytest.mark.unit

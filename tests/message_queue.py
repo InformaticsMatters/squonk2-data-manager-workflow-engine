@@ -1,3 +1,18 @@
+"""The UnitTest Message Queue.
+
+A simulation of the RabbitMQ queue in the DM. It has a 'put()' method that
+serializes ProtocolBuffer messages and places them on a queue. The 'run()' method
+picks messages off the queue and deserializes them back into ProtocolBuffer objects
+before sending them to a receiver function.
+
+In the UnitTest framework the receiver is the WorkflowEngine's 'handle_message()'
+function.
+
+The queue needs to be started (before any testing) and stopped (after testing).
+This is typically done by the pytest 'basic engine' fixture in
+'test_workflow_engine_examples.py'.
+"""
+
 from contextlib import suppress
 from multiprocessing import Event, Process, Queue
 from queue import Empty

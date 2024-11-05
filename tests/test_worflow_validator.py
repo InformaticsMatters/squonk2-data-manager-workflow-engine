@@ -1,5 +1,3 @@
-# Tests for the WorkflowValidator
-
 import pytest
 
 pytestmark = pytest.mark.unit

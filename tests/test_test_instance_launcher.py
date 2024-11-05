@@ -1,4 +1,3 @@
-# Tests for the decoder package.
 import json
 
 import pytest

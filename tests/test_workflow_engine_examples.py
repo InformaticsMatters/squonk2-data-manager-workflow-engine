@@ -1,4 +1,3 @@
-# A unit (functional) test for the WorkflowEngine's handling of 'Example 1'.
 import os
 import time
 from datetime import datetime, timezone

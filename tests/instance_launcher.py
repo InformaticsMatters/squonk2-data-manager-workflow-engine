@@ -1,3 +1,20 @@
+"""The UnitTest Instance Launcher.
+
+It runs Python module modules defined in the unit-test job-definitions file.
+
+It also uses the UnitTestMessageDispatcher to send a simulated
+'end of instance' PodMessage  that are normally sent to the WorkflowEngine's
+'handle_message()' method by the underlying queue. The 'exit code' of the module is
+passed to the WorkflowEngine through the PodMessage - so if the module fails
+(i.e. returns a non-zero exit code) then the WorkflowEngine will see that the PodMessage.
+This allows you to write jobs that fail and see how the WorkflowEngine responds.
+
+Instances (jobs) are executed in a simulated project directory - actually
+tests/project-root/project-00000000-0000-0000-0000-000000000001. The project directory
+is created by the UnitTestInstanceLauncher and is also wiped as the launcher initialises
+(so the start of each test begins with an empty project directory).
+"""
+
 import json
 import os
 import shutil
@@ -28,22 +45,7 @@ def project_file_exists(file_name: str) -> bool:
 
 
 class UnitTestInstanceLauncher(InstanceLauncher):
-    """A unit test instance launcher, which runs the
-    Python module that matches the job name in the provided specification.
-
-    The Python module used to satisfy the step matches the job name in the
-    step specification. If the step_specification's 'job' is 'my_job', then the launcher
-    will run the Python module 'my_job.py' in the 'jobs' directory. The
-    module is run synchronously - i.e. the launch() method waits for the
-    module to complete.
-
-    It then uses the UnitTestMessageDispatcher to send a simulated
-    'end of instance' PodMessage  that will be received by the WorkflowEngine's
-    'handle_message()' method. The 'exit code' of the module is passed to the
-    WorkflowEngine through the PodMessage - so if the module fails (i.e. returns
-    a non-zero exit code) then the WorkflowEngine will see that the PodMessage.
-    This allows you to write jobs that fail and see how the WorkflowEngine responds.
-    """
+    """A unit test instance launcher."""
 
     def __init__(
         self, api_adapter: UnitTestAPIAdapter, msg_dispatcher: UnitTestMessageDispatcher

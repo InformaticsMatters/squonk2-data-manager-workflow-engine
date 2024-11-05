@@ -1,3 +1,20 @@
+"""The UnitTest API Adapter.
+
+This 'simulates' the sort of responses you can expect from the DM API/Model.
+It stimulates a Database by using dictionaries that are pickled to (and unpickled from)
+the file system after acquiring a lock object. Pickling is required to
+(because it's a simple built-in mechanism in Python) to persist data
+between processes in the multi-processing framework we run in because we ultimately need
+to simulate the multi-pod messaging-based framework of the DM.
+
+A separate pickle file is used for each 'simulated' model table and the object
+initialiser resets all the pickle files (located in 'tests/pickle-files').
+
+Job definitions are loaded (statically) from the content of the
+'tests/job-definitions/job-definitions.yaml' file and yielded through the 'get_job()'
+method.
+"""
+
 import os
 from multiprocessing import Lock
 from pickle import Pickler, Unpickler

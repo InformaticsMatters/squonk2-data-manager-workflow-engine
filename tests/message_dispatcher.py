@@ -1,3 +1,10 @@
+"""The UnitTest Message Dispatcher.
+
+A very simple object that relies on an underlying message queue.
+Here we offer a minimal implementation that simply sends a (protocol buffer) message
+to the queue.
+"""
+
 from google.protobuf.message import Message
 
 from tests.message_queue import UnitTestMessageQueue
