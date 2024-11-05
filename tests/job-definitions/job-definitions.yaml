@@ -24,3 +24,7 @@ jobs:
   nop:
     command: >-
       python --version
+
+  nop-fail:
+    command: >-
+      python --version
