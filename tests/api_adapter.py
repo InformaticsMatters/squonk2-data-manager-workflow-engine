@@ -98,7 +98,11 @@ class UnitTestAPIAdapter(APIAdapter):
                 item = {"id": wfid, "workflow": value}
         return item
 
-    def create_running_workflow(self, *, workflow_id: str, project_id: str) -> str:
+    def create_running_workflow(
+        self, *, workflow_id: str, project_id: str, variables: Dict[str, Any]
+    ) -> str:
+        assert isinstance(variables, dict)
+
         UnitTestAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             running_workflow = Unpickler(pickle_file).load()
@@ -110,6 +114,7 @@ class UnitTestAPIAdapter(APIAdapter):
             "success": False,
             "workflow": workflow_id,
             "project_id": project_id,
+            "variables": variables,
         }
         running_workflow[running_workflow_id] = record
 

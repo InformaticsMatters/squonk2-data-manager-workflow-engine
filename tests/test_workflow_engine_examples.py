@@ -46,7 +46,7 @@ def basic_engine():
     print("Stopped")
 
 
-def start_workflow(md, da, workflow_file_name) -> str:
+def start_workflow(md, da, workflow_file_name, variables) -> str:
     """A convenience function to handle all the 'START' logic for a workflow.
     It is given the message dispatcher, data adapter, and the base-name of the
     workflow definition - i.e. the filename without the '.yaml' extension
@@ -72,7 +72,9 @@ def start_workflow(md, da, workflow_file_name) -> str:
     assert wfid
     print(f"Created workflow definition {wfid}")
     # 2.
-    response = da.create_running_workflow(workflow_id=wfid, project_id=TEST_PROJECT_ID)
+    response = da.create_running_workflow(
+        workflow_id=wfid, project_id=TEST_PROJECT_ID, variables=variables
+    )
     r_wfid = response["id"]
     assert r_wfid
     print(f"Created running workflow {r_wfid}")
@@ -122,7 +124,7 @@ def test_workflow_engine_example_two_step_nop(basic_engine):
     da, mq, md, _ = basic_engine
 
     # Act
-    r_wfid = start_workflow(md, da, "example-two-step-nop")
+    r_wfid = start_workflow(md, da, "example-two-step-nop", {})
 
     # Assert
     wait_for_workflow(da, mq, r_wfid)
@@ -141,7 +143,7 @@ def test_workflow_engine_example_nop_fail(basic_engine):
     da, mq, md, _ = basic_engine
 
     # Act
-    r_wfid = start_workflow(md, da, "example-nop-fail")
+    r_wfid = start_workflow(md, da, "example-nop-fail", {})
 
     # Assert
     wait_for_workflow(da, mq, r_wfid, expect_success=False)

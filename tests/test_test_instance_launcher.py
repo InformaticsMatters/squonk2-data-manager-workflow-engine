@@ -30,6 +30,7 @@ def test_launch_nop(basic_launcher):
     response = utaa.create_running_workflow(
         workflow_id=response["id"],
         project_id=TEST_PROJECT_ID,
+        variables={},
     )
     response = utaa.create_running_workflow_step(
         running_workflow_id=response["id"], step="step-1"
@@ -59,6 +60,7 @@ def test_launch_nop_fail(basic_launcher):
     response = utaa.create_running_workflow(
         workflow_id=response["id"],
         project_id=TEST_PROJECT_ID,
+        variables={},
     )
     response = utaa.create_running_workflow_step(
         running_workflow_id=response["id"], step="step-1"
@@ -88,6 +90,7 @@ def test_launch_smiles_to_file(basic_launcher):
     response = utaa.create_running_workflow(
         workflow_id=response["id"],
         project_id=TEST_PROJECT_ID,
+        variables={},
     )
     response = utaa.create_running_workflow_step(
         running_workflow_id=response["id"], step="step-1"
