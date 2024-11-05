@@ -166,7 +166,6 @@ class WorkflowEngine:
         variables = response["running_workflow"]["variables"]
         assert workflow_id
         response = self._api_adapter.get_workflow(workflow_id=workflow_id)
-        workflow = response["workflow"]
 
         end_of_workflow: bool = True
         if success:
@@ -175,6 +174,7 @@ class WorkflowEngine:
             # If there are no more steps then the workflow is done
             # so we need to set the running workflow as done
             # and set it's success status too.
+            workflow = response["workflow"]
             for step in workflow["steps"]:
                 if step["name"] == step_name:
                     step_index = workflow["steps"].index(step)
