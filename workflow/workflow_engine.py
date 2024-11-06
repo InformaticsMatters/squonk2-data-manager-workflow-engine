@@ -30,7 +30,7 @@ from google.protobuf.message import Message
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
 
-from .workflow_abc import APIAdapter, InstanceLauncher, LaunchResult
+from workflow.workflow_abc import APIAdapter, InstanceLauncher, LaunchResult
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.INFO)
