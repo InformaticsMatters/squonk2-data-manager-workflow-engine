@@ -126,6 +126,8 @@ def test_set_running_workflow_done_when_success():
     response = utaa.get_running_workflow(running_workflow_id=rwfid)
     assert response["running_workflow"]["done"]
     assert response["running_workflow"]["success"]
+    assert response["running_workflow"]["error"] is None
+    assert response["running_workflow"]["error_msg"] is None
 
 
 def test_set_running_workflow_done_when_failed():
@@ -141,12 +143,16 @@ def test_set_running_workflow_done_when_failed():
     rwfid = response["id"]
 
     # Act
-    utaa.set_running_workflow_done(running_workflow_id=rwfid, success=False)
+    utaa.set_running_workflow_done(
+        running_workflow_id=rwfid, success=False, error=1, error_msg="Bang!"
+    )
 
     # Assert
     response = utaa.get_running_workflow(running_workflow_id=rwfid)
     assert response["running_workflow"]["done"]
     assert not response["running_workflow"]["success"]
+    assert response["running_workflow"]["error"] == 1
+    assert response["running_workflow"]["error_msg"] == "Bang!"
 
 
 def test_create_running_workflow_step():
@@ -167,6 +173,60 @@ def test_create_running_workflow_step():
 
     # Assert
     assert response["id"] == "r-workflow-step-00000000-0000-0000-0000-000000000001"
+
+
+def test_set_running_workflow_step_done_when_success():
+    # Arrange
+    utaa = UnitTestAPIAdapter()
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    response = utaa.create_running_workflow(
+        user_id="dlister",
+        workflow_id=response["id"],
+        project_id=TEST_PROJECT_ID,
+        variables={},
+    )
+    response = utaa.create_running_workflow_step(
+        running_workflow_id=response["id"], step="step-1"
+    )
+    rwfsid = response["id"]
+
+    # Act
+    utaa.set_running_workflow_step_done(running_workflow_step_id=rwfsid, success=True)
+
+    # Assert
+    response = utaa.get_running_workflow_step(running_workflow_step_id=rwfsid)
+    assert response["running_workflow_step"]["done"]
+    assert response["running_workflow_step"]["success"]
+    assert response["running_workflow_step"]["error"] is None
+    assert response["running_workflow_step"]["error_msg"] is None
+
+
+def test_set_running_workflow_step_done_when_failed():
+    # Arrange
+    utaa = UnitTestAPIAdapter()
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    response = utaa.create_running_workflow(
+        user_id="dlister",
+        workflow_id=response["id"],
+        project_id=TEST_PROJECT_ID,
+        variables={},
+    )
+    response = utaa.create_running_workflow_step(
+        running_workflow_id=response["id"], step="step-1"
+    )
+    rwfsid = response["id"]
+
+    # Act
+    utaa.set_running_workflow_step_done(
+        running_workflow_step_id=rwfsid, success=False, error=1, error_msg="Bang!"
+    )
+
+    # Assert
+    response = utaa.get_running_workflow_step(running_workflow_step_id=rwfsid)
+    assert response["running_workflow_step"]["done"]
+    assert not response["running_workflow_step"]["success"]
+    assert response["running_workflow_step"]["error"] == 1
+    assert response["running_workflow_step"]["error_msg"] == "Bang!"
 
 
 def test_get_running_workflow_step():

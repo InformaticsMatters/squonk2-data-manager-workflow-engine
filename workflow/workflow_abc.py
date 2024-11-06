@@ -108,9 +108,15 @@ class APIAdapter(ABC):
 
     @abstractmethod
     def set_running_workflow_done(
-        self, *, running_workflow_id: str, success: bool
+        self,
+        *,
+        running_workflow_id: str,
+        success: bool,
+        error: Optional[int] = None,
+        error_msg: Optional[str] = None,
     ) -> None:
-        """Set the success value for a RunningWorkflow Record"""
+        """Set the success value for a RunningWorkflow Record.
+        If not successful an error code and message should be provided."""
 
     @abstractmethod
     def get_running_workflow(self, *, running_workflow_id: str) -> Dict[str, Any]:
@@ -121,6 +127,8 @@ class APIAdapter(ABC):
         #       "user_id": "alan",
         #       "done": False,
         #       "success": false,
+        #       "error": None,
+        #       "error_msg": None,
         #       "workflow": {"id": "workflow-000"},
         #       "project_id": "project-000",
         #       "variables": {"x": 1, "y": 2},
@@ -151,15 +159,23 @@ class APIAdapter(ABC):
         #       "step:": "step-1234",
         #       "done": False,
         #       "success": false,
-        #       "running_workflow": "r-workflow-000",
+        #       "error": None,
+        #       "error_msg": None,
+        #       "running_workflow": "r-workflow-00000000-0000-0000-0000-000000000001",
         #    },
         # }
 
     @abstractmethod
     def set_running_workflow_step_done(
-        self, *, running_workflow_step_id: str, success: bool
+        self,
+        *,
+        running_workflow_step_id: str,
+        success: bool,
+        error: Optional[int] = None,
+        error_msg: Optional[str] = None,
     ) -> None:
-        """Set the success value for a RunningWorkflowStep Record"""
+        """Set the success value for a RunningWorkflowStep Record,
+        If not successful an error code and message should be provided."""
 
     @abstractmethod
     def get_running_workflow_steps(
@@ -176,7 +192,9 @@ class APIAdapter(ABC):
         #               "step:": "step-1234",
         #               "done": False,
         #               "success": false,
-        #               "workflow": "workflow-000",
+        #               "error": None,
+        #               "error_msg": None,
+        #               "workflow": "workflow-00000000-0000-0000-0000-000000000001",
         #           }
         #       ...
         #    ]

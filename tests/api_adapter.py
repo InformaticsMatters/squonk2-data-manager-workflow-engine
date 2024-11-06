@@ -149,7 +149,12 @@ class UnitTestAPIAdapter(APIAdapter):
         return {"id": running_workflow_id}
 
     def set_running_workflow_done(
-        self, *, running_workflow_id: str, success: bool
+        self,
+        *,
+        running_workflow_id: str,
+        success: bool,
+        error: Optional[int] = None,
+        error_msg: Optional[str] = None,
     ) -> None:
         UnitTestAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
@@ -158,6 +163,8 @@ class UnitTestAPIAdapter(APIAdapter):
         assert running_workflow_id in running_workflow
         running_workflow[running_workflow_id]["done"] = True
         running_workflow[running_workflow_id]["success"] = success
+        running_workflow[running_workflow_id]["error"] = error
+        running_workflow[running_workflow_id]["error_msg"] = error_msg
 
         with open(_RUNNING_WORKFLOW_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(running_workflow)
@@ -213,7 +220,12 @@ class UnitTestAPIAdapter(APIAdapter):
         }
 
     def set_running_workflow_step_done(
-        self, *, running_workflow_step_id: str, success: bool
+        self,
+        *,
+        running_workflow_step_id: str,
+        success: bool,
+        error: Optional[int] = None,
+        error_msg: Optional[str] = None,
     ) -> None:
         UnitTestAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
@@ -222,6 +234,8 @@ class UnitTestAPIAdapter(APIAdapter):
         assert running_workflow_step_id in running_workflow_step
         running_workflow_step[running_workflow_step_id]["done"] = True
         running_workflow_step[running_workflow_step_id]["success"] = success
+        running_workflow_step[running_workflow_step_id]["error"] = error
+        running_workflow_step[running_workflow_step_id]["error_msg"] = error_msg
 
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(running_workflow_step)
