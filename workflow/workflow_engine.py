@@ -24,6 +24,7 @@ is executed, and it uses thew InstanceLauncher to launch the Job (a Pod) for eac
 
 import logging
 import sys
+from typing import Any, Dict, Optional
 
 from google.protobuf.message import Message
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
@@ -75,63 +76,68 @@ class WorkflowEngine:
         step (or steps) to launch (run) first."""
         assert msg
 
-        # ALL THIS CODE ADDED SIMPLY TO DEMONSTRATE THE USE OF THE API ADAPTER
-        # AND THE INSTANCE LAUNCHER FOR THE SIMPLEST OF WORKFLOWS: -
-        # THE "TWO-STEP NOP".
-        # THERE IS NWO SPECIFICATION MANIPULATION NEEDED FOR THIS EXAMPLE
-        # THE STEPS HAVE NO INPUTS OR OUTPUTS.
-        # THIS FUNCTION PROBABLY NEEDS TO BE A LOT MORE SOPHISTICATED!
+        _LOGGER.debug("WorkflowMessage:\n%s", str(msg))
+        assert msg.action in ["START", "STOP"]
 
-        _LOGGER.debug("WE> WorkflowMessage:\n%s", str(msg))
-
-        action = msg.action
         r_wfid = msg.running_workflow
-
-        assert action in ["START", "STOP"]
-        if action == "START":
-            # Using the running workflow...
-            response = self._api_adapter.get_running_workflow(
-                running_workflow_id=r_wfid
-            )
-            assert "running_workflow" in response
-            running_workflow = response["running_workflow"]
-            _LOGGER.debug("RunningWorkflow: %s", running_workflow)
-            # ...get the workflow definition...
-            workflow_id = running_workflow["workflow"]["id"]
-            response = self._api_adapter.get_workflow(workflow_id=workflow_id)
-            assert "workflow" in response
-            workflow = response["workflow"]
-
-            # Now find the first step and create a RunningWorkflowStep record...
-            first_step: str = workflow["steps"][0]["name"]
-            response = self._api_adapter.create_running_workflow_step(
-                running_workflow_id=r_wfid,
-                step=first_step,
-            )
-            assert "id" in response
-            running_workflow_step_id = response["id"]
-
-            # The step's 'specification' is a string here - pass it directly to the
-            # launcher along with any appropriate 'variables'. The launcher
-            # will get the step's Job command and apply the variables to it to
-            # form the command that will be executed for the step.
-            step = workflow["steps"][0]
-            project_id = running_workflow["project_id"]
-            variables = running_workflow["variables"]
-            lr: LaunchResult = self._instance_launcher.launch(
-                project_id=project_id,
-                running_workflow_id=msg.running_workflow,
-                running_workflow_step_id=running_workflow_step_id,
-                step_specification=step["specification"],
-                variables=variables,
-            )
-            assert lr.error == 0
-            _LOGGER.info(
-                "Launched initial step: %s (command=%s)", first_step, lr.command
-            )
-
+        if msg.action == "START":
+            self._handle_workflow_start_message(r_wfid)
         else:
-            _LOGGER.info("action=%s", msg.action)
+            # STOP is not implemented yet and probably not for some time.
+            # So just log and ignore for now!
+            _LOGGER.warning(
+                "Got STOP action for %s - but it's not implemented yet!", r_wfid
+            )
+
+    def _handle_workflow_start_message(self, r_wfid: str) -> None:
+        """Logic to handle a START message. Here we use the running workflow
+        (and workflow) to find the first step in the workflow and launch it, passing
+        the running workflow variables to the launcher."""
+
+        response = self._api_adapter.get_running_workflow(running_workflow_id=r_wfid)
+        assert "running_workflow" in response
+        running_workflow = response["running_workflow"]
+        _LOGGER.debug("RunningWorkflow: %s", running_workflow)
+        # Now get the workflow definition (to get all the steps)
+        wfid = running_workflow["workflow"]["id"]
+        response = self._api_adapter.get_workflow(workflow_id=wfid)
+        assert "workflow" in response
+        workflow = response["workflow"]
+
+        # Now find the first step,
+        # and create a corresponding RunningWorkflowStep record...
+        first_step: Dict[str, Any] = workflow["steps"][0]
+        first_step_name: str = first_step["name"]
+        response = self._api_adapter.create_running_workflow_step(
+            running_workflow_id=r_wfid,
+            step=first_step_name,
+        )
+        assert "id" in response
+        r_wfsid = response["id"]
+
+        # The step's 'specification' is a string - pass it directly to the
+        # launcher along with any appropriate 'variables'. The launcher
+        # will apply the variables to step's Job command but we need to handle
+        # any launch problems. The validator should have checked to ensure that
+        # variable expansion will work, but we must prepare for the unexpected.
+
+        project_id = running_workflow["project_id"]
+        variables = running_workflow["variables"]
+        lr: LaunchResult = self._instance_launcher.launch(
+            project_id=project_id,
+            running_workflow_id=r_wfid,
+            running_workflow_step_id=r_wfsid,
+            step_specification=first_step["specification"],
+            variables=variables,
+        )
+        if lr.error:
+            self._set_step_error(
+                first_step_name, r_wfid, r_wfsid, lr.error, lr.error_msg
+            )
+        else:
+            _LOGGER.info(
+                "Launched first step '%s' (command=%s)", first_step_name, lr.command
+            )
 
     def _handle_pod_message(self, msg: PodMessage) -> None:
         """Handles a PodMessage. This is a message that signals the completion of a
@@ -147,89 +153,141 @@ class WorkflowEngine:
         assert msg
 
         # The PodMessage has a 'instance', 'has_exit_code', and 'exit_code' values.
-        _LOGGER.debug("WE> PodMessage:\n%s", str(msg))
+        _LOGGER.debug("PodMessage:\n%s", str(msg))
 
         # ALL THIS CODE ADDED SIMPLY TO DEMONSTRATE THE USE OF THE API ADAPTER
         # AND THE INSTANCE LAUNCHER FOR THE SIMPLEST OF WORKFLOWS: -
         # THE "TWO-STEP NOP".
-        # THERE IS NWO SPECIFICATION MANIPULATION NEEDED FOR THIS EXAMPLE
+        # THERE IS NO SPECIFICATION MANIPULATION NEEDED FOR THIS EXAMPLE
         # THE STEPS HAVE NO INPUTS OR OUTPUTS.
         # THIS FUNCTION PROBABLY NEEDS TO BE A LOT MORE SOPHISTICATED!
 
         # Ignore anything without an exit code.
         if not msg.has_exit_code:
-            _LOGGER.warning("WE> PodMessage: No exit code")
+            _LOGGER.error("PodMessage has no exit code")
             return
 
         instance_id: str = msg.instance
         exit_code: int = msg.exit_code
-        _LOGGER.debug(
-            "WE> PodMessage: instance=%s, exit_code=%d", instance_id, exit_code
-        )
         response = self._api_adapter.get_instance(instance_id=instance_id)
-        running_workflow_step_id: str = response["running_workflow_step"]
+        r_wfsid: str = response["running_workflow_step"]
         response = self._api_adapter.get_running_workflow_step(
-            running_workflow_step_id=running_workflow_step_id
+            running_workflow_step_id=r_wfsid
         )
         step_name: str = response["running_workflow_step"]["step"]
 
-        # Set the step as completed (successful or otherwise)
-        success: bool = exit_code == 0
+        # Get the step's running workflow record.
+        r_wfid = response["running_workflow_step"]["running_workflow"]
+        assert r_wfid
+        response = self._api_adapter.get_running_workflow(running_workflow_id=r_wfid)
+
+        if exit_code:
+            # The job was launched but it failed.
+            # Set a step error,
+            # This will also set a workflow error so we can leave.
+            self._set_step_error(step_name, r_wfid, r_wfsid, exit_code, "Job failed")
+            return
+
+        # The prior step completed successfully if we get here.
+
         self._api_adapter.set_running_workflow_step_done(
-            running_workflow_step_id=running_workflow_step_id,
-            success=success,
+            running_workflow_step_id=r_wfsid,
+            success=True,
         )
 
-        # Get the step's running workflow and workflow IDs and records.
-        running_workflow_id = response["running_workflow_step"]["running_workflow"]
-        assert running_workflow_id
-        response = self._api_adapter.get_running_workflow(
-            running_workflow_id=running_workflow_id
-        )
         running_workflow = response["running_workflow"]
-        workflow_id = running_workflow["workflow"]["id"]
-        assert workflow_id
-        response = self._api_adapter.get_workflow(workflow_id=workflow_id)
+        wfid = running_workflow["workflow"]["id"]
+        assert wfid
+        response = self._api_adapter.get_workflow(workflow_id=wfid)
+        workflow = response["workflow"]
 
-        end_of_workflow: bool = True
-        if success:
-            # Given the step for the instance just finished,
-            # find the next step in the workflow and launch it.
-            workflow = response["workflow"]
-            for step in workflow["steps"]:
-                if step["name"] == step_name:
-                    step_index = workflow["steps"].index(step)
-                    if step_index + 1 < len(workflow["steps"]):
-                        next_step = workflow["steps"][step_index + 1]
-                        response = self._api_adapter.create_running_workflow_step(
-                            running_workflow_id=running_workflow_id,
-                            step=next_step["name"],
+        # Given the step for the instance just finished (successfully),
+        # find the next step n the workflow
+        # (using the name of the prior step as an index)
+        # and launch it.
+        #
+        # If there are no more steps then the workflow is done.
+
+        lr: Optional[LaunchResult] = None
+        for step in workflow["steps"]:
+            if step["name"] == step_name:
+                step_index = workflow["steps"].index(step)
+                if step_index + 1 < len(workflow["steps"]):
+
+                    # There's another step - for this simple logic it is the next step.
+
+                    next_step = workflow["steps"][step_index + 1]
+                    next_step_name = next_step["name"]
+                    response = self._api_adapter.create_running_workflow_step(
+                        running_workflow_id=r_wfid,
+                        step=next_step_name,
+                    )
+                    assert "id" in response
+                    r_wfsid = response["id"]
+                    project_id = running_workflow["project_id"]
+                    variables = running_workflow["variables"]
+                    lr = self._instance_launcher.launch(
+                        project_id=project_id,
+                        running_workflow_id=r_wfid,
+                        running_workflow_step_id=r_wfsid,
+                        step_specification=next_step["specification"],
+                        variables=variables,
+                    )
+                    # Handle a launch error?
+                    if lr.error:
+                        self._set_step_error(
+                            next_step_name,
+                            r_wfid,
+                            r_wfsid,
+                            lr.error,
+                            lr.error_msg,
                         )
-                        assert "id" in response
-                        running_workflow_step_id = response["id"]
-                        project_id = running_workflow["project_id"]
-                        variables = running_workflow["variables"]
-                        lr: LaunchResult = self._instance_launcher.launch(
-                            project_id=project_id,
-                            running_workflow_id=running_workflow_id,
-                            running_workflow_step_id=running_workflow_step_id,
-                            step_specification=next_step["specification"],
-                            variables=variables,
-                        )
-                        end_of_workflow = False
-                        assert lr.error == 0
+                    else:
                         _LOGGER.info(
                             "Launched step: %s (command=%s)",
                             next_step["name"],
                             lr.command,
                         )
-                        break
 
-        # If there are no more steps then the workflow is done
-        # so we need to set the running workflow as done
-        # and set its success status too.
-        if end_of_workflow:
+                    # Something was started (or there was a launch error).
+                    break
+
+        # If there's no launch result this must the (successful) end of the workflow.
+        # If there is a launch result it was either successful
+        # (and not the end of the workflow) or unsuccessful
+        # (and the workflow will have been marked as done anyway).
+        if lr is None:
             self._api_adapter.set_running_workflow_done(
-                running_workflow_id=running_workflow_id,
-                success=success,
+                running_workflow_id=r_wfid,
+                success=True,
             )
+
+    def _set_step_error(
+        self,
+        step_name: str,
+        r_wfid: str,
+        r_wfsid: str,
+        error: Optional[int],
+        error_msg: Optional[str],
+    ) -> None:
+        """Set the error state for a running workflow step (and the running workflow).
+        Calling this method essentially 'ends' the running workflow."""
+        _LOGGER.warning(
+            "Failed to launch step '%s' (error=%d error_msg=%s)",
+            step_name,
+            error,
+            error_msg,
+        )
+        self._api_adapter.set_running_workflow_step_done(
+            running_workflow_step_id=r_wfsid,
+            success=False,
+            error=error,
+            error_msg=error_msg,
+        )
+        # We must also set the running workflow as done (failed)
+        self._api_adapter.set_running_workflow_done(
+            running_workflow_id=r_wfid,
+            success=False,
+            error=error,
+            error_msg=error_msg,
+        )
