@@ -155,7 +155,7 @@ def test_workflow_engine_example_nop_fail(basic_engine):
     # Assert
     wait_for_workflow(da, r_wfid, expect_success=False)
     # Additional, detailed checks...
-    # Check we only haver one step, and it failed
+    # Check we only have one RunningWorkflowStep, and it failed
     response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
     assert response["count"] == 1
     assert response["running_workflow_steps"][0]["running_workflow_step"]["done"]
@@ -178,10 +178,10 @@ def test_workflow_engine_example_smiles_to_file(basic_engine):
     # Assert
     wait_for_workflow(da, r_wfid)
     # Additional, detailed checks...
-    # Check we only haver one step, and it failed
+    # Check we only have one RunningWorkflowStep, and it succeeded
     response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
     assert response["count"] == 1
     assert response["running_workflow_steps"][0]["running_workflow_step"]["done"]
     assert response["running_workflow_steps"][0]["running_workflow_step"]["success"]
-    # This test should generate some files now existing the project directory
+    # This test should generate a file in the simulated project directory
     assert project_file_exists(output_file)

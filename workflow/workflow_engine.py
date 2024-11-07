@@ -252,7 +252,7 @@ class WorkflowEngine:
                     # Something was started (or there was a launch error).
                     break
 
-        # If there's no launch result this must the (successful) end of the workflow.
+        # If there's no launch result this must be the (successful) end of the workflow.
         # If there is a launch result it was either successful
         # (and not the end of the workflow) or unsuccessful
         # (and the workflow will have been marked as done anyway).
