@@ -45,6 +45,7 @@ definitions:
 
   step:
     type: object
+    additionalProperties: false
     properties:
       name:
         $ref: '#/definitions/rfc1035-label-name'
@@ -54,6 +55,43 @@ definitions:
       specification:
         type: string
         description: The Data Manager Job Specification, a JSON string
+      inputs:
+        type: array
+        description: Input parameters
+        items:
+          type: object
+          properties:
+            input:
+              type: string
+            from:
+              type: object
+              properties:
+                step:
+                  type: string
+                output:
+                  type: string
+              required: [step, output]
+          required: [input]
+          anyOf:
+          - properties:
+              from:
+                type: object
+                required: [step, output]
+          - properties:
+              from:
+                type: "null"
+      outputs:
+        type: array
+        description: Output parameters
+        items:
+          type: object
+          properties:
+            input:
+              type: string
+            as:
+              type: string
     required:
     - name
     - specification
+    - inputs
+    - outputs
