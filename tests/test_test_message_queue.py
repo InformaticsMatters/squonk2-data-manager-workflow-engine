@@ -24,18 +24,11 @@ def basic_queue():
     receiver = Receiver()
     utmq = UnitTestMessageQueue(receiver=receiver.handle_msg)
     utmq.start()
+
     yield utmq
+
     utmq.stop()
     utmq.join()
-
-
-def test_start_and_stop(basic_queue):
-    # Arrange
-
-    # Act
-    pass
-
-    # Assert
 
 
 def test_send_messages(basic_queue):

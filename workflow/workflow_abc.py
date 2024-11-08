@@ -28,10 +28,10 @@ class InstanceLauncher(ABC):
         self,
         *,
         project_id: str,
-        workflow_id: str,
+        running_workflow_id: str,
         running_workflow_step_id: str,
-        workflow_definition: Dict[str, Any],
-        step_specification: Dict[str, Any],
+        step_specification: str,
+        variables: Dict[str, Any],
     ) -> LaunchResult:
         """Launch a (Job) Instance"""
 
@@ -69,7 +69,7 @@ class APIAdapter(ABC):
     def get_workflow(
         self,
         *,
-        workflow_definition_id: str,
+        workflow_id: str,
     ) -> Dict[str, Any]:
         """Get a Workflow Record by ID."""
         # If present this should return:
@@ -95,7 +95,10 @@ class APIAdapter(ABC):
     def create_running_workflow(
         self,
         *,
-        workflow_definition_id: str,
+        workflow_id: str,
+        project_id: str,
+        variables: Dict[str, Any],
+        user_id: str,
     ) -> Dict[str, Any]:
         """Create a RunningWorkflow Record (from a Workflow)"""
         # Should return:
@@ -104,14 +107,31 @@ class APIAdapter(ABC):
         # }
 
     @abstractmethod
+    def set_running_workflow_done(
+        self,
+        *,
+        running_workflow_id: str,
+        success: bool,
+        error: Optional[int] = None,
+        error_msg: Optional[str] = None,
+    ) -> None:
+        """Set the success value for a RunningWorkflow Record.
+        If not successful an error code and message should be provided."""
+
+    @abstractmethod
     def get_running_workflow(self, *, running_workflow_id: str) -> Dict[str, Any]:
         """Get a RunningWorkflow Record"""
         # Should return:
         # {
         #    "running_workflow": {
+        #       "user_id": "alan",
         #       "done": False,
         #       "success": false,
-        #       "workflow": "workflow-000",
+        #       "error": None,
+        #       "error_msg": None,
+        #       "workflow": {"id": "workflow-000"},
+        #       "project_id": "project-000",
+        #       "variables": {"x": 1, "y": 2},
         #    }
         # }
 
@@ -120,6 +140,7 @@ class APIAdapter(ABC):
         self,
         *,
         running_workflow_id: str,
+        step: str,
     ) -> Dict[str, Any]:
         """Create a RunningWorkflowStep Record (from a RunningWorkflow)"""
         # Should return:
@@ -138,9 +159,23 @@ class APIAdapter(ABC):
         #       "step:": "step-1234",
         #       "done": False,
         #       "success": false,
-        #       "running_workflow": "r-workflow-000",
+        #       "error": None,
+        #       "error_msg": None,
+        #       "running_workflow": "r-workflow-00000000-0000-0000-0000-000000000001",
         #    },
         # }
+
+    @abstractmethod
+    def set_running_workflow_step_done(
+        self,
+        *,
+        running_workflow_step_id: str,
+        success: bool,
+        error: Optional[int] = None,
+        error_msg: Optional[str] = None,
+    ) -> None:
+        """Set the success value for a RunningWorkflowStep Record,
+        If not successful an error code and message should be provided."""
 
     @abstractmethod
     def get_running_workflow_steps(
@@ -157,7 +192,9 @@ class APIAdapter(ABC):
         #               "step:": "step-1234",
         #               "done": False,
         #               "success": false,
-        #               "workflow": "workflow-000",
+        #               "error": None,
+        #               "error_msg": None,
+        #               "workflow": "workflow-00000000-0000-0000-0000-000000000001",
         #           }
         #       ...
         #    ]

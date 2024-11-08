@@ -1,24 +1,51 @@
+"""The UnitTest Instance Launcher.
+
+It runs Python module modules defined in the unit-test job-definitions file.
+
+It also uses the UnitTestMessageDispatcher to send a simulated
+'end of instance' PodMessage  that are normally sent to the WorkflowEngine's
+'handle_message()' method by the underlying queue. The 'exit code' of the module is
+passed to the WorkflowEngine through the PodMessage - so if the module fails
+(i.e. returns a non-zero exit code) then the WorkflowEngine will see that the PodMessage.
+This allows you to write jobs that fail and see how the WorkflowEngine responds.
+
+Instances (jobs) are executed in a simulated project directory - actually
+tests/project-root/project-00000000-0000-0000-0000-000000000001. The project directory
+is created by the UnitTestInstanceLauncher and is also wiped as the launcher initialises
+(so the start of each test begins with an empty project directory).
+"""
+
+import json
 import os
+import shutil
 import subprocess
 from datetime import datetime, timezone
 from subprocess import CompletedProcess
 from typing import Any, Dict, List
 
+from decoder import decoder as job_decoder
+from decoder.decoder import TextEncoding
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 
 from tests.api_adapter import UnitTestAPIAdapter
+from tests.config import TEST_PROJECT_ID
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from workflow.workflow_abc import InstanceLauncher, LaunchResult
 
-_JOB_DIRECTORY: str = os.path.join(os.path.dirname(__file__), "jobs")
+# Full path to the 'jobs' directory
+_JOB_PATH: str = os.path.join(os.path.dirname(__file__), "jobs")
+# Relative path to the execution (project) directory
+_EXECUTION_DIRECTORY: str = os.path.join("tests", "project-root", TEST_PROJECT_ID)
+
+
+def project_file_exists(file_name: str) -> bool:
+    """A convenient test function to verify a file exists
+    in the execution (project) directory."""
+    return os.path.isfile(os.path.join(_EXECUTION_DIRECTORY, file_name))
 
 
 class UnitTestInstanceLauncher(InstanceLauncher):
-    """A unit test instance launcher, which runs the
-    Python module that matches the job name in the provided specification.
-    It also uses the UnitTestMessageDispatcher to send the simulated
-    'end of instance' PodMessage (to the WorkflowEngine).
-    """
+    """A unit test instance launcher."""
 
     def __init__(
         self, api_adapter: UnitTestAPIAdapter, msg_dispatcher: UnitTestMessageDispatcher
@@ -28,18 +55,29 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         self._api_adapter = api_adapter
         self._msg_dispatcher = msg_dispatcher
 
+        # Every launcher starts with an empty execution directory...
+        print(f"Removing execution directory ({_EXECUTION_DIRECTORY})")
+        assert _EXECUTION_DIRECTORY.startswith("tests/project-root")
+        shutil.rmtree(_EXECUTION_DIRECTORY, ignore_errors=True)
+
     def launch(
         self,
         *,
         project_id: str,
-        workflow_id: str,
+        running_workflow_id: str,
         running_workflow_step_id: str,
-        workflow_definition: Dict[str, Any],
-        step_specification: Dict[str, Any],
+        step_specification: str,
+        variables: Dict[str, Any],
     ) -> LaunchResult:
         assert project_id
-        assert workflow_id
+        assert running_workflow_id
         assert step_specification
+        assert isinstance(step_specification, str)
+        assert isinstance(variables, dict)
+
+        assert project_id == TEST_PROJECT_ID
+
+        os.makedirs(_EXECUTION_DIRECTORY, exist_ok=True)
 
         # We're passed a RunningWorkflowStep ID but a record is expected to have been
         # created bt the caller, we simply create instance records.
@@ -55,16 +93,37 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         response = self._api_adapter.create_task(instance_id=instance_id)
         task_id = response["id"]
 
-        # Just run the Python module that matched the 'job' in the step specification.
-        # Don't care about 'version' or 'collection'.
-        job: str = step_specification["job"]
-        job_module = f"{_JOB_DIRECTORY}/{job}.py"
-        assert os.path.isfile(job_module)
+        # Apply variables to the step's Job command.
+        step_specification_map = json.loads(step_specification)
+        job = self._api_adapter.get_job(
+            collection=step_specification_map["collection"],
+            job=step_specification_map["job"],
+            version="do-not-care",
+        )
+        assert job
 
-        job_cmd: List[str] = ["python", job_module]
-        print(f"Running job command: {job_cmd}")
-        completed_process: CompletedProcess = subprocess.run(job_cmd, check=True)
-        assert completed_process.returncode == 0
+        # Now apply the variables to the command
+        decoded_command, status = job_decoder.decode(
+            job["command"],
+            variables,
+            running_workflow_step_id,
+            TextEncoding.JINJA2_3_0,
+        )
+        print(f"Decoded command: {decoded_command}")
+        print(f"Status: {status}")
+        assert status
+
+        # Now run the decoded command, which will be in the _JOB_DIRECTORY
+        command = f"{_JOB_PATH}/{decoded_command}"
+        command_list = command.split()
+        module = command_list[0]
+        print(f"Module: {module}")
+        assert os.path.isfile(module)
+        subprocess_cmd: List[str] = ["python"] + command_list
+        print(f"Subprocess command: {subprocess_cmd}")
+        completed_process: CompletedProcess = subprocess.run(
+            subprocess_cmd, check=False, cwd=_EXECUTION_DIRECTORY
+        )
 
         # Simulate a PodMessage (that will contain the instance ID),
         # filling-in only the fields that are of use to the Engine.
@@ -74,7 +133,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         pod_message.instance = instance_id
         pod_message.task = task_id
         pod_message.has_exit_code = True
-        pod_message.exit_code = 0
+        pod_message.exit_code = completed_process.returncode
         self._msg_dispatcher.send(pod_message)
 
         return LaunchResult(
@@ -83,5 +142,5 @@ class UnitTestInstanceLauncher(InstanceLauncher):
             error_msg=None,
             instance_id=instance_id,
             task_id=task_id,
-            command=" ".join(job_cmd),
+            command=" ".join(subprocess_cmd),
         )

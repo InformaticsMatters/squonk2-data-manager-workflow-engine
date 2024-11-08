@@ -1,4 +1,3 @@
-# Tests for the decoder package.
 import os
 from typing import Any, Dict
 

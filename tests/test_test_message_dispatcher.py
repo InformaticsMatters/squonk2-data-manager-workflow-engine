@@ -1,5 +1,3 @@
-# Tests for the decoder package.
-
 from datetime import datetime, timezone
 
 import pytest
@@ -15,10 +13,16 @@ from tests.message_queue import UnitTestMessageQueue
 @pytest.fixture
 def basic_dispatcher():
     utmq = UnitTestMessageQueue()
-    return UnitTestMessageDispatcher(msg_queue=utmq)
+    utmd = UnitTestMessageDispatcher(msg_queue=utmq)
+    utmq.start()
+
+    yield utmd
+
+    utmq.stop()
+    utmq.join()
 
 
-def test_get_nop_job(basic_dispatcher):
+def test_send_start(basic_dispatcher):
     # Arrange
     msg = WorkflowMessage()
     msg.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
