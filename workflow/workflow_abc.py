@@ -21,7 +21,8 @@ class LaunchResult:
 
 
 class InstanceLauncher(ABC):
-    """The class handling the launching of (Job) instances."""
+    """The class handling the launching of (Job) instances, used by the Engine
+    to launch Workflow 'Step' Jobs."""
 
     @abstractmethod
     def launch(
