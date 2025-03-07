@@ -15,22 +15,21 @@ is created by the UnitTestInstanceLauncher and is also wiped as the launcher ini
 (so the start of each test begins with an empty project directory).
 """
 
-import json
 import os
 import shutil
 import subprocess
 from datetime import datetime, timezone
 from subprocess import CompletedProcess
-from typing import Any, Dict, List
+from typing import List
 
 from decoder import decoder as job_decoder
 from decoder.decoder import TextEncoding
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 
-from tests.api_adapter import UnitTestAPIAdapter
+from tests.api_adapter import UnitTestWorkflowAPIAdapter
 from tests.config import TEST_PROJECT_ID
 from tests.message_dispatcher import UnitTestMessageDispatcher
-from workflow.workflow_abc import InstanceLauncher, LaunchResult
+from workflow.workflow_abc import InstanceLauncher, LaunchParameters, LaunchResult
 
 # Full path to the 'jobs' directory
 _JOB_PATH: str = os.path.join(os.path.dirname(__file__), "jobs")
@@ -48,11 +47,13 @@ class UnitTestInstanceLauncher(InstanceLauncher):
     """A unit test instance launcher."""
 
     def __init__(
-        self, api_adapter: UnitTestAPIAdapter, msg_dispatcher: UnitTestMessageDispatcher
+        self,
+        wapi_adapter: UnitTestWorkflowAPIAdapter,
+        msg_dispatcher: UnitTestMessageDispatcher,
     ):
         super().__init__()
 
-        self._api_adapter = api_adapter
+        self._api_adapter = wapi_adapter
         self._msg_dispatcher = msg_dispatcher
 
         # Every launcher starts with an empty execution directory...
@@ -60,44 +61,32 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         assert _EXECUTION_DIRECTORY.startswith("tests/project-root")
         shutil.rmtree(_EXECUTION_DIRECTORY, ignore_errors=True)
 
-    def launch(
-        self,
-        *,
-        project_id: str,
-        running_workflow_id: str,
-        running_workflow_step_id: str,
-        step_specification: str,
-        variables: Dict[str, Any],
-    ) -> LaunchResult:
-        assert project_id
-        assert running_workflow_id
-        assert step_specification
-        assert isinstance(step_specification, str)
-        assert isinstance(variables, dict)
-
-        assert project_id == TEST_PROJECT_ID
+    def launch(self, launch_parameters: LaunchParameters) -> LaunchResult:
+        assert launch_parameters
+        assert launch_parameters.project_id == TEST_PROJECT_ID
+        assert launch_parameters.specification
+        assert isinstance(launch_parameters.specification, dict)
 
         os.makedirs(_EXECUTION_DIRECTORY, exist_ok=True)
 
         # We're passed a RunningWorkflowStep ID but a record is expected to have been
         # created bt the caller, we simply create instance records.
         response = self._api_adapter.get_running_workflow_step(
-            running_workflow_step_id=running_workflow_step_id
+            running_workflow_step_id=launch_parameters.running_workflow_step_id
         )
         assert "running_workflow_step" in response
         # Now simulate the creation of a Task and Instance record
         response = self._api_adapter.create_instance(
-            running_workflow_step_id=running_workflow_step_id
+            running_workflow_step_id=launch_parameters.running_workflow_step_id
         )
         instance_id = response["id"]
         response = self._api_adapter.create_task(instance_id=instance_id)
         task_id = response["id"]
 
         # Apply variables to the step's Job command.
-        step_specification_map = json.loads(step_specification)
         job = self._api_adapter.get_job(
-            collection=step_specification_map["collection"],
-            job=step_specification_map["job"],
+            collection=launch_parameters.specification["collection"],
+            job=launch_parameters.specification["job"],
             version="do-not-care",
         )
         assert job
@@ -105,8 +94,8 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         # Now apply the variables to the command
         decoded_command, status = job_decoder.decode(
             job["command"],
-            variables,
-            running_workflow_step_id,
+            launch_parameters.specification_variables,
+            launch_parameters.running_workflow_step_id,
             TextEncoding.JINJA2_3_0,
         )
         print(f"Decoded command: {decoded_command}")

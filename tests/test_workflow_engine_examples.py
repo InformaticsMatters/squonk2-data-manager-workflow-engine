@@ -9,7 +9,7 @@ pytestmark = pytest.mark.unit
 
 from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
 
-from tests.api_adapter import UnitTestAPIAdapter
+from tests.api_adapter import UnitTestWorkflowAPIAdapter
 from tests.config import TEST_PROJECT_ID
 from tests.instance_launcher import UnitTestInstanceLauncher, project_file_exists
 from tests.message_dispatcher import UnitTestMessageDispatcher
@@ -19,20 +19,20 @@ from workflow.workflow_engine import WorkflowEngine
 
 @pytest.fixture
 def basic_engine():
-    api_adapter = UnitTestAPIAdapter()
+    wapi_adapter = UnitTestWorkflowAPIAdapter()
     message_queue = UnitTestMessageQueue()
     message_dispatcher = UnitTestMessageDispatcher(msg_queue=message_queue)
     instance_launcher = UnitTestInstanceLauncher(
-        api_adapter=api_adapter, msg_dispatcher=message_dispatcher
+        wapi_adapter=wapi_adapter, msg_dispatcher=message_dispatcher
     )
     workflow_engine = WorkflowEngine(
-        wapi_adapter=api_adapter, instance_launcher=instance_launcher
+        wapi_adapter=wapi_adapter, instance_launcher=instance_launcher
     )
     message_queue.set_receiver(workflow_engine.handle_message)
     print("Starting message queue...")
     message_queue.start()
 
-    yield [api_adapter, message_dispatcher]
+    yield [wapi_adapter, message_dispatcher]
 
     print("Stopping message queue...")
     message_queue.stop()
@@ -100,7 +100,7 @@ def wait_for_workflow(
     waits for the running workflow to complete (by polling the API)
     while also checking the expected success/failure status.
     """
-    assert isinstance(da, UnitTestAPIAdapter)
+    assert isinstance(da, UnitTestWorkflowAPIAdapter)
     assert isinstance(r_wfid, str)
 
     # We wait for the workflow to complete by polling the API and checking

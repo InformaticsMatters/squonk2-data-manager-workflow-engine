@@ -2,13 +2,13 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
-from tests.api_adapter import UnitTestAPIAdapter
+from tests.api_adapter import UnitTestWorkflowAPIAdapter
 from tests.config import TEST_PROJECT_ID
 
 
 def test_get_nop_job():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
 
     # Act
     jd = utaa.get_job(
@@ -21,7 +21,7 @@ def test_get_nop_job():
 
 def test_get_unknown_workflow():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
 
     # Act
     wfd = utaa.get_workflow(workflow_id="workflow-00000000-0000-0000-0000-000000000001")
@@ -32,7 +32,7 @@ def test_get_unknown_workflow():
 
 def test_create_workflow():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
 
     # Act
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
@@ -43,7 +43,7 @@ def test_create_workflow():
 
 def test_get_workflow():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     wfid = response["id"]
 
@@ -56,7 +56,7 @@ def test_get_workflow():
 
 def test_get_workflow_by_name():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     _ = utaa.create_workflow(workflow_definition={"name": "blah"})
 
     # Act
@@ -69,7 +69,7 @@ def test_get_workflow_by_name():
 
 def test_create_running_workflow():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
 
     # Act
@@ -86,7 +86,7 @@ def test_create_running_workflow():
 
 def test_get_running_workflow():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     wfid = response["id"]
     response = utaa.create_running_workflow(
@@ -109,7 +109,7 @@ def test_get_running_workflow():
 
 def test_set_running_workflow_done_when_success():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     response = utaa.create_running_workflow(
         user_id="dlister",
@@ -132,7 +132,7 @@ def test_set_running_workflow_done_when_success():
 
 def test_set_running_workflow_done_when_failed():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     response = utaa.create_running_workflow(
         user_id="dlister",
@@ -157,7 +157,7 @@ def test_set_running_workflow_done_when_failed():
 
 def test_create_running_workflow_step():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     response = utaa.create_running_workflow(
         user_id="dlister",
@@ -177,7 +177,7 @@ def test_create_running_workflow_step():
 
 def test_set_running_workflow_step_done_when_success():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     response = utaa.create_running_workflow(
         user_id="dlister",
@@ -203,7 +203,7 @@ def test_set_running_workflow_step_done_when_success():
 
 def test_set_running_workflow_step_done_when_failed():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     response = utaa.create_running_workflow(
         user_id="dlister",
@@ -231,7 +231,7 @@ def test_set_running_workflow_step_done_when_failed():
 
 def test_get_running_workflow_step():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     wfid = response["id"]
     response = utaa.create_running_workflow(
@@ -258,7 +258,7 @@ def test_get_running_workflow_step():
 
 def test_get_running_workflow_steps():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_workflow(workflow_definition={"name": "blah"})
     wfid = response["id"]
     response = utaa.create_running_workflow(
@@ -287,7 +287,7 @@ def test_get_running_workflow_steps():
 
 def test_create_instance():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
 
     # Act
     response = utaa.create_instance(running_workflow_step_id="r-workflow-step-000")
@@ -298,7 +298,7 @@ def test_create_instance():
 
 def test_create_and_get_instance():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_instance(running_workflow_step_id="r-workflow-step-000")
     instance_id = response["id"]
 
@@ -311,7 +311,7 @@ def test_create_and_get_instance():
 
 def test_create_task():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
 
     # Act
     response = utaa.create_task(instance_id="instance-000")
@@ -322,7 +322,7 @@ def test_create_task():
 
 def test_create_and_get_task():
     # Arrange
-    utaa = UnitTestAPIAdapter()
+    utaa = UnitTestWorkflowAPIAdapter()
     response = utaa.create_task(instance_id="instance-000")
     task_id = response["id"]
 

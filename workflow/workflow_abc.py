@@ -10,6 +10,25 @@ from google.protobuf.message import Message
 
 
 @dataclass
+class LaunchParameters:
+    """Parameters to instantiate an Instance."""
+
+    project_id: str
+    application_id: str
+    name: str
+    launch_username: str
+    specification: dict[str, Any]
+    specification_variables: dict[str, Any] | None = None
+    debug: bool | None = None
+    callback_url: str | None = None
+    callback_token: str | None = None
+    callback_context: str | None = None
+    generate_callback_token: bool | None = None
+    running_workflow_id: str | None = None
+    running_workflow_step_id: str | None = None
+
+
+@dataclass
 class LaunchResult:
     """Results returned from methods in the InstanceLauncher."""
 
@@ -17,6 +36,7 @@ class LaunchResult:
     error_msg: str | None = None
     instance_id: str | None = None
     task_id: str | None = None
+    callback_token: str | None = None
     command: str | None = None
 
 
@@ -27,12 +47,7 @@ class InstanceLauncher(ABC):
     @abstractmethod
     def launch(
         self,
-        *,
-        project_id: str,
-        running_workflow_id: str,
-        running_workflow_step_id: str,
-        step_specification: str,
-        variables: dict[str, Any],
+        launch_parameters: LaunchParameters,
     ) -> LaunchResult:
         """Launch a (Job) Instance"""
 

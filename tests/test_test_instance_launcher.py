@@ -4,22 +4,24 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
-from tests.api_adapter import UnitTestAPIAdapter
+from tests.api_adapter import UnitTestWorkflowAPIAdapter
 from tests.config import TEST_PROJECT_ID
 from tests.instance_launcher import UnitTestInstanceLauncher
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.message_queue import UnitTestMessageQueue
+from workflow.workflow_abc import LaunchParameters
+from workflow.workflow_engine import DM_JOB_APPLICATION_ID
 
 
 @pytest.fixture
 def basic_launcher():
-    api_adapter = UnitTestAPIAdapter()
+    wapi_adapter = UnitTestWorkflowAPIAdapter()
     message_queue = UnitTestMessageQueue()
     message_dispatcher = UnitTestMessageDispatcher(msg_queue=message_queue)
     instance_launcher = UnitTestInstanceLauncher(
-        api_adapter=api_adapter, msg_dispatcher=message_dispatcher
+        wapi_adapter=wapi_adapter, msg_dispatcher=message_dispatcher
     )
-    return [api_adapter, instance_launcher]
+    return [wapi_adapter, instance_launcher]
 
 
 def test_launch_nop(basic_launcher):
@@ -38,17 +40,19 @@ def test_launch_nop(basic_launcher):
         running_workflow_id=response["id"], step="step-1"
     )
     rwfsid = response["id"]
-
-    # Act
-    result = launcher.launch(
+    lp: LaunchParameters = LaunchParameters(
         project_id=TEST_PROJECT_ID,
+        application_id=DM_JOB_APPLICATION_ID,
+        name="Test Instance",
+        launch_username="dlister",
         running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
-        step_specification=json.dumps(
-            {"collection": "workflow-engine-unit-test-jobs", "job": "nop"}
-        ),
-        variables={},
+        specification={"collection": "workflow-engine-unit-test-jobs", "job": "nop"},
+        specification_variables={},
     )
+
+    # Act
+    result = launcher.launch(lp)
 
     # Assert
     assert result.error == 0
@@ -72,17 +76,22 @@ def test_launch_nop_fail(basic_launcher):
         running_workflow_id=response["id"], step="step-1"
     )
     rwfsid = response["id"]
-
-    # Act
-    result = launcher.launch(
+    lp: LaunchParameters = LaunchParameters(
         project_id=TEST_PROJECT_ID,
+        application_id=DM_JOB_APPLICATION_ID,
+        name="Test Instance",
+        launch_username="dlister",
         running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
-        step_specification=json.dumps(
-            {"collection": "workflow-engine-unit-test-jobs", "job": "nop-fail"}
-        ),
-        variables={},
+        specification={
+            "collection": "workflow-engine-unit-test-jobs",
+            "job": "nop-fail",
+        },
+        specification_variables={},
     )
+
+    # Act
+    result = launcher.launch(lp)
 
     # Assert
     assert result.error == 0
@@ -106,20 +115,22 @@ def test_launch_smiles_to_file(basic_launcher):
         running_workflow_id=response["id"], step="step-1"
     )
     rwfsid = response["id"]
-
-    # Act
-    result = launcher.launch(
+    lp: LaunchParameters = LaunchParameters(
         project_id=TEST_PROJECT_ID,
+        application_id=DM_JOB_APPLICATION_ID,
+        name="Test Instance",
+        launch_username="dlister",
         running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
-        step_specification=json.dumps(
-            {
-                "collection": "workflow-engine-unit-test-jobs",
-                "job": "smiles-to-file",
-            }
-        ),
-        variables={"smiles": "C1=CC=CC=C1", "outputFile": "output.smi"},
+        specification={
+            "collection": "workflow-engine-unit-test-jobs",
+            "job": "smiles-to-file",
+        },
+        specification_variables={"smiles": "C1=CC=CC=C1", "outputFile": "output.smi"},
     )
+
+    # Act
+    result = launcher.launch(lp)
 
     # Assert
     assert result.error == 0

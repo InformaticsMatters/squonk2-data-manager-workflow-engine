@@ -22,6 +22,7 @@ and the workflow. The engine creates RunningWorkflowStep records for each step t
 is executed, and it uses thew InstanceLauncher to launch the Job (a Pod) for each step.
 """
 
+import json
 import logging
 import sys
 from typing import Any, Dict, Optional
@@ -30,11 +31,19 @@ from google.protobuf.message import Message
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
 
-from workflow.workflow_abc import InstanceLauncher, LaunchResult, WorkflowAPIAdapter
+from workflow.workflow_abc import (
+    InstanceLauncher,
+    LaunchParameters,
+    LaunchResult,
+    WorkflowAPIAdapter,
+)
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.INFO)
 _LOGGER.addHandler(logging.StreamHandler(sys.stdout))
+
+# The 'well known' application ID for Jobs
+DM_JOB_APPLICATION_ID: str = "datamanagerjobs.squonk.it"
 
 
 class WorkflowEngine:
@@ -97,6 +106,8 @@ class WorkflowEngine:
         response = self._wapi_adapter.get_running_workflow(running_workflow_id=r_wfid)
         assert "running_workflow" in response
         running_workflow = response["running_workflow"]
+        assert "user_id" in running_workflow
+        launch_username: str = running_workflow["user_id"]
         _LOGGER.debug("RunningWorkflow: %s", running_workflow)
         # Now get the workflow definition (to get all the steps)
         wfid = running_workflow["workflow"]["id"]
@@ -123,13 +134,17 @@ class WorkflowEngine:
 
         project_id = running_workflow["project_id"]
         variables = running_workflow["variables"]
-        lr: LaunchResult = self._instance_launcher.launch(
+        lp: LaunchParameters = LaunchParameters(
             project_id=project_id,
+            application_id=DM_JOB_APPLICATION_ID,
+            name=first_step_name,
+            launch_username=launch_username,
+            specification=json.loads(first_step["specification"]),
+            specification_variables=variables,
             running_workflow_id=r_wfid,
             running_workflow_step_id=r_wfsid,
-            step_specification=first_step["specification"],
-            variables=variables,
         )
+        lr: LaunchResult = self._instance_launcher.launch(lp)
         if lr.error:
             self._set_step_error(
                 first_step_name, r_wfid, r_wfsid, lr.error, lr.error_msg
@@ -226,13 +241,17 @@ class WorkflowEngine:
                     r_wfsid = response["id"]
                     project_id = running_workflow["project_id"]
                     variables = running_workflow["variables"]
-                    lr = self._instance_launcher.launch(
+                    lp: LaunchParameters = LaunchParameters(
                         project_id=project_id,
+                        application_id=DM_JOB_APPLICATION_ID,
+                        name=next_step_name,
+                        launch_username=running_workflow["user_id"],
+                        specification=json.loads(next_step["specification"]),
+                        specification_variables=variables,
                         running_workflow_id=r_wfid,
                         running_workflow_step_id=r_wfsid,
-                        step_specification=next_step["specification"],
-                        variables=variables,
                     )
+                    lr = self._instance_launcher.launch(lp)
                     # Handle a launch error?
                     if lr.error:
                         self._set_step_error(
