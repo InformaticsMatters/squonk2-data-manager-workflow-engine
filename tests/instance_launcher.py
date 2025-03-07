@@ -26,9 +26,9 @@ from decoder import decoder as job_decoder
 from decoder.decoder import TextEncoding
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 
-from tests.api_adapter import UnitTestWorkflowAPIAdapter
 from tests.config import TEST_PROJECT_ID
 from tests.message_dispatcher import UnitTestMessageDispatcher
+from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.workflow_abc import InstanceLauncher, LaunchParameters, LaunchResult
 
 # Full path to the 'jobs' directory

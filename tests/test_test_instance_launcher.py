@@ -4,11 +4,11 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
-from tests.api_adapter import UnitTestWorkflowAPIAdapter
 from tests.config import TEST_PROJECT_ID
 from tests.instance_launcher import UnitTestInstanceLauncher
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.message_queue import UnitTestMessageQueue
+from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.workflow_abc import LaunchParameters
 from workflow.workflow_engine import DM_JOB_APPLICATION_ID
 

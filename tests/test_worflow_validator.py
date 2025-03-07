@@ -2,10 +2,10 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
-from tests.api_adapter import UnitTestWorkflowAPIAdapter
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.message_queue import UnitTestMessageQueue
 from tests.test_decoder_minimal import _MINIMAL_WORKFLOW
+from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.worklfow_validator import ValidationLevel, WorkflowValidator
 
 

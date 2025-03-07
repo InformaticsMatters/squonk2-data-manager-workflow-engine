@@ -9,11 +9,11 @@ pytestmark = pytest.mark.unit
 
 from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
 
-from tests.api_adapter import UnitTestWorkflowAPIAdapter
 from tests.config import TEST_PROJECT_ID
 from tests.instance_launcher import UnitTestInstanceLauncher, project_file_exists
 from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.message_queue import UnitTestMessageQueue
+from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.workflow_engine import WorkflowEngine
 
 

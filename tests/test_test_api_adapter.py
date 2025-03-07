@@ -2,8 +2,8 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
-from tests.api_adapter import UnitTestWorkflowAPIAdapter
 from tests.config import TEST_PROJECT_ID
+from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 
 
 def test_get_nop_job():
