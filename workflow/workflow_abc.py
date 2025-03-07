@@ -11,12 +11,15 @@ from google.protobuf.message import Message
 
 @dataclass
 class LaunchParameters:
-    """Parameters to instantiate an Instance."""
+    """Parameters to instantiate an Instance.
+    The launching user API token is the second element when the request header's
+    'Authorization' value is split on white-space."""
 
-    project_id: str
     application_id: str
+    project_id: str
     name: str
     launching_user_name: str
+    launching_user_api_token: str
     specification: dict[str, Any]
     specification_variables: dict[str, Any] | None = None
     debug: bool | None = None
@@ -143,6 +146,7 @@ class WorkflowAPIAdapter(ABC):
         # {
         #    "running_workflow": {
         #       "user_id": "alan",
+        #       "user_api_token": "123456789",
         #       "done": False,
         #       "success": false,
         #       "error": None,

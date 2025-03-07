@@ -45,6 +45,7 @@ def test_launch_nop(basic_launcher):
         application_id=DM_JOB_APPLICATION_ID,
         name="Test Instance",
         launching_user_name="dlister",
+        launching_user_api_token="1234567890",
         running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
         specification={"collection": "workflow-engine-unit-test-jobs", "job": "nop"},
@@ -81,6 +82,7 @@ def test_launch_nop_fail(basic_launcher):
         application_id=DM_JOB_APPLICATION_ID,
         name="Test Instance",
         launching_user_name="dlister",
+        launching_user_api_token="1234567890",
         running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
         specification={
@@ -120,6 +122,7 @@ def test_launch_smiles_to_file(basic_launcher):
         application_id=DM_JOB_APPLICATION_ID,
         name="Test Instance",
         launching_user_name="dlister",
+        launching_user_api_token="1234567890",
         running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
         specification={
