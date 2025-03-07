@@ -47,7 +47,7 @@ Create your environment::
 And then start by running the pre-commit hooks to ensure you're stating with a
 _clean_ project::
 
-    pre-commit run --all
+    pre-commit run --all-files
 
 And then run the tests::
 
