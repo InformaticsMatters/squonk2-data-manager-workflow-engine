@@ -1,5 +1,4 @@
-"""The WorkflowEngine validation logic.
-"""
+"""The WorkflowEngine validation logic."""
 
 from dataclasses import dataclass
 from enum import Enum
