@@ -107,7 +107,7 @@ class WorkflowEngine:
         assert "running_workflow" in response
         running_workflow = response["running_workflow"]
         assert "user_id" in running_workflow
-        launch_username: str = running_workflow["user_id"]
+        launching_user_name: str = running_workflow["user_id"]
         _LOGGER.debug("RunningWorkflow: %s", running_workflow)
         # Now get the workflow definition (to get all the steps)
         wfid = running_workflow["workflow"]["id"]
@@ -138,16 +138,16 @@ class WorkflowEngine:
             project_id=project_id,
             application_id=DM_JOB_APPLICATION_ID,
             name=first_step_name,
-            launch_username=launch_username,
+            launching_user_name=launching_user_name,
             specification=json.loads(first_step["specification"]),
             specification_variables=variables,
             running_workflow_id=r_wfid,
             running_workflow_step_id=r_wfsid,
         )
         lr: LaunchResult = self._instance_launcher.launch(lp)
-        if lr.error:
+        if lr.error_num:
             self._set_step_error(
-                first_step_name, r_wfid, r_wfsid, lr.error, lr.error_msg
+                first_step_name, r_wfid, r_wfsid, lr.error_num, lr.error_msg
             )
         else:
             _LOGGER.info(
@@ -245,7 +245,7 @@ class WorkflowEngine:
                         project_id=project_id,
                         application_id=DM_JOB_APPLICATION_ID,
                         name=next_step_name,
-                        launch_username=running_workflow["user_id"],
+                        launching_user_name=running_workflow["user_id"],
                         specification=json.loads(next_step["specification"]),
                         specification_variables=variables,
                         running_workflow_id=r_wfid,
@@ -253,12 +253,12 @@ class WorkflowEngine:
                     )
                     lr = self._instance_launcher.launch(lp)
                     # Handle a launch error?
-                    if lr.error:
+                    if lr.error_num:
                         self._set_step_error(
                             next_step_name,
                             r_wfid,
                             r_wfsid,
-                            lr.error,
+                            lr.error_num,
                             lr.error_msg,
                         )
                     else:

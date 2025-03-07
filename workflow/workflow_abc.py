@@ -16,7 +16,7 @@ class LaunchParameters:
     project_id: str
     application_id: str
     name: str
-    launch_username: str
+    launching_user_name: str
     specification: dict[str, Any]
     specification_variables: dict[str, Any] | None = None
     debug: bool | None = None
@@ -30,9 +30,10 @@ class LaunchParameters:
 
 @dataclass
 class LaunchResult:
-    """Results returned from methods in the InstanceLauncher."""
+    """Results returned from methods in the InstanceLauncher.
+    Any error returned in this object is a launch error, not a Job error."""
 
-    error: int
+    error_num: int = 0
     error_msg: str | None = None
     instance_id: str | None = None
     task_id: str | None = None

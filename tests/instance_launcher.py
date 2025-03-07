@@ -126,9 +126,6 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         self._msg_dispatcher.send(pod_message)
 
         return LaunchResult(
-            # The errors returned here are the launch errors, not the Job's errors.
-            error=0,
-            error_msg=None,
             instance_id=instance_id,
             task_id=task_id,
             command=" ".join(subprocess_cmd),

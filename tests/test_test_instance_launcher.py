@@ -44,7 +44,7 @@ def test_launch_nop(basic_launcher):
         project_id=TEST_PROJECT_ID,
         application_id=DM_JOB_APPLICATION_ID,
         name="Test Instance",
-        launch_username="dlister",
+        launching_user_name="dlister",
         running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
         specification={"collection": "workflow-engine-unit-test-jobs", "job": "nop"},
@@ -55,7 +55,7 @@ def test_launch_nop(basic_launcher):
     result = launcher.launch(lp)
 
     # Assert
-    assert result.error == 0
+    assert result.error_num == 0
     assert result.command.startswith("python ")
     assert result.command.endswith("tests/jobs/nop.py")
 
@@ -80,7 +80,7 @@ def test_launch_nop_fail(basic_launcher):
         project_id=TEST_PROJECT_ID,
         application_id=DM_JOB_APPLICATION_ID,
         name="Test Instance",
-        launch_username="dlister",
+        launching_user_name="dlister",
         running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
         specification={
@@ -94,7 +94,7 @@ def test_launch_nop_fail(basic_launcher):
     result = launcher.launch(lp)
 
     # Assert
-    assert result.error == 0
+    assert result.error_num == 0
     assert result.command.startswith("python ")
     assert result.command.endswith("tests/jobs/nop-fail.py")
 
@@ -119,7 +119,7 @@ def test_launch_smiles_to_file(basic_launcher):
         project_id=TEST_PROJECT_ID,
         application_id=DM_JOB_APPLICATION_ID,
         name="Test Instance",
-        launch_username="dlister",
+        launching_user_name="dlister",
         running_workflow_id=rwfid,
         running_workflow_step_id=rwfsid,
         specification={
@@ -133,7 +133,7 @@ def test_launch_smiles_to_file(basic_launcher):
     result = launcher.launch(lp)
 
     # Assert
-    assert result.error == 0
+    assert result.error_num == 0
     assert result.command.startswith("python ")
     assert result.command.endswith(
         "tests/jobs/smiles-to-file.py --smiles C1=CC=CC=C1 --output output.smi"
