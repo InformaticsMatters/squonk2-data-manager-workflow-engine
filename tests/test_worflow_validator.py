@@ -16,7 +16,7 @@ def basic_validator():
     api_adapter = UnitTestAPIAdapter()
     msg_queue = UnitTestMessageQueue()
     msg_dispatcher = UnitTestMessageDispatcher(msg_queue=msg_queue)
-    return WorkflowValidator(api_adapter=api_adapter, msg_dispatcher=msg_dispatcher)
+    return WorkflowValidator(wapi_adapter=api_adapter, msg_dispatcher=msg_dispatcher)
 
 
 def test_validate_minimal_for_create(basic_validator):

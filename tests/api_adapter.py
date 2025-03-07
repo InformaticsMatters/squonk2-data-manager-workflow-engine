@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from workflow.workflow_abc import APIAdapter
+from workflow.workflow_abc import WorkflowAPIAdapter
 
 # Load the Unit test Job Definitions file now.
 _JOB_DEFINITION_FILE: str = os.path.join(
@@ -52,7 +52,7 @@ _INSTANCE_PICKLE_FILE: str = f"{_PICKLE_DIRECTORY}/instance.pickle"
 _TASK_PICKLE_FILE: str = f"{_PICKLE_DIRECTORY}/task.pickle"
 
 
-class UnitTestAPIAdapter(APIAdapter):
+class UnitTestAPIAdapter(WorkflowAPIAdapter):
     """A minimal API adapter. It serves-up Job Definitions
     from the job-definitions/job-definitions.yaml file and provides basic
     storage for Workflow Definitions and related tables.

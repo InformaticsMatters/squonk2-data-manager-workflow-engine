@@ -1,10 +1,10 @@
 """Workflow abstract base classes.
-Interface definitions of class instances that must be provided to the Engine.
+Interface definitions of class instances that must be made available to the Engine.
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from google.protobuf.message import Message
 
@@ -14,10 +14,10 @@ class LaunchResult:
     """Results returned from methods in the InstanceLauncher."""
 
     error: int
-    error_msg: Optional[str]
-    instance_id: Optional[str]
-    task_id: Optional[str]
-    command: Optional[str]
+    error_msg: str | None
+    instance_id: str | None
+    task_id: str | None
+    command: str | None
 
 
 class InstanceLauncher(ABC):
@@ -31,7 +31,7 @@ class InstanceLauncher(ABC):
         running_workflow_id: str,
         running_workflow_step_id: str,
         step_specification: str,
-        variables: Dict[str, Any],
+        variables: dict[str, Any],
     ) -> LaunchResult:
         """Launch a (Job) Instance"""
 
@@ -48,17 +48,18 @@ class InstanceLauncher(ABC):
         # See _instance_preamble() in the DM's api_instance.py module.
 
 
-class APIAdapter(ABC):
-    """The APIAdapter providing read/write access to the Model. It provides
-    the ability to create and retrieve Workflow, RunningWorkflow and RunningWorkflowStep
-    records returning dictionary (API-like) responses."""
+class WorkflowAPIAdapter(ABC):
+    """The APIAdapter providing read/write access to various Workflow tables and records
+    in the Model that is owned by the DM. It provides the ability to create and retrieve
+    Workflow, RunningWorkflow and RunningWorkflowStep records returning dictionary
+    (API-like) responses."""
 
     @abstractmethod
     def create_workflow(
         self,
         *,
-        workflow_definition: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        workflow_definition: dict[str, Any],
+    ) -> dict[str, Any]:
         """Create a Workflow, getting an ID in return"""
         # Should return:
         # {
@@ -70,7 +71,7 @@ class APIAdapter(ABC):
         self,
         *,
         workflow_id: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get a Workflow Record by ID."""
         # If present this should return:
         # {
@@ -83,7 +84,7 @@ class APIAdapter(ABC):
         *,
         name: str,
         version: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get a Workflow Record by name"""
         # If present this should return:
         # {
@@ -97,9 +98,9 @@ class APIAdapter(ABC):
         *,
         workflow_id: str,
         project_id: str,
-        variables: Dict[str, Any],
+        variables: dict[str, Any],
         user_id: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a RunningWorkflow Record (from a Workflow)"""
         # Should return:
         # {
@@ -112,14 +113,14 @@ class APIAdapter(ABC):
         *,
         running_workflow_id: str,
         success: bool,
-        error: Optional[int] = None,
-        error_msg: Optional[str] = None,
+        error: int | None = None,
+        error_msg: str | None = None,
     ) -> None:
         """Set the success value for a RunningWorkflow Record.
         If not successful an error code and message should be provided."""
 
     @abstractmethod
-    def get_running_workflow(self, *, running_workflow_id: str) -> Dict[str, Any]:
+    def get_running_workflow(self, *, running_workflow_id: str) -> dict[str, Any]:
         """Get a RunningWorkflow Record"""
         # Should return:
         # {
@@ -141,7 +142,7 @@ class APIAdapter(ABC):
         *,
         running_workflow_id: str,
         step: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a RunningWorkflowStep Record (from a RunningWorkflow)"""
         # Should return:
         # {
@@ -151,7 +152,7 @@ class APIAdapter(ABC):
     @abstractmethod
     def get_running_workflow_step(
         self, *, running_workflow_step_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get a RunningWorkflowStep Record"""
         # Should return:
         # {
@@ -171,8 +172,8 @@ class APIAdapter(ABC):
         *,
         running_workflow_step_id: str,
         success: bool,
-        error: Optional[int] = None,
-        error_msg: Optional[str] = None,
+        error: int | None = None,
+        error_msg: str | None = None,
     ) -> None:
         """Set the success value for a RunningWorkflowStep Record,
         If not successful an error code and message should be provided."""
@@ -180,7 +181,7 @@ class APIAdapter(ABC):
     @abstractmethod
     def get_running_workflow_steps(
         self, *, running_workflow_id: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Gets all the RunningWorkflowStep Records (for a RunningWorkflow)"""
         # Should return:
         # {
@@ -201,7 +202,7 @@ class APIAdapter(ABC):
         # }
 
     @abstractmethod
-    def create_instance(self, running_workflow_step_id: str) -> Dict[str, Any]:
+    def create_instance(self, running_workflow_step_id: str) -> dict[str, Any]:
         """Create an Instance Record (for a RunningWorkflowStep)"""
         # Should return:
         # {
@@ -210,7 +211,7 @@ class APIAdapter(ABC):
         # }
 
     @abstractmethod
-    def get_instance(self, *, instance_id: str) -> Dict[str, Any]:
+    def get_instance(self, *, instance_id: str) -> dict[str, Any]:
         """Get an Instance Record"""
         # Should return:
         # {
@@ -219,15 +220,15 @@ class APIAdapter(ABC):
         # }
 
     @abstractmethod
-    def create_task(self, instance_id: str) -> Dict[str, Any]:
-        """Create a Task Record (for amn Instance)"""
+    def create_task(self, instance_id: str) -> dict[str, Any]:
+        """Create a Task Record (for an Instance)"""
         # Should return:
         # {
         #    "id": "task-00000000-0000-0000-0000-000000000001",
         # }
 
     @abstractmethod
-    def get_task(self, *, task_id: str) -> Dict[str, Any]:
+    def get_task(self, *, task_id: str) -> dict[str, Any]:
         """Get a Task Record"""
         # Should return:
         # {
@@ -243,7 +244,7 @@ class APIAdapter(ABC):
         collection: str,
         job: str,
         version: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Get a Job"""
 
 

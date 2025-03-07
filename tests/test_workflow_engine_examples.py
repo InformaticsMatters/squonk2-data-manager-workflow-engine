@@ -26,7 +26,7 @@ def basic_engine():
         api_adapter=api_adapter, msg_dispatcher=message_dispatcher
     )
     workflow_engine = WorkflowEngine(
-        api_adapter=api_adapter, instance_launcher=instance_launcher
+        wapi_adapter=api_adapter, instance_launcher=instance_launcher
     )
     message_queue.set_receiver(workflow_engine.handle_message)
     print("Starting message queue...")

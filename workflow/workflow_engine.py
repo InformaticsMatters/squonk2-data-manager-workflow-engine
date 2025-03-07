@@ -30,7 +30,7 @@ from google.protobuf.message import Message
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
 
-from workflow.workflow_abc import APIAdapter, InstanceLauncher, LaunchResult
+from workflow.workflow_abc import InstanceLauncher, LaunchResult, WorkflowAPIAdapter
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.INFO)
@@ -43,11 +43,11 @@ class WorkflowEngine:
     def __init__(
         self,
         *,
-        api_adapter: APIAdapter,
+        wapi_adapter: WorkflowAPIAdapter,
         instance_launcher: InstanceLauncher,
     ):
         # Keep the dependent objects
-        self._api_adapter = api_adapter
+        self._wapi_adapter = wapi_adapter
         self._instance_launcher = instance_launcher
 
     def handle_message(self, msg: Message) -> None:
@@ -94,13 +94,13 @@ class WorkflowEngine:
         (and workflow) to find the first step in the workflow and launch it, passing
         the running workflow variables to the launcher."""
 
-        response = self._api_adapter.get_running_workflow(running_workflow_id=r_wfid)
+        response = self._wapi_adapter.get_running_workflow(running_workflow_id=r_wfid)
         assert "running_workflow" in response
         running_workflow = response["running_workflow"]
         _LOGGER.debug("RunningWorkflow: %s", running_workflow)
         # Now get the workflow definition (to get all the steps)
         wfid = running_workflow["workflow"]["id"]
-        response = self._api_adapter.get_workflow(workflow_id=wfid)
+        response = self._wapi_adapter.get_workflow(workflow_id=wfid)
         assert "workflow" in response
         workflow = response["workflow"]
 
@@ -108,7 +108,7 @@ class WorkflowEngine:
         # and create a corresponding RunningWorkflowStep record...
         first_step: Dict[str, Any] = workflow["steps"][0]
         first_step_name: str = first_step["name"]
-        response = self._api_adapter.create_running_workflow_step(
+        response = self._wapi_adapter.create_running_workflow_step(
             running_workflow_id=r_wfid,
             step=first_step_name,
         )
@@ -169,9 +169,9 @@ class WorkflowEngine:
 
         instance_id: str = msg.instance
         exit_code: int = msg.exit_code
-        response = self._api_adapter.get_instance(instance_id=instance_id)
+        response = self._wapi_adapter.get_instance(instance_id=instance_id)
         r_wfsid: str = response["running_workflow_step"]
-        response = self._api_adapter.get_running_workflow_step(
+        response = self._wapi_adapter.get_running_workflow_step(
             running_workflow_step_id=r_wfsid
         )
         step_name: str = response["running_workflow_step"]["step"]
@@ -179,7 +179,7 @@ class WorkflowEngine:
         # Get the step's running workflow record.
         r_wfid = response["running_workflow_step"]["running_workflow"]
         assert r_wfid
-        response = self._api_adapter.get_running_workflow(running_workflow_id=r_wfid)
+        response = self._wapi_adapter.get_running_workflow(running_workflow_id=r_wfid)
 
         if exit_code:
             # The job was launched but it failed.
@@ -190,7 +190,7 @@ class WorkflowEngine:
 
         # The prior step completed successfully if we get here.
 
-        self._api_adapter.set_running_workflow_step_done(
+        self._wapi_adapter.set_running_workflow_step_done(
             running_workflow_step_id=r_wfsid,
             success=True,
         )
@@ -198,7 +198,7 @@ class WorkflowEngine:
         running_workflow = response["running_workflow"]
         wfid = running_workflow["workflow"]["id"]
         assert wfid
-        response = self._api_adapter.get_workflow(workflow_id=wfid)
+        response = self._wapi_adapter.get_workflow(workflow_id=wfid)
         workflow = response["workflow"]
 
         # Given the step for the instance just finished (successfully),
@@ -218,7 +218,7 @@ class WorkflowEngine:
 
                     next_step = workflow["steps"][step_index + 1]
                     next_step_name = next_step["name"]
-                    response = self._api_adapter.create_running_workflow_step(
+                    response = self._wapi_adapter.create_running_workflow_step(
                         running_workflow_id=r_wfid,
                         step=next_step_name,
                     )
@@ -257,7 +257,7 @@ class WorkflowEngine:
         # (and not the end of the workflow) or unsuccessful
         # (and the workflow will have been marked as done anyway).
         if lr is None:
-            self._api_adapter.set_running_workflow_done(
+            self._wapi_adapter.set_running_workflow_done(
                 running_workflow_id=r_wfid,
                 success=True,
             )
@@ -278,14 +278,14 @@ class WorkflowEngine:
             error,
             error_msg,
         )
-        self._api_adapter.set_running_workflow_step_done(
+        self._wapi_adapter.set_running_workflow_step_done(
             running_workflow_step_id=r_wfsid,
             success=False,
             error=error,
             error_msg=error_msg,
         )
         # We must also set the running workflow as done (failed)
-        self._api_adapter.set_running_workflow_done(
+        self._wapi_adapter.set_running_workflow_done(
             running_workflow_id=r_wfid,
             success=False,
             error=error,

@@ -3,10 +3,10 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .decoder import validate_schema
-from .workflow_abc import APIAdapter, MessageDispatcher
+from .workflow_abc import MessageDispatcher, WorkflowAPIAdapter
 
 
 class ValidationLevel(Enum):
@@ -22,7 +22,7 @@ class ValidationResult:
     """Workflow validation results."""
 
     error: int
-    error_msg: Optional[List[str]]
+    error_msg: list[str] | None
 
 
 @dataclass
@@ -30,8 +30,8 @@ class StartResult:
     """WorkflowEngine start workflow result."""
 
     error: int
-    error_msg: Optional[str]
-    running_workflow_id: Optional[str]
+    error_msg: str | None
+    running_workflow_id: str | None
 
 
 @dataclass
@@ -39,7 +39,7 @@ class StopResult:
     """WorkflowEngine stop workflow result."""
 
     error: int
-    error_msg: Optional[str]
+    error_msg: str | None
 
 
 # Handy successful results
@@ -48,22 +48,24 @@ _SUCCESS_STOP_RESULT: StopResult = StopResult(error=0, error_msg=None)
 
 
 class WorkflowValidator:
-    """The workflow validator. Typically used from teh context of the API
+    """The workflow validator. Typically used from the context of the API
     to check workflow content prior to creation and execution.
     """
 
-    def __init__(self, *, api_adapter: APIAdapter, msg_dispatcher: MessageDispatcher):
-        assert api_adapter
+    def __init__(
+        self, *, wapi_adapter: WorkflowAPIAdapter, msg_dispatcher: MessageDispatcher
+    ):
+        assert wapi_adapter
 
-        self._api_adapter = api_adapter
+        self._wapi_adapter = wapi_adapter
         self._msg_dispatcher = msg_dispatcher
 
     def validate(
         self,
         *,
         level: ValidationLevel,
-        workflow_definition: Dict[str, Any],
-        workflow_inputs: Optional[Dict[str, Any]] = None,
+        workflow_definition: dict[str, Any],
+        workflow_inputs: dict[str, Any] | None = None,
     ) -> ValidationResult:
         """Validates the workflow definition (and inputs)
         based on the provided 'level'."""
@@ -82,8 +84,8 @@ class WorkflowValidator:
         *,
         project_id: str,
         workflow_id: str,
-        workflow_definition: Dict[str, Any],
-        workflow_parameters: Dict[str, Any],
+        workflow_definition: dict[str, Any],
+        workflow_parameters: dict[str, Any],
     ) -> StartResult:
         """Called to initiate workflow by finding the first Instance (or instances)
         to run and then launching them. It is used from the API Pod, and apart from
