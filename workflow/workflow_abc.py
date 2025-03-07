@@ -14,10 +14,10 @@ class LaunchResult:
     """Results returned from methods in the InstanceLauncher."""
 
     error: int
-    error_msg: str | None
-    instance_id: str | None
-    task_id: str | None
-    command: str | None
+    error_msg: str | None = None
+    instance_id: str | None = None
+    task_id: str | None = None
+    command: str | None = None
 
 
 class InstanceLauncher(ABC):
