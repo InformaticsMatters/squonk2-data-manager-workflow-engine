@@ -80,8 +80,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
             running_workflow_step_id=launch_parameters.running_workflow_step_id
         )
         instance_id = response["id"]
-        response = self._api_adapter.create_task()
-        task_id = response["id"]
+        task_id = "task-00000000-0000-0000-0000-000000000001"
 
         # Apply variables to the step's Job command.
         job = self._api_adapter.get_job(

@@ -265,14 +265,3 @@ def test_create_and_get_instance():
 
     # Assert
     assert response["running_workflow_step"] == "r-workflow-step-000"
-
-
-def test_create_task():
-    # Arrange
-    utaa = UnitTestWorkflowAPIAdapter()
-
-    # Act
-    response = utaa.create_task()
-
-    # Assert
-    assert "id" in response

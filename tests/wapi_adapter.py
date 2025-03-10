@@ -34,7 +34,6 @@ assert _JOB_DEFINITIONS
 
 # Table UUID formats
 _INSTANCE_ID_FORMAT: str = "instance-00000000-0000-0000-0000-{id:012d}"
-_TASK_ID_FORMAT: str = "task-00000000-0000-0000-0000-{id:012d}"
 _WORKFLOW_DEFINITION_ID_FORMAT: str = "workflow-00000000-0000-0000-0000-{id:012d}"
 _RUNNING_WORKFLOW_ID_FORMAT: str = "r-workflow-00000000-0000-0000-0000-{id:012d}"
 _RUNNING_WORKFLOW_STEP_ID_FORMAT: str = (
@@ -49,7 +48,6 @@ _RUNNING_WORKFLOW_STEP_PICKLE_FILE: str = (
     f"{_PICKLE_DIRECTORY}/running-workflow-step.pickle"
 )
 _INSTANCE_PICKLE_FILE: str = f"{_PICKLE_DIRECTORY}/instance.pickle"
-_TASK_PICKLE_FILE: str = f"{_PICKLE_DIRECTORY}/task.pickle"
 
 
 class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
@@ -74,7 +72,6 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             _RUNNING_WORKFLOW_PICKLE_FILE,
             _RUNNING_WORKFLOW_STEP_PICKLE_FILE,
             _INSTANCE_PICKLE_FILE,
-            _TASK_PICKLE_FILE,
         ]:
             with open(file, "wb") as pickle_file:
                 Pickler(pickle_file).dump({})
@@ -282,22 +279,3 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         UnitTestWorkflowAPIAdapter.lock.release()
 
         return {"id": instance_id}
-
-    def create_task(self) -> dict[str, Any]:
-        UnitTestWorkflowAPIAdapter.lock.acquire()
-        with open(_TASK_PICKLE_FILE, "rb") as pickle_file:
-            tasks = Unpickler(pickle_file).load()
-
-        next_id: int = len(tasks) + 1
-        task_id: str = _TASK_ID_FORMAT.format(id=next_id)
-        record = {
-            "done": False,
-            "exit_code": 0,
-        }
-        tasks[task_id] = record
-
-        with open(_TASK_PICKLE_FILE, "wb") as pickle_file:
-            Pickler(pickle_file).dump(tasks)
-        UnitTestWorkflowAPIAdapter.lock.release()
-
-        return {"id": task_id}
