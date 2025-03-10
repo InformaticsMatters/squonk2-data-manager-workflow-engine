@@ -276,17 +276,3 @@ def test_create_task():
 
     # Assert
     assert "id" in response
-
-
-def test_create_and_get_task():
-    # Arrange
-    utaa = UnitTestWorkflowAPIAdapter()
-    response = utaa.create_task()
-    task_id = response["id"]
-
-    # Act
-    response = utaa.get_task(task_id=task_id)
-
-    # Assert
-    assert not response["done"]
-    assert response["exit_code"] == 0

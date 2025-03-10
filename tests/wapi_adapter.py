@@ -80,21 +80,6 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
                 Pickler(pickle_file).dump({})
         UnitTestWorkflowAPIAdapter.lock.release()
 
-    def create_workflow(self, *, workflow_definition: dict[str, Any]) -> dict[str, Any]:
-        UnitTestWorkflowAPIAdapter.lock.acquire()
-        with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
-            workflow = Unpickler(pickle_file).load()
-
-        next_id: int = len(workflow) + 1
-        workflow_definition_id: str = _WORKFLOW_DEFINITION_ID_FORMAT.format(id=next_id)
-        workflow[workflow_definition_id] = workflow_definition
-
-        with open(_WORKFLOW_PICKLE_FILE, "wb") as pickle_file:
-            Pickler(pickle_file).dump(workflow)
-        UnitTestWorkflowAPIAdapter.lock.release()
-
-        return {"id": workflow_definition_id}
-
     def get_workflow(self, *, workflow_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
@@ -102,40 +87,6 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         UnitTestWorkflowAPIAdapter.lock.release()
 
         return {"workflow": workflow[workflow_id]} if workflow_id in workflow else {}
-
-    def create_running_workflow(
-        self,
-        *,
-        user_id: str,
-        workflow_id: str,
-        project_id: str,
-        variables: dict[str, Any],
-    ) -> dict[str, Any]:
-        assert user_id
-        assert isinstance(variables, dict)
-
-        UnitTestWorkflowAPIAdapter.lock.acquire()
-        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
-            running_workflow = Unpickler(pickle_file).load()
-
-        next_id: int = len(running_workflow) + 1
-        running_workflow_id: str = _RUNNING_WORKFLOW_ID_FORMAT.format(id=next_id)
-        record = {
-            "user_id": user_id,
-            "user_api_token": "123456789",
-            "done": False,
-            "success": False,
-            "workflow": workflow_id,
-            "project_id": project_id,
-            "variables": variables,
-        }
-        running_workflow[running_workflow_id] = record
-
-        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "wb") as pickle_file:
-            Pickler(pickle_file).dump(running_workflow)
-        UnitTestWorkflowAPIAdapter.lock.release()
-
-        return {"id": running_workflow_id}
 
     def get_running_workflow(self, *, running_workflow_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
@@ -251,14 +202,6 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         return {} if instance_id not in instances else instances[instance_id]
 
-    def get_task(self, *, task_id: str) -> dict[str, Any]:
-        UnitTestWorkflowAPIAdapter.lock.acquire()
-        with open(_TASK_PICKLE_FILE, "rb") as pickle_file:
-            tasks = Unpickler(pickle_file).load()
-        UnitTestWorkflowAPIAdapter.lock.release()
-
-        return {} if task_id not in tasks else tasks[task_id]
-
     def get_job(self, *, collection: str, job: str, version: str) -> dict[str, Any]:
         assert collection == _JOB_DEFINITIONS["collection"]
         assert job in _JOB_DEFINITIONS["jobs"]
@@ -270,8 +213,57 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             response["variables"] = jd["variables"]
         return response
 
-    # Methods required for the UnitTestInstanceLauncher
+    # Methods required for the UnitTestInstanceLauncher and other (internal) logic
     # but not exposed to (or required by) the Workflow Engine...
+
+    def create_workflow(self, *, workflow_definition: dict[str, Any]) -> dict[str, Any]:
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
+            workflow = Unpickler(pickle_file).load()
+
+        next_id: int = len(workflow) + 1
+        workflow_definition_id: str = _WORKFLOW_DEFINITION_ID_FORMAT.format(id=next_id)
+        workflow[workflow_definition_id] = workflow_definition
+
+        with open(_WORKFLOW_PICKLE_FILE, "wb") as pickle_file:
+            Pickler(pickle_file).dump(workflow)
+        UnitTestWorkflowAPIAdapter.lock.release()
+
+        return {"id": workflow_definition_id}
+
+    def create_running_workflow(
+        self,
+        *,
+        user_id: str,
+        workflow_id: str,
+        project_id: str,
+        variables: dict[str, Any],
+    ) -> dict[str, Any]:
+        assert user_id
+        assert isinstance(variables, dict)
+
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
+            running_workflow = Unpickler(pickle_file).load()
+
+        next_id: int = len(running_workflow) + 1
+        running_workflow_id: str = _RUNNING_WORKFLOW_ID_FORMAT.format(id=next_id)
+        record = {
+            "user_id": user_id,
+            "user_api_token": "123456789",
+            "done": False,
+            "success": False,
+            "workflow": workflow_id,
+            "project_id": project_id,
+            "variables": variables,
+        }
+        running_workflow[running_workflow_id] = record
+
+        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "wb") as pickle_file:
+            Pickler(pickle_file).dump(running_workflow)
+        UnitTestWorkflowAPIAdapter.lock.release()
+
+        return {"id": running_workflow_id}
 
     def create_instance(self, *, running_workflow_step_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()

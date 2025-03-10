@@ -75,18 +75,6 @@ class WorkflowAPIAdapter(ABC):
     (API-like) responses."""
 
     @abstractmethod
-    def create_workflow(
-        self,
-        *,
-        workflow_definition: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Create a Workflow, getting an ID in return"""
-        # Should return:
-        # {
-        #    "id": "workflow-00000000-0000-0000-0000-000000000001",
-        # }
-
-    @abstractmethod
     def get_workflow(
         self,
         *,
@@ -98,21 +86,6 @@ class WorkflowAPIAdapter(ABC):
         #    "workflow": <workflow>,
         # }
         # If not present an empty dictionary should be returned.
-
-    @abstractmethod
-    def create_running_workflow(
-        self,
-        *,
-        workflow_id: str,
-        project_id: str,
-        variables: dict[str, Any],
-        user_id: str,
-    ) -> dict[str, Any]:
-        """Create a RunningWorkflow Record (from a Workflow)"""
-        # Should return:
-        # {
-        #    "id": "r-workflow-00000000-0000-0000-0000-000000000001",
-        # }
 
     @abstractmethod
     def get_running_workflow(self, *, running_workflow_id: str) -> dict[str, Any]:
@@ -216,17 +189,6 @@ class WorkflowAPIAdapter(ABC):
         # Should return:
         # {
         #    "running_workflow_step": "r-workflow-step-00000000-0000-0000-0000-000000000001",
-        #    [...],
-        # }
-        # If not present an empty dictionary should be returned.
-
-    @abstractmethod
-    def get_task(self, *, task_id: str) -> dict[str, Any]:
-        """Get a Task Record"""
-        # Should return:
-        # {
-        #    "done": True,
-        #    "exit_code": 0,
         #    [...],
         # }
         # If not present an empty dictionary should be returned.
