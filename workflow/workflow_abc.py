@@ -79,16 +79,29 @@ class WorkflowAPIAdapter(ABC):
         self,
         *,
         workflow_id: str,
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], int]:
         """Get a Workflow Record by ID."""
         # If present this should return:
         # {
-        #    "workflow": <workflow>,
+        #    "workflow": {
+        #       "steps": [
+        #          {
+        #            "name": "step-name"
+        #          }
+        #       ]
+        #    }
         # }
         # If not present an empty dictionary should be returned.
+        #
+        # The 'int' in the return tuple here (and elsewhere in this ABC)
+        # is an HTTP status code to simplify the DM implementation,
+        # and allow it to re-use any 'views.py' function that may be defined.
+        # This value is ignored by the Engine.
 
     @abstractmethod
-    def get_running_workflow(self, *, running_workflow_id: str) -> dict[str, Any]:
+    def get_running_workflow(
+        self, *, running_workflow_id: str
+    ) -> tuple[dict[str, Any], int]:
         """Get a RunningWorkflow Record"""
         # Should return:
         # {
@@ -124,7 +137,7 @@ class WorkflowAPIAdapter(ABC):
         *,
         running_workflow_id: str,
         step: str,
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], int]:
         """Create a RunningWorkflowStep Record (from a RunningWorkflow)"""
         # Should return:
         # {
@@ -134,7 +147,7 @@ class WorkflowAPIAdapter(ABC):
     @abstractmethod
     def get_running_workflow_step(
         self, *, running_workflow_step_id: str
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], int]:
         """Get a RunningWorkflowStep Record"""
         # Should return:
         # {
@@ -162,29 +175,7 @@ class WorkflowAPIAdapter(ABC):
         If not successful an error code and message should be provided."""
 
     @abstractmethod
-    def get_running_workflow_steps(self, *, running_workflow_id: str) -> dict[str, Any]:
-        """Gets all the RunningWorkflowStep Records (for a RunningWorkflow)"""
-        # Should return:
-        # {
-        #    "count": 1,
-        #    "running_workflow_steps": [
-        #       {
-        #           "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
-        #           "running_workflow_step": {
-        #               "step:": "step-1234",
-        #               "done": False,
-        #               "success": false,
-        #               "error": None,
-        #               "error_msg": None,
-        #               "workflow": "workflow-00000000-0000-0000-0000-000000000001",
-        #           }
-        #       ...
-        #    ]
-        # }
-        # If there are not steps an empty dictionary should be returned and a count of 0
-
-    @abstractmethod
-    def get_instance(self, *, instance_id: str) -> dict[str, Any]:
+    def get_instance(self, *, instance_id: str) -> tuple[dict[str, Any], int]:
         """Get an Instance Record"""
         # Should return:
         # {
@@ -200,7 +191,7 @@ class WorkflowAPIAdapter(ABC):
         collection: str,
         job: str,
         version: str,
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], int]:
         """Get a Job"""
         # If not present an empty dictionary should be returned.
 

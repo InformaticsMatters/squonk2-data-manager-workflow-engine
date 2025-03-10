@@ -71,7 +71,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
 
         # We're passed a RunningWorkflowStep ID but a record is expected to have been
         # created bt the caller, we simply create instance records.
-        response = self._api_adapter.get_running_workflow_step(
+        response, _ = self._api_adapter.get_running_workflow_step(
             running_workflow_step_id=launch_parameters.running_workflow_step_id
         )
         assert "running_workflow_step" in response
@@ -83,7 +83,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         task_id = "task-00000000-0000-0000-0000-000000000001"
 
         # Apply variables to the step's Job command.
-        job = self._api_adapter.get_job(
+        job, _ = self._api_adapter.get_job(
             collection=launch_parameters.specification["collection"],
             job=launch_parameters.specification["job"],
             version="do-not-care",

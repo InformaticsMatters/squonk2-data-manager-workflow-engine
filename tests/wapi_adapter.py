@@ -83,7 +83,10 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             workflow = Unpickler(pickle_file).load()
         UnitTestWorkflowAPIAdapter.lock.release()
 
-        return {"workflow": workflow[workflow_id]} if workflow_id in workflow else {}
+        response = (
+            {"workflow": workflow[workflow_id]} if workflow_id in workflow else {}
+        )
+        return response, 0
 
     def get_running_workflow(self, *, running_workflow_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
@@ -93,7 +96,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         if running_workflow_id not in running_workflow:
             return {}
-        return {"running_workflow": running_workflow[running_workflow_id]}
+        return {"running_workflow": running_workflow[running_workflow_id]}, 0
 
     def set_running_workflow_done(
         self,
@@ -140,7 +143,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             Pickler(pickle_file).dump(running_workflow_step)
         UnitTestWorkflowAPIAdapter.lock.release()
 
-        return {"id": running_workflow_step_id}
+        return {"id": running_workflow_step_id}, 0
 
     def get_running_workflow_step(
         self, *, running_workflow_step_id: str
@@ -151,10 +154,10 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         UnitTestWorkflowAPIAdapter.lock.release()
 
         if running_workflow_step_id not in running_workflow_step:
-            return {}
+            return {}, 0
         return {
             "running_workflow_step": running_workflow_step[running_workflow_step_id]
-        }
+        }, 0
 
     def set_running_workflow_step_done(
         self,
@@ -178,26 +181,14 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             Pickler(pickle_file).dump(running_workflow_step)
         UnitTestWorkflowAPIAdapter.lock.release()
 
-    def get_running_workflow_steps(self, *, running_workflow_id: str) -> dict[str, Any]:
-        UnitTestWorkflowAPIAdapter.lock.acquire()
-        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
-            running_workflow_step = Unpickler(pickle_file).load()
-        UnitTestWorkflowAPIAdapter.lock.release()
-
-        steps = []
-        for key, value in running_workflow_step.items():
-            if value["running_workflow"] == running_workflow_id:
-                item = {"running_workflow_step": value, "id": key}
-                steps.append(item)
-        return {"count": len(steps), "running_workflow_steps": steps}
-
     def get_instance(self, *, instance_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_INSTANCE_PICKLE_FILE, "rb") as pickle_file:
             instances = Unpickler(pickle_file).load()
         UnitTestWorkflowAPIAdapter.lock.release()
 
-        return {} if instance_id not in instances else instances[instance_id]
+        response = {} if instance_id not in instances else instances[instance_id]
+        return response, 0
 
     def get_job(self, *, collection: str, job: str, version: str) -> dict[str, Any]:
         assert collection == _JOB_DEFINITIONS["collection"]
@@ -208,7 +199,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         response = {"command": jd["command"]}
         if "variables" in jd:
             response["variables"] = jd["variables"]
-        return response
+        return response, 0
 
     # Methods required for the UnitTestInstanceLauncher and other (internal) logic
     # but not exposed to (or required by) the Workflow Engine...
@@ -279,3 +270,16 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         UnitTestWorkflowAPIAdapter.lock.release()
 
         return {"id": instance_id}
+
+    def get_running_workflow_steps(self, *, running_workflow_id: str) -> dict[str, Any]:
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
+            running_workflow_step = Unpickler(pickle_file).load()
+        UnitTestWorkflowAPIAdapter.lock.release()
+
+        steps = []
+        for key, value in running_workflow_step.items():
+            if value["running_workflow"] == running_workflow_id:
+                item = {"running_workflow_step": value, "id": key}
+                steps.append(item)
+        return {"count": len(steps), "running_workflow_steps": steps}

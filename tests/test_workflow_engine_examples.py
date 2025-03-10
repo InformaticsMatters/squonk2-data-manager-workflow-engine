@@ -110,7 +110,7 @@ def wait_for_workflow(
     attempts = 0
     done = False
     while not done:
-        response = da.get_running_workflow(running_workflow_id=r_wfid)
+        response, _ = da.get_running_workflow(running_workflow_id=r_wfid)
         assert "running_workflow" in response
         r_wf = response["running_workflow"]
         if r_wf["done"]:
