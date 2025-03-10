@@ -211,15 +211,6 @@ class WorkflowAPIAdapter(ABC):
         # If there are not steps an empty dictionary should be returned and a count of 0
 
     @abstractmethod
-    def create_instance(self, running_workflow_step_id: str) -> dict[str, Any]:
-        """Create an Instance Record (for a RunningWorkflowStep)"""
-        # Should return:
-        # {
-        #    "instance_id": "instance-00000000-0000-0000-0000-000000000001",
-        #    "task_id": "task-00000000-0000-0000-0000-000000000001",
-        # }
-
-    @abstractmethod
     def get_instance(self, *, instance_id: str) -> dict[str, Any]:
         """Get an Instance Record"""
         # Should return:
@@ -228,14 +219,6 @@ class WorkflowAPIAdapter(ABC):
         #    [...],
         # }
         # If not present an empty dictionary should be returned.
-
-    @abstractmethod
-    def create_task(self, instance_id: str) -> dict[str, Any]:
-        """Create a Task Record (for an Instance)"""
-        # Should return:
-        # {
-        #    "id": "task-00000000-0000-0000-0000-000000000001",
-        # }
 
     @abstractmethod
     def get_task(self, *, task_id: str) -> dict[str, Any]:

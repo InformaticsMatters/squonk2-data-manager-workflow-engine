@@ -272,7 +272,7 @@ def test_create_task():
     utaa = UnitTestWorkflowAPIAdapter()
 
     # Act
-    response = utaa.create_task(instance_id="instance-000")
+    response = utaa.create_task()
 
     # Assert
     assert "id" in response
@@ -281,7 +281,7 @@ def test_create_task():
 def test_create_and_get_task():
     # Arrange
     utaa = UnitTestWorkflowAPIAdapter()
-    response = utaa.create_task(instance_id="instance-000")
+    response = utaa.create_task()
     task_id = response["id"]
 
     # Act
