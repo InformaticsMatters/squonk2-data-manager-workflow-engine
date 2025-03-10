@@ -112,9 +112,16 @@ class WorkflowAPIAdapter(ABC):
         #       "success": false,
         #       "error": None,
         #       "error_msg": None,
-        #       "workflow": {"id": "workflow-000"},
-        #       "project_id": "project-000",
-        #       "variables": {"x": 1, "y": 2},
+        #       "workflow": {
+        #          "id": "workflow-000",
+        #       },
+        #       "project": {
+        #          "id": "project-000",
+        #       },
+        #       "variables": {
+        #          "x": 1,
+        #          "y": 2,
+        #       },
         #    }
         # }
         # If not present an empty dictionary should be returned.
@@ -157,7 +164,9 @@ class WorkflowAPIAdapter(ABC):
         #       "success": false,
         #       "error": None,
         #       "error_msg": None,
-        #       "running_workflow": "r-workflow-00000000-0000-0000-0000-000000000001",
+        #       "running_workflow": {
+        #          "id": "r-workflow-00000000-0000-0000-0000-000000000001"
+        #       },
         #    },
         # }
         # If not present an empty dictionary should be returned.
@@ -177,9 +186,13 @@ class WorkflowAPIAdapter(ABC):
     @abstractmethod
     def get_instance(self, *, instance_id: str) -> tuple[dict[str, Any], int]:
         """Get an Instance Record"""
-        # Should return:
+        # For a RunningWorkflowStep Instance it should return:
         # {
-        #    "running_workflow_step": "r-workflow-step-00000000-0000-0000-0000-000000000001",
+        #    "id": "instance-00000000-0000-0000-0000-000000000001",
+        #    "running_workflow_step": {
+        #       "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
+        #       "step": "step-1234",
+        #    },
         #    [...],
         # }
         # If not present an empty dictionary should be returned.
