@@ -18,7 +18,7 @@ method.
 import os
 from multiprocessing import Lock
 from pickle import Pickler, Unpickler
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -29,7 +29,7 @@ _JOB_DEFINITION_FILE: str = os.path.join(
     os.path.dirname(__file__), "job-definitions", "job-definitions.yaml"
 )
 with open(_JOB_DEFINITION_FILE, "r", encoding="utf8") as jd_file:
-    _JOB_DEFINITIONS: Dict[str, Any] = yaml.load(jd_file, Loader=yaml.FullLoader)
+    _JOB_DEFINITIONS: dict[str, Any] = yaml.load(jd_file, Loader=yaml.FullLoader)
 assert _JOB_DEFINITIONS
 
 # Table UUID formats
@@ -80,7 +80,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
                 Pickler(pickle_file).dump({})
         UnitTestWorkflowAPIAdapter.lock.release()
 
-    def create_workflow(self, *, workflow_definition: Dict[str, Any]) -> str:
+    def create_workflow(self, *, workflow_definition: dict[str, Any]) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             workflow = Unpickler(pickle_file).load()
@@ -95,7 +95,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         return {"id": workflow_definition_id}
 
-    def get_workflow(self, *, workflow_id: str) -> Dict[str, Any]:
+    def get_workflow(self, *, workflow_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             workflow = Unpickler(pickle_file).load()
@@ -103,26 +103,14 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         return {"workflow": workflow[workflow_id]} if workflow_id in workflow else {}
 
-    def get_workflow_by_name(self, *, name: str, version: str) -> Dict[str, Any]:
-        UnitTestWorkflowAPIAdapter.lock.acquire()
-        with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
-            workflow = Unpickler(pickle_file).load()
-        UnitTestWorkflowAPIAdapter.lock.release()
-
-        item = {}
-        for wfid, value in workflow.items():
-            if value["name"] == name:
-                item = {"id": wfid, "workflow": value}
-        return item
-
     def create_running_workflow(
         self,
         *,
         user_id: str,
         workflow_id: str,
         project_id: str,
-        variables: Dict[str, Any],
-    ) -> str:
+        variables: dict[str, Any],
+    ) -> dict[str, Any]:
         assert user_id
         assert isinstance(variables, dict)
 
@@ -149,13 +137,23 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         return {"id": running_workflow_id}
 
+    def get_running_workflow(self, *, running_workflow_id: str) -> dict[str, Any]:
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
+            running_workflow = Unpickler(pickle_file).load()
+        UnitTestWorkflowAPIAdapter.lock.release()
+
+        if running_workflow_id not in running_workflow:
+            return {}
+        return {"running_workflow": running_workflow[running_workflow_id]}
+
     def set_running_workflow_done(
         self,
         *,
         running_workflow_id: str,
         success: bool,
-        error: Optional[int] = None,
-        error_msg: Optional[str] = None,
+        error: int | None = None,
+        error_msg: str | None = None,
     ) -> None:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
@@ -171,19 +169,9 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             Pickler(pickle_file).dump(running_workflow)
         UnitTestWorkflowAPIAdapter.lock.release()
 
-    def get_running_workflow(self, *, running_workflow_id: str) -> Dict[str, Any]:
-        UnitTestWorkflowAPIAdapter.lock.acquire()
-        with open(_RUNNING_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
-            running_workflow = Unpickler(pickle_file).load()
-        UnitTestWorkflowAPIAdapter.lock.release()
-
-        if running_workflow_id not in running_workflow:
-            return {}
-        return {"running_workflow": running_workflow[running_workflow_id]}
-
     def create_running_workflow_step(
         self, *, running_workflow_id: str, step: str
-    ) -> str:
+    ) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
@@ -208,7 +196,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
     def get_running_workflow_step(
         self, *, running_workflow_step_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
@@ -225,8 +213,8 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         *,
         running_workflow_step_id: str,
         success: bool,
-        error: Optional[int] = None,
-        error_msg: Optional[str] = None,
+        error: int | None = None,
+        error_msg: str | None = None,
     ) -> None:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
@@ -242,9 +230,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             Pickler(pickle_file).dump(running_workflow_step)
         UnitTestWorkflowAPIAdapter.lock.release()
 
-    def get_running_workflow_steps(
-        self, *, running_workflow_id: str
-    ) -> List[Dict[str, Any]]:
+    def get_running_workflow_steps(self, *, running_workflow_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
@@ -257,7 +243,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
                 steps.append(item)
         return {"count": len(steps), "running_workflow_steps": steps}
 
-    def create_instance(self, *, running_workflow_step_id: str) -> Dict[str, Any]:
+    def create_instance(self, *, running_workflow_step_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_INSTANCE_PICKLE_FILE, "rb") as pickle_file:
             instances = Unpickler(pickle_file).load()
@@ -275,7 +261,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         return {"id": instance_id}
 
-    def get_instance(self, *, instance_id: str) -> Dict[str, Any]:
+    def get_instance(self, *, instance_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_INSTANCE_PICKLE_FILE, "rb") as pickle_file:
             instances = Unpickler(pickle_file).load()
@@ -283,7 +269,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         return {} if instance_id not in instances else instances[instance_id]
 
-    def create_task(self, *, instance_id: str) -> Dict[str, Any]:
+    def create_task(self, *, instance_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_TASK_PICKLE_FILE, "rb") as pickle_file:
             tasks = Unpickler(pickle_file).load()
@@ -302,7 +288,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         return {"id": task_id}
 
-    def get_task(self, *, task_id: str) -> Dict[str, Any]:
+    def get_task(self, *, task_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_TASK_PICKLE_FILE, "rb") as pickle_file:
             tasks = Unpickler(pickle_file).load()
@@ -310,9 +296,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         return {} if task_id not in tasks else tasks[task_id]
 
-    def get_job(
-        self, *, collection: str, job: str, version: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_job(self, *, collection: str, job: str, version: str) -> dict[str, Any]:
         assert collection == _JOB_DEFINITIONS["collection"]
         assert job in _JOB_DEFINITIONS["jobs"]
         assert version

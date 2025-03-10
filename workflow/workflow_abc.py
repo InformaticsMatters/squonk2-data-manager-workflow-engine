@@ -97,20 +97,7 @@ class WorkflowAPIAdapter(ABC):
         # {
         #    "workflow": <workflow>,
         # }
-
-    @abstractmethod
-    def get_workflow_by_name(
-        self,
-        *,
-        name: str,
-        version: str,
-    ) -> dict[str, Any]:
-        """Get a Workflow Record by name"""
-        # If present this should return:
-        # {
-        #    "id": "workflow-00000000-0000-0000-0000-000000000001",
-        #    "workflow": <workflow>,
-        # }
+        # If not present an empty dictionary should be returned.
 
     @abstractmethod
     def create_running_workflow(
@@ -126,18 +113,6 @@ class WorkflowAPIAdapter(ABC):
         # {
         #    "id": "r-workflow-00000000-0000-0000-0000-000000000001",
         # }
-
-    @abstractmethod
-    def set_running_workflow_done(
-        self,
-        *,
-        running_workflow_id: str,
-        success: bool,
-        error: int | None = None,
-        error_msg: str | None = None,
-    ) -> None:
-        """Set the success value for a RunningWorkflow Record.
-        If not successful an error code and message should be provided."""
 
     @abstractmethod
     def get_running_workflow(self, *, running_workflow_id: str) -> dict[str, Any]:
@@ -156,6 +131,19 @@ class WorkflowAPIAdapter(ABC):
         #       "variables": {"x": 1, "y": 2},
         #    }
         # }
+        # If not present an empty dictionary should be returned.
+
+    @abstractmethod
+    def set_running_workflow_done(
+        self,
+        *,
+        running_workflow_id: str,
+        success: bool,
+        error: int | None = None,
+        error_msg: str | None = None,
+    ) -> None:
+        """Set the success value for a RunningWorkflow Record.
+        If not successful an error code and message should be provided."""
 
     @abstractmethod
     def create_running_workflow_step(
@@ -186,6 +174,7 @@ class WorkflowAPIAdapter(ABC):
         #       "running_workflow": "r-workflow-00000000-0000-0000-0000-000000000001",
         #    },
         # }
+        # If not present an empty dictionary should be returned.
 
     @abstractmethod
     def set_running_workflow_step_done(
@@ -200,9 +189,7 @@ class WorkflowAPIAdapter(ABC):
         If not successful an error code and message should be provided."""
 
     @abstractmethod
-    def get_running_workflow_steps(
-        self, *, running_workflow_id: str
-    ) -> list[dict[str, Any]]:
+    def get_running_workflow_steps(self, *, running_workflow_id: str) -> dict[str, Any]:
         """Gets all the RunningWorkflowStep Records (for a RunningWorkflow)"""
         # Should return:
         # {
@@ -221,6 +208,7 @@ class WorkflowAPIAdapter(ABC):
         #       ...
         #    ]
         # }
+        # If there are not steps an empty dictionary should be returned and a count of 0
 
     @abstractmethod
     def create_instance(self, running_workflow_step_id: str) -> dict[str, Any]:
@@ -239,6 +227,7 @@ class WorkflowAPIAdapter(ABC):
         #    "running_workflow_step": "r-workflow-step-00000000-0000-0000-0000-000000000001",
         #    [...],
         # }
+        # If not present an empty dictionary should be returned.
 
     @abstractmethod
     def create_task(self, instance_id: str) -> dict[str, Any]:
@@ -257,6 +246,7 @@ class WorkflowAPIAdapter(ABC):
         #    "exit_code": 0,
         #    [...],
         # }
+        # If not present an empty dictionary should be returned.
 
     @abstractmethod
     def get_job(
@@ -265,8 +255,9 @@ class WorkflowAPIAdapter(ABC):
         collection: str,
         job: str,
         version: str,
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any]:
         """Get a Job"""
+        # If not present an empty dictionary should be returned.
 
 
 class MessageDispatcher(ABC):

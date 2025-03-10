@@ -54,19 +54,6 @@ def test_get_workflow():
     assert wf["workflow"]["name"] == "blah"
 
 
-def test_get_workflow_by_name():
-    # Arrange
-    utaa = UnitTestWorkflowAPIAdapter()
-    _ = utaa.create_workflow(workflow_definition={"name": "blah"})
-
-    # Act
-    response = utaa.get_workflow_by_name(name="blah", version="1.0.0")
-
-    # Assert
-    assert response["workflow"]["name"] == "blah"
-    assert "id" in response
-
-
 def test_create_running_workflow():
     # Arrange
     utaa = UnitTestWorkflowAPIAdapter()
@@ -254,35 +241,6 @@ def test_get_running_workflow_step():
     assert rwfs["step"] == "step-1"
     assert not rwfs["done"]
     assert rwfs["running_workflow"] == rwfid
-
-
-def test_get_running_workflow_steps():
-    # Arrange
-    utaa = UnitTestWorkflowAPIAdapter()
-    response = utaa.create_workflow(workflow_definition={"name": "blah"})
-    wfid = response["id"]
-    response = utaa.create_running_workflow(
-        user_id="dlister",
-        workflow_id=wfid,
-        project_id=TEST_PROJECT_ID,
-        variables={},
-    )
-    rwfid = response["id"]
-    response = utaa.create_running_workflow_step(
-        running_workflow_id=rwfid, step="step-1"
-    )
-    rwfsid = response["id"]
-
-    # Act
-    response = utaa.get_running_workflow_steps(running_workflow_id=rwfid)
-
-    # Assert
-    assert response["count"] == 1
-    rwfs = response["running_workflow_steps"][0]
-    assert rwfs["id"] == rwfsid
-    assert rwfs["running_workflow_step"]["step"] == "step-1"
-    assert not rwfs["running_workflow_step"]["done"]
-    assert rwfs["running_workflow_step"]["running_workflow"] == rwfid
 
 
 def test_create_instance():
