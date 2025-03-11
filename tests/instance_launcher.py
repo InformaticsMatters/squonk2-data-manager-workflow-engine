@@ -74,7 +74,6 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         response, _ = self._api_adapter.get_running_workflow_step(
             running_workflow_step_id=launch_parameters.running_workflow_step_id
         )
-        assert "running_workflow_step" in response
         # Now simulate the creation of a Task and Instance record
         response = self._api_adapter.create_instance(
             running_workflow_step_id=launch_parameters.running_workflow_step_id

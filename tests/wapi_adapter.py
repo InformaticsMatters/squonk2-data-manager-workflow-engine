@@ -83,9 +83,9 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             workflow = Unpickler(pickle_file).load()
         UnitTestWorkflowAPIAdapter.lock.release()
 
-        response = (
-            {"workflow": workflow[workflow_id]} if workflow_id in workflow else {}
-        )
+        response = workflow[workflow_id] if workflow_id in workflow else {}
+        if response:
+            response["id"] = workflow_id
         return response, 0
 
     def get_running_workflow(self, *, running_workflow_id: str) -> dict[str, Any]:
@@ -96,7 +96,9 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         if running_workflow_id not in running_workflow:
             return {}
-        return {"running_workflow": running_workflow[running_workflow_id]}, 0
+        response = running_workflow[running_workflow_id]
+        response["id"] = running_workflow_id
+        return response, 0
 
     def set_running_workflow_done(
         self,
@@ -155,9 +157,9 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         if running_workflow_step_id not in running_workflow_step:
             return {}, 0
-        return {
-            "running_workflow_step": running_workflow_step[running_workflow_step_id]
-        }, 0
+        response = running_workflow_step[running_workflow_step_id]
+        response["id"] = running_workflow_step_id
+        return response, 0
 
     def set_running_workflow_step_done(
         self,
@@ -243,8 +245,8 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             "user_api_token": "123456789",
             "done": False,
             "success": False,
-            "workflow": workflow_id,
-            "project_id": project_id,
+            "workflow": {"id": workflow_id},
+            "project": {"id": project_id},
             "variables": variables,
         }
         running_workflow[running_workflow_id] = record
@@ -282,6 +284,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         steps = []
         for key, value in running_workflow_step.items():
             if value["running_workflow"] == running_workflow_id:
-                item = {"running_workflow_step": value, "id": key}
+                item = value
+                item["id"] = key
                 steps.append(item)
         return {"count": len(steps), "running_workflow_steps": steps}

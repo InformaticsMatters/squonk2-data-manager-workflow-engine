@@ -62,13 +62,12 @@ def start_workflow(md, da, workflow_file_name, variables) -> str:
     with open(workflow_path, "r", encoding="utf8") as wf_file:
         wf_definition = yaml.load(wf_file, Loader=yaml.FullLoader)
     assert wf_definition
-    wfid = da.create_workflow(workflow_definition=wf_definition)
-    assert wfid
-    print(f"Created workflow definition {wfid}")
+    wf_response = da.create_workflow(workflow_definition=wf_definition)
+    print(f"Created workflow definition {wf_response}")
     # 2.
     response = da.create_running_workflow(
         user_id="dlister",
-        workflow_id=wfid,
+        workflow_id=wf_response["id"],
         project_id=TEST_PROJECT_ID,
         variables=variables,
     )
@@ -111,9 +110,7 @@ def wait_for_workflow(
     done = False
     while not done:
         response, _ = da.get_running_workflow(running_workflow_id=r_wfid)
-        assert "running_workflow" in response
-        r_wf = response["running_workflow"]
-        if r_wf["done"]:
+        if response["done"]:
             done = True
         else:
             attempts += 1
@@ -122,8 +119,8 @@ def wait_for_workflow(
             time.sleep(completion_poll_period_s)
     # When we get here the workflow must have finished (not timed-out),
     # and it must have passed (or failed) according the the caller's expectation.
-    assert r_wf["done"]
-    assert r_wf["success"] == expect_success
+    assert response["done"]
+    assert response["success"] == expect_success
 
 
 def test_workflow_engine_example_two_step_nop(basic_engine):
@@ -141,8 +138,8 @@ def test_workflow_engine_example_two_step_nop(basic_engine):
     response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
     assert response["count"] == 2
     for step in response["running_workflow_steps"]:
-        assert step["running_workflow_step"]["done"]
-        assert step["running_workflow_step"]["success"]
+        assert step["done"]
+        assert step["success"]
 
 
 def test_workflow_engine_example_nop_fail(basic_engine):
@@ -158,8 +155,8 @@ def test_workflow_engine_example_nop_fail(basic_engine):
     # Check we only have one RunningWorkflowStep, and it failed
     response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
     assert response["count"] == 1
-    assert response["running_workflow_steps"][0]["running_workflow_step"]["done"]
-    assert not response["running_workflow_steps"][0]["running_workflow_step"]["success"]
+    assert response["running_workflow_steps"][0]["done"]
+    assert not response["running_workflow_steps"][0]["success"]
 
 
 def test_workflow_engine_example_smiles_to_file(basic_engine):
@@ -180,8 +177,9 @@ def test_workflow_engine_example_smiles_to_file(basic_engine):
     # Additional, detailed checks...
     # Check we only have one RunningWorkflowStep, and it succeeded
     response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    print(f"^^^^^^ response={response}")
     assert response["count"] == 1
-    assert response["running_workflow_steps"][0]["running_workflow_step"]["done"]
-    assert response["running_workflow_steps"][0]["running_workflow_step"]["success"]
+    assert response["running_workflow_steps"][0]["done"]
+    assert response["running_workflow_steps"][0]["success"]
     # This test should generate a file in the simulated project directory
     assert project_file_exists(output_file)

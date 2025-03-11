@@ -83,14 +83,12 @@ class WorkflowAPIAdapter(ABC):
         """Get a Workflow Record by ID."""
         # If present this should return:
         # {
-        #    "workflow": {
-        #       "name": "workflow-name",
-        #       "steps": [
-        #          {
-        #            "name": "step-name"
-        #          }
-        #       ]
-        #    }
+        #    "name": "workflow-name",
+        #    "steps": [
+        #      {
+        #        "name": "step-name"
+        #       }
+        #     ]
         # }
         # If not present an empty dictionary should be returned.
         #
@@ -106,7 +104,6 @@ class WorkflowAPIAdapter(ABC):
         """Get a RunningWorkflow Record"""
         # Should return:
         # {
-        #    "running_workflow": {
         #       "name": "workflow-name",
         #       "user_id": "alan",
         #       "user_api_token": "123456789",
@@ -124,7 +121,6 @@ class WorkflowAPIAdapter(ABC):
         #          "x": 1,
         #          "y": 2,
         #       },
-        #    }
         # }
         # If not present an empty dictionary should be returned.
 
@@ -160,7 +156,6 @@ class WorkflowAPIAdapter(ABC):
         """Get a RunningWorkflowStep Record"""
         # Should return:
         # {
-        #    "running_workflow_step": {
         #       "step:": "step-1234",
         #       "done": False,
         #       "success": false,
@@ -169,7 +164,6 @@ class WorkflowAPIAdapter(ABC):
         #       "running_workflow": {
         #          "id": "r-workflow-00000000-0000-0000-0000-000000000001"
         #       },
-        #    },
         # }
         # If not present an empty dictionary should be returned.
 
