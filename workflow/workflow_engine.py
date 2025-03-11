@@ -85,7 +85,7 @@ class WorkflowEngine:
         step (or steps) to launch (run) first."""
         assert msg
 
-        _LOGGER.debug("WorkflowMessage:\n%s", str(msg))
+        _LOGGER.info("WorkflowMessage:\n%s", str(msg))
         assert msg.action in ["START", "STOP"]
 
         r_wfid = msg.running_workflow
@@ -106,14 +106,17 @@ class WorkflowEngine:
         response, _ = self._wapi_adapter.get_running_workflow(
             running_workflow_id=r_wfid
         )
+        _LOGGER.debug(
+            "API.get_running_workflow(%s) returned: -\n%s", r_wfid, str(response)
+        )
         assert "running_workflow" in response
         running_workflow = response["running_workflow"]
         assert "user_id" in running_workflow
         launching_user_name: str = running_workflow["user_id"]
-        _LOGGER.debug("RunningWorkflow: %s", running_workflow)
         # Now get the workflow definition (to get all the steps)
         wfid = running_workflow["workflow"]["id"]
         response, _ = self._wapi_adapter.get_workflow(workflow_id=wfid)
+        _LOGGER.debug("API.get_workflow(%s) returned: -\n%s", wfid, str(response))
         assert "workflow" in response
         workflow = response["workflow"]
 
@@ -124,6 +127,12 @@ class WorkflowEngine:
         response, _ = self._wapi_adapter.create_running_workflow_step(
             running_workflow_id=r_wfid,
             step=first_step_name,
+        )
+        _LOGGER.debug(
+            "API.create_running_workflow_step(%s, %s) returned: -\n%s",
+            r_wfid,
+            first_step_name,
+            str(response),
         )
         assert "id" in response
         r_wfsid = response["id"]
@@ -136,6 +145,15 @@ class WorkflowEngine:
 
         project_id = running_workflow["project_id"]
         variables = running_workflow["variables"]
+
+        _LOGGER.info(
+            "RunningWorkflow: %s (name=%s project=%s, variables=%s)",
+            r_wfid,
+            running_workflow["name"],
+            project_id,
+            variables,
+        )
+
         lp: LaunchParameters = LaunchParameters(
             project_id=project_id,
             application_id=DM_JOB_APPLICATION_ID,
@@ -171,7 +189,7 @@ class WorkflowEngine:
         assert msg
 
         # The PodMessage has a 'instance', 'has_exit_code', and 'exit_code' values.
-        _LOGGER.debug("PodMessage:\n%s", str(msg))
+        _LOGGER.info("PodMessage:\n%s", str(msg))
 
         # ALL THIS CODE ADDED SIMPLY TO DEMONSTRATE THE USE OF THE API ADAPTER
         # AND THE INSTANCE LAUNCHER FOR THE SIMPLEST OF WORKFLOWS: -
@@ -188,9 +206,15 @@ class WorkflowEngine:
         instance_id: str = msg.instance
         exit_code: int = msg.exit_code
         response, _ = self._wapi_adapter.get_instance(instance_id=instance_id)
+        _LOGGER.debug(
+            "API.get_instance(%s) returned: -\n%s", instance_id, str(response)
+        )
         r_wfsid: str = response["running_workflow_step"]
         response, _ = self._wapi_adapter.get_running_workflow_step(
             running_workflow_step_id=r_wfsid
+        )
+        _LOGGER.debug(
+            "API.get_running_workflow_step(%s) returned: -\n%s", r_wfsid, str(response)
         )
         step_name: str = response["running_workflow_step"]["step"]
 
@@ -199,6 +223,9 @@ class WorkflowEngine:
         assert r_wfid
         response, _ = self._wapi_adapter.get_running_workflow(
             running_workflow_id=r_wfid
+        )
+        _LOGGER.debug(
+            "API.get_running_workflow(%s) returned: -\n%s", r_wfid, str(response)
         )
 
         if exit_code:
@@ -219,6 +246,7 @@ class WorkflowEngine:
         wfid = running_workflow["workflow"]["id"]
         assert wfid
         response, _ = self._wapi_adapter.get_workflow(workflow_id=wfid)
+        _LOGGER.debug("API.get_workflow(%s) returned: -\n%s", wfid, str(response))
         workflow = response["workflow"]
 
         # Given the step for the instance just finished (successfully),
@@ -241,6 +269,12 @@ class WorkflowEngine:
                     response, _ = self._wapi_adapter.create_running_workflow_step(
                         running_workflow_id=r_wfid,
                         step=next_step_name,
+                    )
+                    _LOGGER.debug(
+                        "API.create_running_workflow_step(%s, %s) returned: -\n%s",
+                        r_wfid,
+                        next_step_name,
+                        str(response),
                     )
                     assert "id" in response
                     r_wfsid = response["id"]
