@@ -3,7 +3,7 @@ import pytest
 pytestmark = pytest.mark.unit
 
 from tests.test_decoder_minimal import _MINIMAL_WORKFLOW
-from workflow.worklfow_validator import ValidationLevel, WorkflowValidator
+from workflow.workflow_validator import ValidationLevel, WorkflowValidator
 
 
 def test_validate_minimal_for_create():
