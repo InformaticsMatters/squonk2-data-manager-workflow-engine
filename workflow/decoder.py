@@ -44,3 +44,13 @@ def get_step_names(definition: dict[str, Any]) -> list[str]:
     """
     names: list[str] = [step["name"] for step in definition.get("steps", [])]
     return names
+
+
+def get_workflow_name(definition: dict[str, Any]) -> str:
+    """Given a Workflow definition this function returns its name."""
+    return str(definition.get("name", ""))
+
+
+def get_workflow_description(definition: dict[str, Any]) -> str | None:
+    """Given a Workflow definition this function returns its description (if it has one)."""
+    return definition.get("description")
