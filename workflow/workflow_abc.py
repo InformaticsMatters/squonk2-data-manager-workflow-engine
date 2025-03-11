@@ -84,6 +84,7 @@ class WorkflowAPIAdapter(ABC):
         # If present this should return:
         # {
         #    "workflow": {
+        #       "name": "workflow-name",
         #       "steps": [
         #          {
         #            "name": "step-name"
@@ -106,6 +107,7 @@ class WorkflowAPIAdapter(ABC):
         # Should return:
         # {
         #    "running_workflow": {
+        #       "name": "workflow-name",
         #       "user_id": "alan",
         #       "user_api_token": "123456789",
         #       "done": False,

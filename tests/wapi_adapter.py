@@ -212,6 +212,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         next_id: int = len(workflow) + 1
         workflow_definition_id: str = _WORKFLOW_DEFINITION_ID_FORMAT.format(id=next_id)
         workflow[workflow_definition_id] = workflow_definition
+        workflow["name"] = "test-workflow"
 
         with open(_WORKFLOW_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(workflow)
@@ -237,6 +238,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         next_id: int = len(running_workflow) + 1
         running_workflow_id: str = _RUNNING_WORKFLOW_ID_FORMAT.format(id=next_id)
         record = {
+            "name": "test-running-workflow",
             "user_id": user_id,
             "user_api_token": "123456789",
             "done": False,
