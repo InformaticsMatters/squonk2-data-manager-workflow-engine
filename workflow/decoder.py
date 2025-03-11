@@ -38,9 +38,9 @@ def validate_schema(workflow: dict[str, Any]) -> str | None:
     return None
 
 
-def get_step_names(definition: dict[str, Any]) -> set[str]:
-    """Given a Workflow definition this function returns the unique list of its
+def get_step_names(definition: dict[str, Any]) -> list[str]:
+    """Given a Workflow definition this function returns the list of
     step names, in the order they are defined.
     """
-    names: set[str] = {step["name"] for step in definition.get("steps", [])}
+    names: list[str] = [step["name"] for step in definition.get("steps", [])]
     return names
