@@ -109,8 +109,8 @@ class WorkflowEngine:
         _LOGGER.debug(
             "API.get_running_workflow(%s) returned: -\n%s", r_wfid, str(rwf_response)
         )
-        assert "user_id" in rwf_response
-        launching_user_name: str = rwf_response["user_id"]
+        assert "running_user" in rwf_response
+        launching_user_name: str = rwf_response["running_user"]
         # Now get the workflow definition (to get all the steps)
         wfid = rwf_response["workflow"]["id"]
         wf_response, _ = self._wapi_adapter.get_workflow(workflow_id=wfid)
@@ -155,7 +155,7 @@ class WorkflowEngine:
             application_id=DM_JOB_APPLICATION_ID,
             name=first_step_name,
             launching_user_name=launching_user_name,
-            launching_user_api_token=rwf_response["user_api_token"],
+            launching_user_api_token=rwf_response["running_user_api_token"],
             specification=json.loads(first_step["specification"]),
             specification_variables=variables,
             running_workflow_id=r_wfid,
@@ -279,8 +279,8 @@ class WorkflowEngine:
                         project_id=project_id,
                         application_id=DM_JOB_APPLICATION_ID,
                         name=next_step_name,
-                        launching_user_name=rwf_response["user_id"],
-                        launching_user_api_token=rwf_response["user_api_token"],
+                        launching_user_name=rwf_response["running_user"],
+                        launching_user_api_token=rwf_response["running_user_api_token"],
                         specification=json.loads(next_step["specification"]),
                         specification_variables=variables,
                         running_workflow_id=r_wfid,

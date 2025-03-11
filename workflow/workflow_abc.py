@@ -105,8 +105,8 @@ class WorkflowAPIAdapter(ABC):
         # Should return:
         # {
         #       "name": "workflow-name",
-        #       "user_id": "alan",
-        #       "user_api_token": "123456789",
+        #       "running_user": "alan",
+        #       "running_user_api_token": "123456789",
         #       "done": False,
         #       "success": false,
         #       "error": None,

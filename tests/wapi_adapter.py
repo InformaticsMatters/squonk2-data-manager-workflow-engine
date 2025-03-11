@@ -241,8 +241,8 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         running_workflow_id: str = _RUNNING_WORKFLOW_ID_FORMAT.format(id=next_id)
         record = {
             "name": "test-running-workflow",
-            "user_id": user_id,
-            "user_api_token": "123456789",
+            "running_user": user_id,
+            "running_user_api_token": "123456789",
             "done": False,
             "success": False,
             "workflow": {"id": workflow_id},
