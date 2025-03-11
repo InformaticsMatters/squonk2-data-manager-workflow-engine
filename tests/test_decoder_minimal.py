@@ -26,6 +26,16 @@ def test_validate_minimal():
     assert error is None
 
 
+def test_validate_minimal_get_step_names():
+    # Arrange
+
+    # Act
+    names = decoder.get_step_names(_MINIMAL_WORKFLOW)
+
+    # Assert
+    assert names == ["step-1"]
+
+
 def test_validate_without_name():
     # Arrange
     workflow = _MINIMAL_WORKFLOW.copy()
