@@ -264,4 +264,4 @@ def test_create_and_get_instance():
     response, _ = utaa.get_instance(instance_id=instance_id)
 
     # Assert
-    assert response["running_workflow_step"] == "r-workflow-step-000"
+    assert response["running_workflow_step_id"] == "r-workflow-step-000"
