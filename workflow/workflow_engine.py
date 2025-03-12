@@ -134,17 +134,20 @@ class WorkflowEngine:
         r_wfsid = response["id"]
 
         # The step's 'specification' is a string - pass it directly to the
-        # launcher along with any appropriate 'variables'. The launcher
+        # launcher along with any (optional) 'variables'. The launcher
         # will apply the variables to step's Job command but we need to handle
         # any launch problems. The validator should have checked to ensure that
         # variable expansion will work, but we must prepare for the unexpected.
 
         project_id = rwf_response["project"]["id"]
-        variables = rwf_response["variables"]
+        variables: dict[str, Any] | None = rwf_response.get("variables")
 
         _LOGGER.info(
-            "RunningWorkflow: %s (name=%s project=%s, variables=%s)",
+            "Launching first step: RunningWorkflow=%s RunningWorkflowStep=%s step=%s"
+            " (name=%s project=%s, variables=%s)",
             r_wfid,
+            r_wfsid,
+            first_step_name,
             rwf_response["name"],
             project_id,
             variables,
@@ -167,6 +170,11 @@ class WorkflowEngine:
                 first_step_name, r_wfid, r_wfsid, lr.error_num, lr.error_msg
             )
         else:
+            if lr.command:
+                self._wapi_adapter.set_running_workflow_step_command(
+                    running_workflow_step_id=r_wfsid,
+                    command=lr.command,
+                )
             _LOGGER.info(
                 "Launched first step '%s' (command=%s)", first_step_name, lr.command
             )

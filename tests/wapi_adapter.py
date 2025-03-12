@@ -161,6 +161,23 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         response["id"] = running_workflow_step_id
         return response, 0
 
+    def set_running_workflow_step_command(
+        self,
+        *,
+        running_workflow_step_id: str,
+        command: str,
+    ) -> None:
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
+            running_workflow_step = Unpickler(pickle_file).load()
+
+        assert running_workflow_step_id in running_workflow_step
+        running_workflow_step[running_workflow_step_id]["command"] = command
+
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "wb") as pickle_file:
+            Pickler(pickle_file).dump(running_workflow_step)
+        UnitTestWorkflowAPIAdapter.lock.release()
+
     def set_running_workflow_step_done(
         self,
         *,

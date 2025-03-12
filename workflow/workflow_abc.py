@@ -156,7 +156,7 @@ class WorkflowAPIAdapter(ABC):
         """Get a RunningWorkflowStep Record"""
         # Should return:
         # {
-        #       "step:": "step-1234",
+        #       "name:": "step-1234",
         #       "done": False,
         #       "success": false,
         #       "error": None,
@@ -166,6 +166,15 @@ class WorkflowAPIAdapter(ABC):
         #       },
         # }
         # If not present an empty dictionary should be returned.
+
+    @abstractmethod
+    def set_running_workflow_step_command(
+        self,
+        *,
+        running_workflow_step_id: str,
+        command: str,
+    ) -> None:
+        """Set the command value for a RunningWorkflowStep Record"""
 
     @abstractmethod
     def set_running_workflow_step_done(
