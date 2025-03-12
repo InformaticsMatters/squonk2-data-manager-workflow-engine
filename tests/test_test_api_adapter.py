@@ -240,7 +240,7 @@ def test_get_running_workflow_step():
     # Assert
     assert response["name"] == "step-1"
     assert not response["done"]
-    assert response["running_workflow"] == rwfid
+    assert response["running_workflow"]["id"] == rwfid
 
 
 def test_create_instance():

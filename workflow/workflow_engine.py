@@ -226,7 +226,7 @@ class WorkflowEngine:
         step_name: str = rwfs_response["name"]
 
         # Get the step's running workflow record.
-        r_wfid: str = rwfs_response["running_workflow"]
+        r_wfid: str = rwfs_response["running_workflow"]["id"]
         assert r_wfid
         rwf_response, _ = self._wapi_adapter.get_running_workflow(
             running_workflow_id=r_wfid

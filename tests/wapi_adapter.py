@@ -137,7 +137,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             "name": step,
             "done": False,
             "success": False,
-            "running_workflow": running_workflow_id,
+            "running_workflow": {"id": running_workflow_id},
         }
         running_workflow_step[running_workflow_step_id] = record
 
@@ -300,7 +300,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         steps = []
         for key, value in running_workflow_step.items():
-            if value["running_workflow"] == running_workflow_id:
+            if value["running_workflow"]["id"] == running_workflow_id:
                 item = value
                 item["id"] = key
                 steps.append(item)
