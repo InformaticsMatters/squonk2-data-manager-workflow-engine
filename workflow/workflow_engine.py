@@ -213,7 +213,8 @@ class WorkflowEngine:
         _LOGGER.debug(
             "API.get_instance(%s) returned: -\n%s", instance_id, str(response)
         )
-        r_wfsid: str = response["running_workflow_step"]
+        r_wfsid: str | None = response.get("running_workflow_step_id")
+        assert r_wfsid
         rwfs_response, _ = self._wapi_adapter.get_running_workflow_step(
             running_workflow_step_id=r_wfsid
         )
@@ -225,7 +226,7 @@ class WorkflowEngine:
         step_name: str = rwfs_response["name"]
 
         # Get the step's running workflow record.
-        r_wfid = rwfs_response["running_workflow"]
+        r_wfid: str = rwfs_response["running_workflow"]
         assert r_wfid
         rwf_response, _ = self._wapi_adapter.get_running_workflow(
             running_workflow_id=r_wfid
@@ -280,7 +281,7 @@ class WorkflowEngine:
                         str(response),
                     )
                     assert "id" in rwfs_response
-                    r_wfsid = rwfs_response["id"]
+                    new_r_wfsid: str = rwfs_response["id"]
                     project_id = rwf_response["project"]["id"]
                     variables = rwf_response["variables"]
                     lp: LaunchParameters = LaunchParameters(
@@ -292,7 +293,7 @@ class WorkflowEngine:
                         specification=json.loads(next_step["specification"]),
                         specification_variables=variables,
                         running_workflow_id=r_wfid,
-                        running_workflow_step_id=r_wfsid,
+                        running_workflow_step_id=new_r_wfsid,
                     )
                     lr = self._instance_launcher.launch(lp)
                     # Handle a launch error?
@@ -300,7 +301,7 @@ class WorkflowEngine:
                         self._set_step_error(
                             next_step_name,
                             r_wfid,
-                            r_wfsid,
+                            new_r_wfsid,
                             lr.error_num,
                             lr.error_msg,
                         )

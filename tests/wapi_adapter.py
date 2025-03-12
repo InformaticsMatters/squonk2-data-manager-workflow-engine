@@ -282,7 +282,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         next_id: int = len(instances) + 1
         instance_id: str = _INSTANCE_ID_FORMAT.format(id=next_id)
         record = {
-            "running_workflow_step": running_workflow_step_id,
+            "running_workflow_step_id": running_workflow_step_id,
         }
         instances[instance_id] = record
 
