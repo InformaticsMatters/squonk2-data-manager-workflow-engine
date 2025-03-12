@@ -134,7 +134,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             id=next_id
         )
         record = {
-            "step": step,
+            "name": step,
             "done": False,
             "success": False,
             "running_workflow": running_workflow_id,

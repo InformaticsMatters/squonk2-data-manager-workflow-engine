@@ -238,7 +238,7 @@ def test_get_running_workflow_step():
     response, _ = utaa.get_running_workflow_step(running_workflow_step_id=rwfsid)
 
     # Assert
-    assert response["step"] == "step-1"
+    assert response["name"] == "step-1"
     assert not response["done"]
     assert response["running_workflow"] == rwfid
 

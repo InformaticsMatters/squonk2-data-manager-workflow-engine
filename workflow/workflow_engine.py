@@ -214,7 +214,7 @@ class WorkflowEngine:
             r_wfsid,
             str(rwfs_response),
         )
-        step_name: str = rwfs_response["step"]
+        step_name: str = rwfs_response["name"]
 
         # Get the step's running workflow record.
         r_wfid = rwfs_response["running_workflow"]
