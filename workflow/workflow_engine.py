@@ -282,8 +282,8 @@ class WorkflowEngine:
                     )
                     assert "id" in rwfs_response
                     new_r_wfsid: str = rwfs_response["id"]
-                    project_id = rwf_response["project"]["id"]
-                    variables = rwf_response["variables"]
+                    project_id: str = rwf_response["project"]["id"]
+                    variables: dict[str, Any] | None = rwf_response.get("variables")
                     lp: LaunchParameters = LaunchParameters(
                         project_id=project_id,
                         application_id=DM_JOB_APPLICATION_ID,
