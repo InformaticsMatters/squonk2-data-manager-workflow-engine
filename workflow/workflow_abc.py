@@ -87,6 +87,7 @@ class WorkflowAPIAdapter(ABC):
         #    "steps": [
         #      {
         #        "name": "step-name"
+        #        "specification": "{}",
         #       }
         #     ]
         # }
