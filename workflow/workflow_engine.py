@@ -153,6 +153,7 @@ class WorkflowEngine:
         lp: LaunchParameters = LaunchParameters(
             project_id=project_id,
             name=first_step_name,
+            debug=rwf_response.get("debug"),
             launching_user_name=launching_user_name,
             launching_user_api_token=rwf_response["running_user_api_token"],
             specification=json.loads(first_step["specification"]),
@@ -278,6 +279,7 @@ class WorkflowEngine:
                     lp: LaunchParameters = LaunchParameters(
                         project_id=project_id,
                         name=next_step_name,
+                        debug=rwf_response.get("debug"),
                         launching_user_name=rwf_response["running_user"],
                         launching_user_api_token=rwf_response["running_user_api_token"],
                         specification=json.loads(next_step["specification"]),
