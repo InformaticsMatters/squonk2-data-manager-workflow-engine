@@ -8,7 +8,6 @@ from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.message_queue import UnitTestMessageQueue
 from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.workflow_abc import LaunchParameters
-from workflow.workflow_engine import DM_JOB_APPLICATION_ID
 
 
 @pytest.fixture
@@ -40,7 +39,6 @@ def test_launch_nop(basic_launcher):
     rwfsid = response["id"]
     lp: LaunchParameters = LaunchParameters(
         project_id=TEST_PROJECT_ID,
-        application_id=DM_JOB_APPLICATION_ID,
         name="Test Instance",
         launching_user_name="dlister",
         launching_user_api_token="1234567890",
@@ -77,7 +75,6 @@ def test_launch_nop_fail(basic_launcher):
     rwfsid = response["id"]
     lp: LaunchParameters = LaunchParameters(
         project_id=TEST_PROJECT_ID,
-        application_id=DM_JOB_APPLICATION_ID,
         name="Test Instance",
         launching_user_name="dlister",
         launching_user_api_token="1234567890",
@@ -117,7 +114,6 @@ def test_launch_smiles_to_file(basic_launcher):
     rwfsid = response["id"]
     lp: LaunchParameters = LaunchParameters(
         project_id=TEST_PROJECT_ID,
-        application_id=DM_JOB_APPLICATION_ID,
         name="Test Instance",
         launching_user_name="dlister",
         launching_user_api_token="1234567890",
