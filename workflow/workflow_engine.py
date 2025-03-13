@@ -166,11 +166,6 @@ class WorkflowEngine:
                 first_step_name, r_wfid, r_wfsid, lr.error_num, lr.error_msg
             )
         else:
-            if lr.command:
-                self._wapi_adapter.set_running_workflow_step_command(
-                    running_workflow_step_id=r_wfsid,
-                    command=lr.command,
-                )
             _LOGGER.info(
                 "Launched first step '%s' (command=%s)", first_step_name, lr.command
             )
