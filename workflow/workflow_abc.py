@@ -15,20 +15,30 @@ class LaunchParameters:
     The launching user API token is the second element when the request header's
     'Authorization' value is split on white-space."""
 
-    application_id: str
+    # The Project UUID to launch the instance in
     project_id: str
+    # A symbolic name of the Instance
     name: str
+    # The user name of the person launching the Instance/Workflow
     launching_user_name: str
+    # The API Access token provided by the User
     launching_user_api_token: str
+    # The specification, which can contain 'variables'
     specification: dict[str, Any]
+    # An alternative way to passing variables to the specification.
+    # If used it will replace any 'variables' key in the specification.
     specification_variables: dict[str, Any] | None = None
-    debug: bool | None = None
-    callback_url: str | None = None
-    callback_token: str | None = None
-    callback_context: str | None = None
-    generate_callback_token: bool | None = None
+    # A string. In DM v4 converted to a boolean and set in the
+    # instance Pod as a label.
+    debug: str | None = None
+    # The RunningWorkflow UUID
     running_workflow_id: str | None = None
+    # The RunningWorkflowStep UUID
     running_workflow_step_id: str | None = None
+    # The application ID (a custom resource name)
+    # used to identify the 'type' of Instance to create.
+    # For DM Jobs this will be 'datamanagerjobs.squonk.it'
+    application_id: str = "datamanagerjobs.squonk.it"
 
 
 @dataclass
@@ -36,12 +46,18 @@ class LaunchResult:
     """Results returned from methods in the InstanceLauncher.
     Any error returned in this object is a launch error, not a Job error."""
 
+    # A numeric non-zero error code if an error occurred
+    # and an optional message
     error_num: int = 0
     error_msg: str | None = None
+    # The Instance UUID that was created for you
     instance_id: str | None = None
+    # The Task UUID that is handling the Instance launch
     task_id: str | None = None
-    callback_token: str | None = None
+    # The rendered command used in the instance
     command: str | None = None
+    # A callback token (unused in Workflows)
+    callback_token: str | None = None
 
 
 class InstanceLauncher(ABC):
@@ -51,7 +67,9 @@ class InstanceLauncher(ABC):
     @abstractmethod
     def launch(
         self,
+        *,
         launch_parameters: LaunchParameters,
+        **kwargs: str,
     ) -> LaunchResult:
         """Launch a (Job) Instance"""
 

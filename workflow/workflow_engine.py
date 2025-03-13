@@ -42,9 +42,6 @@ _LOGGER: logging.Logger = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.INFO)
 _LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 
-# The 'well known' application ID for Jobs
-DM_JOB_APPLICATION_ID: str = "datamanagerjobs.squonk.it"
-
 
 class WorkflowEngine:
     """The workflow engine."""
@@ -155,7 +152,6 @@ class WorkflowEngine:
 
         lp: LaunchParameters = LaunchParameters(
             project_id=project_id,
-            application_id=DM_JOB_APPLICATION_ID,
             name=first_step_name,
             launching_user_name=launching_user_name,
             launching_user_api_token=rwf_response["running_user_api_token"],
@@ -164,7 +160,7 @@ class WorkflowEngine:
             running_workflow_id=r_wfid,
             running_workflow_step_id=r_wfsid,
         )
-        lr: LaunchResult = self._instance_launcher.launch(lp)
+        lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
         if lr.error_num:
             self._set_step_error(
                 first_step_name, r_wfid, r_wfsid, lr.error_num, lr.error_msg
@@ -286,7 +282,6 @@ class WorkflowEngine:
                     variables: dict[str, Any] | None = rwf_response.get("variables")
                     lp: LaunchParameters = LaunchParameters(
                         project_id=project_id,
-                        application_id=DM_JOB_APPLICATION_ID,
                         name=next_step_name,
                         launching_user_name=rwf_response["running_user"],
                         launching_user_api_token=rwf_response["running_user_api_token"],
@@ -295,7 +290,7 @@ class WorkflowEngine:
                         running_workflow_id=r_wfid,
                         running_workflow_step_id=new_r_wfsid,
                     )
-                    lr = self._instance_launcher.launch(lp)
+                    lr = self._instance_launcher.launch(launch_parameters=lp)
                     # Handle a launch error?
                     if lr.error_num:
                         self._set_step_error(
