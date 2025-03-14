@@ -72,35 +72,36 @@ class WorkflowValidator:
         assert workflow_definition
         del workflow_inputs
 
-        # RUN level requires that the specification is a valid JSON string.
+        # RUN level requires that each step specification is a valid JSON string.
         # and contains properties for 'collection', 'job', and 'version'.
-        try:
-            specification = json.loads(workflow_definition["specification"])
-        except json.decoder.JSONDecodeError as e:
-            return ValidationResult(
-                error_num=1,
-                error_msg=[
-                    f"Error decoding specification, which is not valid JSON: {e}"
-                ],
+        for step in workflow_definition["steps"]:
+            try:
+                specification = json.loads(step["specification"])
+            except json.decoder.JSONDecodeError as e:
+                return ValidationResult(
+                    error_num=2,
+                    error_msg=[
+                        f"Error decoding specification, which is not valid JSON: {e}"
+                    ],
+                )
+            except TypeError as e:
+                return ValidationResult(
+                    error_num=3,
+                    error_msg=[
+                        f"Error decoding specification, which is not valid JSON: {e}"
+                    ],
+                )
+            expected_keys: set[str] = {"collection", "job", "version"}
+            missing_keys: list[str] = []
+            missing_keys.extend(
+                expected_key
+                for expected_key in expected_keys
+                if expected_key not in specification
             )
-        except TypeError as e:
-            return ValidationResult(
-                error_num=2,
-                error_msg=[
-                    f"Error decoding specification, which is not valid JSON: {e}"
-                ],
-            )
-        expected_keys: set[str] = {"collection", "job", "version"}
-        missing_keys: list[str] = []
-        missing_keys.extend(
-            expected_key
-            for expected_key in expected_keys
-            if expected_key not in specification
-        )
-        if missing_keys:
-            return ValidationResult(
-                error_num=2,
-                error_msg=[f"Specification is missing: {', '.join(missing_keys)}"],
-            )
+            if missing_keys:
+                return ValidationResult(
+                    error_num=2,
+                    error_msg=[f"Specification is missing: {', '.join(missing_keys)}"],
+                )
 
         return _VALIDATION_SUCCESS
