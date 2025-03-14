@@ -1,0 +1,22 @@
+---
+kind: DataManagerWorkflow
+kind-version: "2024.1"
+name: experimental-workflow
+description: An experimental workflow
+steps:
+- name: step-1
+  description: The first step
+  specification: '{"collection":"im-test","job":"process-a","version":"1.0.0", "variables":{"x": 7}}'
+  outputs:
+  - output: 'outputFile'
+    as: 'a.sdf'
+- name: step-2
+  specification: '{"collection":"im-test","job":"process-b","version":"1.0.0", "variables":{"y": 22}}'
+  inputs:
+  - input: 'inputFile'
+    from:
+      step: step-1
+      output: 'outputFile'
+  outputs:
+  - output: 'outputFile'
+    as: 'b.sdf'

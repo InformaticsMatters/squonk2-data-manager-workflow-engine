@@ -6,7 +6,7 @@ import yaml
 
 pytestmark = pytest.mark.unit
 
-from tests.test_decoder_minimal import _MINIMAL_WORKFLOW
+from tests.test_decoder import _MINIMAL_WORKFLOW
 from workflow.workflow_validator import ValidationLevel, WorkflowValidator
 
 
