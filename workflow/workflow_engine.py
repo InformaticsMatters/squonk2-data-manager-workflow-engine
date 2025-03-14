@@ -304,22 +304,22 @@ class WorkflowEngine:
         # and can be launched. If it is False then the returned str contains an
         # error message.
         #
-        # Remember that variables can exist in (ascending order of priority): -
+        # Remember that variables can exist in the specification too.
+        # So, the full set of step variables (in ascending order of priority)
+        # is...
+        #
         # 1. The specification
         # 2. The workflow
-        # 2. The RunningWorkflow
+        # 3. The RunningWorkflow
 
-        all_variables: dict[str, Any] = {}
-        if "variables" in step_spec:
-            all_variables = step_spec.pop("variables")
+        all_variables = step_spec.pop("variables") if "variables" in step_spec else {}
         if workflow_variables:
-            all_variables = all_variables | workflow_variables
+            all_variables |= workflow_variables
         if running_workflow_variables:
-            all_variables = all_variables | running_workflow_variables
+            all_variables |= running_workflow_variables
         message, success = decode(
             job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
         )
-
         return all_variables if success else message
 
     def _launch(
