@@ -27,6 +27,7 @@ import logging
 import sys
 from typing import Any, Dict, Optional
 
+from decoder.decoder import TextEncoding, decode
 from google.protobuf.message import Message
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
@@ -107,7 +108,6 @@ class WorkflowEngine:
             "API.get_running_workflow(%s) returned: -\n%s", r_wfid, str(rwf_response)
         )
         assert "running_user" in rwf_response
-        launching_user_name: str = rwf_response["running_user"]
         # Now get the workflow definition (to get all the steps)
         wfid = rwf_response["workflow"]["id"]
         wf_response, _ = self._wapi_adapter.get_workflow(workflow_id=wfid)
@@ -117,6 +117,7 @@ class WorkflowEngine:
         # and create a corresponding RunningWorkflowStep record...
         first_step: Dict[str, Any] = wf_response["steps"][0]
         first_step_name: str = first_step["name"]
+        # We need this even if the following goes wrong.
         response, _ = self._wapi_adapter.create_running_workflow_step(
             running_workflow_id=r_wfid,
             step=first_step_name,
@@ -128,48 +129,9 @@ class WorkflowEngine:
             str(response),
         )
         assert "id" in response
-        r_wfsid = response["id"]
+        r_wfsid: str = response["id"]
 
-        # The step's 'specification' is a string - pass it directly to the
-        # launcher along with any (optional) 'variables'. The launcher
-        # will apply the variables to step's Job command but we need to handle
-        # any launch problems. The validator should have checked to ensure that
-        # variable expansion will work, but we must prepare for the unexpected.
-
-        project_id = rwf_response["project"]["id"]
-        variables: dict[str, Any] | None = rwf_response.get("variables")
-
-        _LOGGER.info(
-            "Launching first step: RunningWorkflow=%s RunningWorkflowStep=%s step=%s"
-            " (name=%s project=%s, variables=%s)",
-            r_wfid,
-            r_wfsid,
-            first_step_name,
-            rwf_response["name"],
-            project_id,
-            variables,
-        )
-
-        lp: LaunchParameters = LaunchParameters(
-            project_id=project_id,
-            name=first_step_name,
-            debug=rwf_response.get("debug"),
-            launching_user_name=launching_user_name,
-            launching_user_api_token=rwf_response["running_user_api_token"],
-            specification=json.loads(first_step["specification"]),
-            specification_variables=variables,
-            running_workflow_id=r_wfid,
-            running_workflow_step_id=r_wfsid,
-        )
-        lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
-        if lr.error_num:
-            self._set_step_error(
-                first_step_name, r_wfid, r_wfsid, lr.error_num, lr.error_msg
-            )
-        else:
-            _LOGGER.info(
-                "Launched first step '%s' (command=%s)", first_step_name, lr.command
-            )
+        self._launch(wf=wf_response, rwf=rwf_response, rwfs_id=r_wfsid, step=first_step)
 
     def _handle_pod_message(self, msg: PodMessage) -> None:
         """Handles a PodMessage. This is a message that signals the completion of a
@@ -266,43 +228,22 @@ class WorkflowEngine:
                         running_workflow_id=r_wfid,
                         step=next_step_name,
                     )
+                    assert "id" in rwfs_response
+                    r_wfsid = rwfs_response["id"]
+                    assert r_wfsid
                     _LOGGER.debug(
                         "API.create_running_workflow_step(%s, %s) returned: -\n%s",
                         r_wfid,
                         next_step_name,
                         str(response),
                     )
-                    assert "id" in rwfs_response
-                    new_r_wfsid: str = rwfs_response["id"]
-                    project_id: str = rwf_response["project"]["id"]
-                    variables: dict[str, Any] | None = rwf_response.get("variables")
-                    lp: LaunchParameters = LaunchParameters(
-                        project_id=project_id,
-                        name=next_step_name,
-                        debug=rwf_response.get("debug"),
-                        launching_user_name=rwf_response["running_user"],
-                        launching_user_api_token=rwf_response["running_user_api_token"],
-                        specification=json.loads(next_step["specification"]),
-                        specification_variables=variables,
-                        running_workflow_id=r_wfid,
-                        running_workflow_step_id=new_r_wfsid,
+
+                    self._launch(
+                        wf=wf_response,
+                        rwf=rwf_response,
+                        rwfs_id=r_wfsid,
+                        step=next_step,
                     )
-                    lr = self._instance_launcher.launch(launch_parameters=lp)
-                    # Handle a launch error?
-                    if lr.error_num:
-                        self._set_step_error(
-                            next_step_name,
-                            r_wfid,
-                            new_r_wfsid,
-                            lr.error_num,
-                            lr.error_msg,
-                        )
-                    else:
-                        _LOGGER.info(
-                            "Launched step: %s (command=%s)",
-                            next_step["name"],
-                            lr.command,
-                        )
 
                     # Something was started (or there was a launch error).
                     break
@@ -316,6 +257,130 @@ class WorkflowEngine:
                 running_workflow_id=r_wfid,
                 success=True,
             )
+
+    def _validate_step_command(
+        self,
+        *,
+        step: dict[str, Any],
+        workflow_variables: dict[str, Any] | None,
+        running_workflow_variables: dict[str, Any] | None = None,
+    ) -> str | dict[str, Any]:
+        """Returns an error message if the command isn't valid.
+        Without a message we return all the variables that were (successfully)
+        applied to the command."""
+        # We get the Job from the step specification, which must contain
+        # the keys "collection", "job", and "version". Here we assume that
+        # the workflow definition has passed the RUN-level validation
+        # which means we can get these values.
+        step_spec: dict[str, Any] = json.loads(step["specification"])
+        job_collection: str = step_spec["collection"]
+        job_job: str = step_spec["job"]
+        job_version: str = step_spec["version"]
+        job, _ = self._wapi_adapter.get_job(
+            collection=job_collection, job=job_job, version=job_version
+        )
+        _LOGGER.debug(
+            "API.get_job(%s, %s, %s) returned: -\n%s",
+            job_collection,
+            job_job,
+            job_version,
+            str(job),
+        )
+
+        # The step's 'specification' is a string - pass it directly to the
+        # launcher along with any (optional) 'workflow variables'. The launcher
+        # will apply the variables to step's Job command but we need to handle
+        # any launch problems. The validator should have checked to ensure that
+        # variable expansion will work, but we must prepare for the unexpected.
+        #
+        # What the engine has to do here is make sure that the definition
+        # that's about to be launched has all its configuration requirements
+        # satisfied (inputs, outputs and options). Basically the
+        # command must be successfully rendered with what we have.
+        #
+        # To do this we give the command and our variables
+        # to the Job Decoder's 'decode()' method. It returns a tuple (str and boolean).
+        # If the boolean is True then the command has no undefined configuration
+        # and can be launched. If it is False then the returned str contains an
+        # error message.
+        #
+        # Remember that variables can exist in (ascending order of priority): -
+        # 1. The specification
+        # 2. The workflow
+        # 2. The RunningWorkflow
+
+        all_variables: dict[str, Any] = {}
+        if "variables" in step_spec:
+            all_variables = step_spec.pop("variables")
+        if workflow_variables:
+            all_variables = all_variables | workflow_variables
+        if running_workflow_variables:
+            all_variables = all_variables | running_workflow_variables
+        message, success = decode(
+            job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
+        )
+
+        return all_variables if success else message
+
+    def _launch(
+        self,
+        *,
+        wf: dict[str, Any],
+        rwf: dict[str, Any],
+        rwfs_id: str,
+        step: dict[str, Any],
+    ) -> None:
+        step_name: str = step["name"]
+        rwf_id: str = rwf["id"]
+
+        _LOGGER.info("Validating step command: %s (step=%s)...", rwf_id, step_name)
+
+        # Now check the step command can be executed (by decoding it)
+        workflow_variables: dict[str, Any] | None = wf.get("variables")
+        running_workflow_variables: dict[str, Any] | None = rwf.get("variables")
+        error_or_variables: str | dict[str, Any] = self._validate_step_command(
+            step=step,
+            workflow_variables=workflow_variables,
+            running_workflow_variables=running_workflow_variables,
+        )
+        if isinstance(error_or_variables, str):
+            error_msg = error_or_variables
+            _LOGGER.warning(
+                "First step '%s' failed command validation (%s)", step_name, error_msg
+            )
+            self._set_step_error(step_name, rwf_id, rwfs_id, 1, error_msg)
+            return
+
+        project_id = rwf["project"]["id"]
+        variables: dict[str, Any] = error_or_variables
+
+        _LOGGER.info(
+            "Launching first step: RunningWorkflow=%s RunningWorkflowStep=%s step=%s"
+            " (name=%s project=%s, variables=%s)",
+            rwf_id,
+            rwfs_id,
+            step_name,
+            rwf["name"],
+            project_id,
+            variables,
+        )
+
+        lp: LaunchParameters = LaunchParameters(
+            project_id=project_id,
+            name=step_name,
+            debug=rwf.get("debug"),
+            launching_user_name=rwf["running_user"],
+            launching_user_api_token=rwf["running_user_api_token"],
+            specification=json.loads(step["specification"]),
+            specification_variables=variables,
+            running_workflow_id=rwf_id,
+            running_workflow_step_id=rwfs_id,
+        )
+        lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
+        if lr.error_num:
+            self._set_step_error(step_name, rwf_id, rwfs_id, lr.error_num, lr.error_msg)
+        else:
+            _LOGGER.info("Launched first step '%s' (command=%s)", step_name, lr.command)
 
     def _set_step_error(
         self,
