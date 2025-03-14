@@ -15,25 +15,28 @@ class LaunchParameters:
     The launching user API token is the second element when the request header's
     'Authorization' value is split on white-space."""
 
-    # The Project UUID to launch the instance in
+    # The Project UUID of the project to launch the instance in
     project_id: str
     # A symbolic name of the Instance
     name: str
-    # The user name of the person launching the Instance/Workflow
+    # The user name of the person launching the Instance (Workflow step)
     launching_user_name: str
     # The API Access token provided by the User
     launching_user_api_token: str
     # The specification, which can contain 'variables'
     specification: dict[str, Any]
-    # An alternative way to passing variables to the specification.
-    # If used it will replace any 'variables' key in the specification.
+    # An alternative way to pass variables to the specification.
+    # If used it will replace any 'variables' already present in the specification.
     specification_variables: dict[str, Any] | None = None
     # A string. In DM v4 converted to a boolean and set in the
-    # instance Pod as a label.
+    # instance Pod as a label. Setting this means the Instances
+    # that are created will not be automatically removed by the Job operator.
     debug: str | None = None
-    # The RunningWorkflow UUID
+    # The RunningWorkflow UUID.
+    # Required if the Instance is part of a Workflow step.
     running_workflow_id: str | None = None
-    # The RunningWorkflowStep UUID
+    # The RunningWorkflowStep UUID.
+    # Required if the Instance is part of a Workflow step.
     running_workflow_step_id: str | None = None
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
@@ -47,10 +50,13 @@ class LaunchResult:
     Any error returned in this object is a launch error, not a Job error."""
 
     # A numeric non-zero error code if an error occurred
-    # and an optional message
+    # and an error message if the error number is not zero.
     error_num: int = 0
     error_msg: str | None = None
-    # The Instance UUID that was created for you
+    # The following optional properties
+    # may not be present if there's a launch error.
+    #
+    # The Instance UUID that was created for you.
     instance_id: str | None = None
     # The Task UUID that is handling the Instance launch
     task_id: str | None = None
@@ -221,6 +227,11 @@ class WorkflowAPIAdapter(ABC):
         version: str,
     ) -> tuple[dict[str, Any], int]:
         """Get a Job"""
+        # Should return:
+        # {
+        #   "command": "<command string>",
+        #   "definition": "<the definition as a Python dictionary>",
+        # }
         # If not present an empty dictionary should be returned.
 
 
