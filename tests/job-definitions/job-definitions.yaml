@@ -58,3 +58,52 @@ jobs:
           smiles:
             title: SMILES
             type: string
+
+  shortcut-example-1-process-a:
+    command: >-
+      shortcut-example-1-process-a.py --outputFile {{ outputFile }}
+    variables:
+      outputs:
+        type: object
+        properties:
+          title: Output file
+          mime-types:
+          - chemical/x-mdl-sdfile
+          - squonk/x-smiles
+          creates: '{{ outputFile }}'
+          type: file
+      options:
+        type: object
+        required:
+        - outputFile
+        properties:
+          outputFile:
+            title: Output file
+            type: string
+            default: clustered.sdf
+            pattern: "^[A-Za-z0-9_/\\.\\-]+\\.(smi|sdf)$"
+
+  shortcut-example-1-process-b:
+    command: >-
+      shortcut-example-1-process-b.py --inputFile {{ inputFile }}--outputFile {{ outputFile }}
+    variables:
+      outputs:
+        type: object
+        properties:
+          title: Output file
+          mime-types:
+          - chemical/x-mdl-sdfile
+          - squonk/x-smiles
+          creates: '{{ outputFile }}'
+          type: file
+      options:
+        type: object
+        required:
+        - outputFile
+        - inputFile
+        properties:
+          outputFile:
+            title: Output file
+            type: string
+            default: clustered.sdf
+            pattern: "^[A-Za-z0-9_/\\.\\-]+\\.(smi|sdf)$"

@@ -1,17 +1,28 @@
 ---
 kind: DataManagerWorkflow
 kind-version: "2024.1"
-name: experimental-workflow
-description: An experimental workflow
+name: shortcut-example-1
+description: The shortcut example 1 workflow
 steps:
-- name: step-1
+- name: example-1-step-1
   description: The first step
-  specification: '{"collection":"im-test","job":"process-a","version":"1.0.0", "variables":{"x": 7}}'
+  specification: >-
+    {
+      "collection": "workflow-engine-unit-test-jobs",
+      "job": "shortcut-example-1-process-a",
+      "version": "1.0.0"
+    }
   outputs:
   - output: 'outputFile'
     as: 'a.sdf'
-- name: step-2
-  specification: '{"collection":"im-test","job":"process-b","version":"1.0.0", "variables":{"y": 22}}'
+- name: example-1-step-2
+  description: The first step
+  specification: >-
+    {
+      "collection": "workflow-engine-unit-test-jobs",
+      "job": "shortcut-example-1-process-b",
+      "version": "1.0.0"
+    }
   inputs:
   - input: 'inputFile'
     from:
