@@ -51,7 +51,7 @@ jobs:
     - name: Test
       run: |
         poetry run pre-commit run --all-files
-        poetry run coverage run --module pytest
+        poetry run coverage run --module pytest -Werror
         poetry run coverage report
     - name: Build
       run: |
