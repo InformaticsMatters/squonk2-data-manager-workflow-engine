@@ -215,7 +215,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         assert version
 
         jd = _JOB_DEFINITIONS["jobs"][job]
-        response = {"command": jd["command"]}
+        response = {"command": jd["command"], "definition": jd}
         if "variables" in jd:
             response["variables"] = jd["variables"]
         return response, 0

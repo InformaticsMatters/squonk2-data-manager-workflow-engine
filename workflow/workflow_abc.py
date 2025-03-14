@@ -221,6 +221,11 @@ class WorkflowAPIAdapter(ABC):
         version: str,
     ) -> tuple[dict[str, Any], int]:
         """Get a Job"""
+        # Should return:
+        # {
+        #   "command": "<command string>",
+        #   "definition": "<the definition as a Python dictionary>",
+        # }
         # If not present an empty dictionary should be returned.
 
 
