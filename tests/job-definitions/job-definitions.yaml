@@ -85,15 +85,24 @@ jobs:
 
   shortcut-example-1-process-b:
     command: >-
-      shortcut-example-1-process-b.py --inputFile {{ inputFile }}--outputFile {{ outputFile }}
+      shortcut-example-1-process-b.py --inputFile {{ inputFile }} --outputFile {{ outputFile }}
     variables:
+      inputs:
+        type: object
+        required:
+        - inputFile
+        properties:
+          inputFile:
+            title: Molecules to pick from
+            mime-types:
+            - chemical/x-mdl-sdfile
+            type: file
       outputs:
         type: object
         properties:
           title: Output file
           mime-types:
           - chemical/x-mdl-sdfile
-          - squonk/x-smiles
           creates: '{{ outputFile }}'
           type: file
       options:
