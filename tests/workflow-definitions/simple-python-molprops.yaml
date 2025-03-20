@@ -1,0 +1,57 @@
+---
+kind: DataManagerWorkflow
+kind-version: "2024.1"
+name: python-workflow
+description: An simple python experimental workflow
+variables:
+  inputs:
+  - name: candidateMolecules
+  - type: squonk/x-smiles
+  outputs:
+  - name: clusteredMolecules
+    from:
+    - step: step2
+      output: outputFile
+    as: clustered-molecules.smi
+
+steps:
+- name: step1
+  description: Add column 1
+  specification: >-
+    {
+      "collection": "workflow-engine-unit-test-jobs",
+      "job": "rdkit-molprops",
+      "version": "1.0.0",
+      "variables": {
+        "name": "col1",
+        "value": 123
+      }
+    }
+  inputs:
+  - input: inputFile
+    from:
+      workflow-input: candidateMolecules
+  outputs:
+  - output: outputFile
+    as: __step1__out.smi
+
+- name: step2
+  Description: Add column 2
+  specification: >-
+    {
+      "collection": "workflow-engine-unit-test-jobs",
+      "job": "cluster-butina",
+      "version":"1.0.0",
+      "variables": {
+        "name":"col2",
+        "value":"999"
+      }
+    }
+  inputs:
+  - input: inputFile
+    from:
+      step: step1
+      output: outputFile
+  outputs:
+  - output: outputFile
+    as: __step2__out.smi

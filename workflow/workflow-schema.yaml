@@ -27,6 +27,13 @@ properties:
     type: array
     items:
       $ref: "#/definitions/step"
+  variables:
+    type: object
+    properties:
+      inputs:
+        type: array
+        items:
+          $ref: "#/definitions/workflow-input-parameter"
 required:
 - kind
 - kind-version
@@ -46,13 +53,27 @@ definitions:
       A value compatible with Kubernetes variables
       to allow it to be used ins Pod Label
 
-  variable-name:
+  parameter-name:
     type: string
-    pattern: ^[a-zA-Z_][a-zA-Z0-9_]{,63}$
-    description: >-
-      A Job/Step variable name, as used in the Data Manager Job Specification
+    pattern: ^[a-zA-Z_][a-zA-Z0-9_-]*$
 
-  # Declaration of a step from anotehr step
+  workflow-input-parameter:
+    type: object
+    properties:
+      name:
+        $ref: '#/definitions/parameter-name'
+
+  # Declaration of a value from a workflow input (variable)
+  from-workflow-input:
+    type: object
+    additionalProperties: false
+    properties:
+      workflow-input:
+        $ref: '#/definitions/parameter-name'
+    required:
+    - workflow-input
+
+  # Declaration of a value from another step
   from-step-output:
     type: object
     additionalProperties: false
@@ -60,7 +81,7 @@ definitions:
       step:
         $ref: '#/definitions/rfc1035-label-name'
       output:
-        $ref: '#/definitions/variable-name'
+        $ref: '#/definitions/parameter-name'
     required:
     - step
     - output
@@ -71,9 +92,20 @@ definitions:
     additionalProperties: false
     properties:
       input:
-        $ref: '#/definitions/variable-name'
+        $ref: '#/definitions/parameter-name'
       from:
         $ref: '#/definitions/from-step-output'
+    required:
+    - input
+
+  step-input-from-workflow:
+    type: object
+    additionalProperties: false
+    properties:
+      input:
+        $ref: '#/definitions/parameter-name'
+      from:
+        $ref: '#/definitions/from-workflow-input'
     required:
     - input
 
@@ -83,10 +115,10 @@ definitions:
     additionalProperties: false
     properties:
       output:
-        $ref: '#/definitions/variable-name'
+        $ref: '#/definitions/parameter-name'
       as:
         type: string
-        description: The value to set the variable to
+        description: The value to set the parameter to
     required:
     - output
     - as
@@ -105,12 +137,13 @@ definitions:
       inputs:
         type: array
         items:
-          oneOf:
+          anyOf:
           - $ref: "#/definitions/step-input-from-step"
+          - $ref: "#/definitions/step-input-from-workflow"
       outputs:
         type: array
         items:
-          oneOf:
+          anyOf:
           - $ref: "#/definitions/step-output-as"
     required:
     - name

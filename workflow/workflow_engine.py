@@ -338,16 +338,20 @@ class WorkflowEngine:
         #
         # 1. The RunningWorkflow
         # 2. The Workflow
-        # 3. The Job Specification
+        # 3. The Job Step Specification Variables
         #
         # If variable 'x' is defined in all three then the RunningWorkflow's
         # value must be used.
 
+        # Get any variables from the step specification.
         all_variables = step_spec.pop("variables") if "variables" in step_spec else {}
+        # Merge workflow variables on top of these
         if workflow_variables:
             all_variables |= workflow_variables
+        # Merge running workflow variables on top of these
         if running_workflow_variables:
             all_variables |= running_workflow_variables
+
         message, success = decode(
             job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
         )
