@@ -16,6 +16,11 @@ from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.message_queue import UnitTestMessageQueue
 from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.workflow_engine import WorkflowEngine
+from workflow.workflow_validator import (
+    ValidationLevel,
+    ValidationResult,
+    WorkflowValidator,
+)
 
 
 @pytest.fixture
@@ -55,8 +60,9 @@ def start_workflow(
 
     # To start a workflow we need to:
     # 1. Load and create a Workflow Definition
-    # 2. Create a Running Workflow record
-    # 3. Send a Workflow START message
+    # 2. Validate the workflow for running
+    # 3. Create a Running Workflow record
+    # 4. Send a Workflow START message
     #
     # 1.
     workflow_path = os.path.join(
@@ -68,6 +74,13 @@ def start_workflow(
     wf_response = da.create_workflow(workflow_definition=wf_definition)
     print(f"Created workflow definition {wf_response}")
     # 2.
+    vr_result: ValidationResult = WorkflowValidator.validate(
+        workflow_definition=wf_definition,
+        variables=variables,
+        level=ValidationLevel.RUN,
+    )
+    assert vr_result.error_num == 0
+    # 3.
     response = da.create_running_workflow(
         user_id="dlister",
         workflow_id=wf_response["id"],
