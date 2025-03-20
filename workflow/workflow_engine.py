@@ -330,21 +330,27 @@ class WorkflowEngine:
         # If the returned boolean is False then we can expect the returned str
         # to contain an error message.
         #
-        # Remember that variables can exist in the specification too!
         # The full set of step variables can be obtained
-        # (in descending order of priority) from...
+        # (in ascending order of priority) from...
         #
-        # 1. The RunningWorkflow
-        # 2. The Job Step Specification Variables
+        # 1. The Job Step Specification
+        # 2. The RunningWorkflow
         #
         # If variable 'x' is defined in all three then the RunningWorkflow's
         # value must be used.
 
-        # Get any variables from the step specification.
+        # 1. Get any variables from the step specification.
         all_variables = step_spec.pop("variables") if "variables" in step_spec else {}
-        # Merge running workflow variables on top of these
+        # 2. Merge running workflow variables on top of these
         if running_workflow_variables:
             all_variables |= running_workflow_variables
+
+        # This gives all the running workflow and step-specific variables.
+        # Now we have to inspect the workflow step 'inputs' (and 'options')
+        # and see if there are further variables that need constructing
+        # and then adding (merging) into the 'all_variables' dictionary.
+        #
+        # TBD
 
         message, success = decode(
             job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
