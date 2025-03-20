@@ -39,27 +39,29 @@ class WorkflowValidator:
         *,
         level: ValidationLevel,
         workflow_definition: dict[str, Any],
-        workflow_inputs: dict[str, Any] | None = None,
+        variables: dict[str, Any] | None = None,
     ) -> ValidationResult:
         """Validates the workflow definition (and inputs)
         based on the provided 'level'."""
         assert level in ValidationLevel
         assert isinstance(workflow_definition, dict)
-        if workflow_inputs:
-            assert isinstance(workflow_inputs, dict)
+        if variables:
+            assert isinstance(variables, dict)
 
-        # ALl levels require a schema validation
+        # ALl levels need to pass schema validation
         if error := validate_schema(workflow_definition):
             return ValidationResult(error_num=1, error_msg=[error])
 
+        # Now level-specific validation...
         if level == ValidationLevel.RUN:
             run_level_result: ValidationResult = WorkflowValidator._validate_run_level(
                 workflow_definition=workflow_definition,
-                workflow_inputs=workflow_inputs,
+                variables=variables,
             )
             if run_level_result.error_num:
                 return run_level_result
 
+        # OK if we get here
         return _VALIDATION_SUCCESS
 
     @classmethod
@@ -67,7 +69,7 @@ class WorkflowValidator:
         cls,
         *,
         workflow_definition: dict[str, Any],
-        workflow_inputs: dict[str, Any] | None = None,
+        variables: dict[str, Any] | None = None,
     ) -> ValidationResult:
         assert workflow_definition
 
@@ -107,7 +109,7 @@ class WorkflowValidator:
         wf_variables: list[str] = get_variable_names(workflow_definition)
         missing_values: list[str] = []
         for wf_variable in wf_variables:
-            if not workflow_inputs or wf_variable not in workflow_inputs:
+            if not variables or wf_variable not in variables:
                 missing_values.append(wf_variable)
         if missing_values:
             return ValidationResult(

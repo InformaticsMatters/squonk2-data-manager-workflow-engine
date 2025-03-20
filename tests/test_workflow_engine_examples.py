@@ -76,7 +76,7 @@ def start_workflow(
     # 2.
     vr_result: ValidationResult = WorkflowValidator.validate(
         workflow_definition=wf_definition,
-        workflow_inputs=variables,
+        variables=variables,
         level=ValidationLevel.RUN,
     )
     assert vr_result.error_num == 0
