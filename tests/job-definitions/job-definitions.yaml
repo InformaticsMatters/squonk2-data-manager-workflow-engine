@@ -119,8 +119,8 @@ jobs:
 
   rdkit-molprops:
     command: >-
-      rdkit-molprops.py --inputFile {{ inputFile }} --outputFile {{ outputFile }} --name {{ name }} --value {{ value }}
+      addcol.py --inputFile {{ inputFile }} --outputFile {{ outputFile }} --name {{ name }} --value {{ value }}
 
   cluster-butina:
     command: >-
-      rdkit-molprops.py --inputFile {{ inputFile }} --outputFile {{ outputFile }} --name {{ name }} --value {{ value }}
+      addcol.py --inputFile {{ inputFile }} --outputFile {{ outputFile }} --name {{ name }} --value {{ value }}
