@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from .decoder import validate_schema
+from .decoder import get_variable_names, validate_schema
 
 
 class ValidationLevel(Enum):
@@ -70,7 +70,6 @@ class WorkflowValidator:
         workflow_inputs: dict[str, Any] | None = None,
     ) -> ValidationResult:
         assert workflow_definition
-        del workflow_inputs
 
         # RUN level requires that each step specification is a valid JSON string.
         # and contains properties for 'collection', 'job', and 'version'.
@@ -103,5 +102,17 @@ class WorkflowValidator:
                     error_num=2,
                     error_msg=[f"Specification is missing: {', '.join(missing_keys)}"],
                 )
+
+        # We must have values for all the inputs defined in the workflow.
+        wf_variables: list[str] = get_variable_names(workflow_definition)
+        missing_values: list[str] = []
+        for wf_variable in wf_variables:
+            if not workflow_inputs or wf_variable not in workflow_inputs:
+                missing_values.append(wf_variable)
+        if missing_values:
+            return ValidationResult(
+                error_num=3,
+                error_msg=[f"Missing input values for: {', '.join(missing_values)}"],
+            )
 
         return _VALIDATION_SUCCESS
