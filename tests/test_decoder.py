@@ -23,6 +23,13 @@ with open(_SHORTCUT_EXAMPLE_1_WORKFLOW_FILE, "r", encoding="utf8") as workflow_f
     _SHORTCUT_EXAMPLE_1_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
 assert _SHORTCUT_EXAMPLE_1_WORKFLOW
 
+_SIMPLE_PYTHON_MOLPROPS_WORKFLOW_FILE: str = os.path.join(
+    os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
+)
+with open(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
+    _SIMPLE_PYTHON_MOLPROPS_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
+assert _SIMPLE_PYTHON_MOLPROPS_WORKFLOW
+
 
 def test_validate_minimal():
     # Arrange
@@ -78,3 +85,56 @@ def test_validate_shortcut_example_1():
 
     # Assert
     assert error is None
+
+
+def test_validate_python_simple_molprops():
+    # Arrange
+
+    # Act
+    error = decoder.validate_schema(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
+
+    # Assert
+    assert error is None
+
+
+def test_get_workflow_variables():
+    # Arrange
+
+    # Act
+    wf_variables = decoder.get_variable_names(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
+
+    # Assert
+    assert len(wf_variables) == 1
+    assert "candidateMolecules" in wf_variables
+
+
+def test_get_workflow_description():
+    # Arrange
+
+    # Act
+    description = decoder.get_description(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
+
+    # Assert
+    assert description == "A simple python experimental workflow"
+
+
+def test_get_workflow_name():
+    # Arrange
+
+    # Act
+    name = decoder.get_name(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
+
+    # Assert
+    assert name == "python-workflow"
+
+
+def test_get_workflow_steps():
+    # Arrange
+
+    # Act
+    steps = decoder.get_steps(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
+
+    # Assert
+    assert len(steps) == 2
+    assert steps[0]["name"] == "step1"
+    assert steps[1]["name"] == "step2"

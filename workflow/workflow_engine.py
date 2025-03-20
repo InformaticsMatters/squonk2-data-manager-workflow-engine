@@ -139,7 +139,7 @@ class WorkflowEngine:
         # Launch the first step.
         # If there's a launch problem the step (and running workflow) will have
         # and error, stopping it. There will be no Pod event as the launch has failed.
-        self._launch(wf=wf_response, rwf=rwf_response, rwfs_id=r_wfsid, step=first_step)
+        self._launch(rwf=rwf_response, rwfs_id=r_wfsid, step=first_step)
 
     def _handle_pod_message(self, msg: PodMessage) -> None:
         """Handles a PodMessage. This is a message that signals the completion of a
@@ -263,7 +263,6 @@ class WorkflowEngine:
                     )
 
                     self._launch(
-                        wf=wf_response,
                         rwf=rwf_response,
                         rwfs_id=r_wfsid,
                         step=next_step,
@@ -286,7 +285,6 @@ class WorkflowEngine:
         self,
         *,
         step: dict[str, Any],
-        workflow_variables: dict[str, Any] | None,
         running_workflow_variables: dict[str, Any] | None = None,
     ) -> str | dict[str, Any]:
         """Returns an error message if the command isn't valid.
@@ -328,7 +326,7 @@ class WorkflowEngine:
         # 'decode()' method to do this. It returns a tuple (str and boolean).
         # If the boolean is True then the command can be compiled
         # (i.e. it has no missing variables) and the launcher should not complain
-        # about the command (as we'll pass the same variables to it).
+        # about the command (as we'll pass the same variables to it.
         # If the returned boolean is False then we can expect the returned str
         # to contain an error message.
         #
@@ -337,17 +335,17 @@ class WorkflowEngine:
         # (in descending order of priority) from...
         #
         # 1. The RunningWorkflow
-        # 2. The Workflow
-        # 3. The Job Specification
+        # 2. The Job Step Specification Variables
         #
         # If variable 'x' is defined in all three then the RunningWorkflow's
         # value must be used.
 
+        # Get any variables from the step specification.
         all_variables = step_spec.pop("variables") if "variables" in step_spec else {}
-        if workflow_variables:
-            all_variables |= workflow_variables
+        # Merge running workflow variables on top of these
         if running_workflow_variables:
             all_variables |= running_workflow_variables
+
         message, success = decode(
             job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
         )
@@ -356,7 +354,6 @@ class WorkflowEngine:
     def _launch(
         self,
         *,
-        wf: dict[str, Any],
         rwf: dict[str, Any],
         rwfs_id: str,
         step: dict[str, Any],
@@ -366,12 +363,15 @@ class WorkflowEngine:
 
         _LOGGER.info("Validating step command: %s (step=%s)...", rwf_id, step_name)
 
-        # Now check the step command can be executed (by decoding it)
-        workflow_variables: dict[str, Any] | None = wf.get("variables")
+        # Now check the step command can be executed
+        # (by trying to decoding the Job command).
+        #
+        # We pass in the workflow variables (these are provided by the user
+        # when the workflow is run. All workflow variables will be present in the
+        # running workflow record)
         running_workflow_variables: dict[str, Any] | None = rwf.get("variables")
         error_or_variables: str | dict[str, Any] = self._validate_step_command(
             step=step,
-            workflow_variables=workflow_variables,
             running_workflow_variables=running_workflow_variables,
         )
         if isinstance(error_or_variables, str):

@@ -52,11 +52,24 @@ def get_steps(definition: dict[str, Any]) -> list[dict[str, Any]]:
     return response
 
 
-def get_workflow_name(definition: dict[str, Any]) -> str:
+def get_name(definition: dict[str, Any]) -> str:
     """Given a Workflow definition this function returns its name."""
     return str(definition.get("name", ""))
 
 
-def get_workflow_description(definition: dict[str, Any]) -> str | None:
+def get_description(definition: dict[str, Any]) -> str | None:
     """Given a Workflow definition this function returns its description (if it has one)."""
     return definition.get("description")
+
+
+def get_variable_names(definition: dict[str, Any]) -> list[str]:
+    """Given a Workflow definition this function returns all the names of the
+    variables defined at the workflow level."""
+    wf_variable_names: set[str] = set()
+    variables: dict[str, Any] | None = definition.get("variables")
+    if variables:
+        for input_variable in variables.get("inputs", []):
+            name: str = input_variable["name"]
+            assert name not in wf_variable_names
+            wf_variable_names.add(name)
+    return list(wf_variable_names)
