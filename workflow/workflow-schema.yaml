@@ -34,6 +34,10 @@ properties:
         type: array
         items:
           $ref: "#/definitions/workflow-input-parameter"
+      outputs:
+        type: array
+        items:
+          $ref: "#/definitions/workflow-output-parameter"
 required:
 - kind
 - kind-version
@@ -53,15 +57,48 @@ definitions:
       A value compatible with Kubernetes variables
       to allow it to be used ins Pod Label
 
-  parameter-name:
+  # What does a Job specification template variable look like?
+  # The values found in Jinja variables like '{{ x }}'.
+  # Stuff like 'candidateMolecules' or 'clustered_molecules'
+  template-variable-name:
     type: string
-    pattern: ^[a-zA-Z_][a-zA-Z0-9_-]*$
+    pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
 
+  # What does a filename look like?
+  # We do not (at the moment) permit spaces!
+  file-name:
+    type: string
+    pattern: ^[a-zA-Z0-9._-]+$
+
+  # An input parameter has a name and a (MIME) type.
   workflow-input-parameter:
     type: object
+    additionalProperties: false
     properties:
       name:
-        $ref: '#/definitions/parameter-name'
+        $ref: '#/definitions/template-variable-name'
+      type:
+        type: string
+        description: The MIME type of the parameter
+    required:
+    - name
+    - type
+
+  # An workflow output parameter is essentially a file
+  # taken from the output of a step with a default (as) value.
+  workflow-output-parameter:
+    type: object
+    additionalProperties: false
+    properties:
+      name:
+        $ref: '#/definitions/template-variable-name'
+      from:
+        $ref: '#/definitions/from-step-output'
+      as:
+        $ref: '#/definitions/file-name'
+    required:
+    - name
+    - as
 
   # Declaration of a value from a workflow input (variable)
   from-workflow-input:
@@ -69,7 +106,7 @@ definitions:
     additionalProperties: false
     properties:
       workflow-input:
-        $ref: '#/definitions/parameter-name'
+        $ref: '#/definitions/template-variable-name'
     required:
     - workflow-input
 
@@ -81,7 +118,7 @@ definitions:
       step:
         $ref: '#/definitions/rfc1035-label-name'
       output:
-        $ref: '#/definitions/parameter-name'
+        $ref: '#/definitions/template-variable-name'
     required:
     - step
     - output
@@ -92,22 +129,24 @@ definitions:
     additionalProperties: false
     properties:
       input:
-        $ref: '#/definitions/parameter-name'
+        $ref: '#/definitions/template-variable-name'
       from:
         $ref: '#/definitions/from-step-output'
     required:
     - input
 
+  # A Step input (from a workflow input)
   step-input-from-workflow:
     type: object
     additionalProperties: false
     properties:
       input:
-        $ref: '#/definitions/parameter-name'
+        $ref: '#/definitions/template-variable-name'
       from:
         $ref: '#/definitions/from-workflow-input'
     required:
     - input
+    - from
 
   # A Step output (with an 'as' - a declared value)
   step-output-as:
@@ -115,16 +154,17 @@ definitions:
     additionalProperties: false
     properties:
       output:
-        $ref: '#/definitions/parameter-name'
+        $ref: '#/definitions/template-variable-name'
       as:
-        type: string
-        description: The value to set the parameter to
+        $ref: '#/definitions/file-name'
     required:
     - output
     - as
 
+  # Steps (in a workflow)
   step:
     type: object
+    additionalProperties: false
     properties:
       name:
         $ref: '#/definitions/rfc1035-label-name'

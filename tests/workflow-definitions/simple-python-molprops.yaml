@@ -10,7 +10,7 @@ variables:
   outputs:
   - name: clusteredMolecules
     from:
-    - step: step2
+      step: step2
       output: outputFile
     as: clustered-molecules.smi
 
@@ -36,7 +36,7 @@ steps:
     as: __step1__out.smi
 
 - name: step2
-  Description: Add column 2
+  description: Add column 2
   specification: >-
     {
       "collection": "workflow-engine-unit-test-jobs",
