@@ -10,7 +10,7 @@ parser.add_argument("-n", "--name", required=True)
 parser.add_argument("-v", "--value", required=True)
 args = parser.parse_args()
 
-with open(args.inputFile, "rt", encoding="utf8") as input_file:
-    content = input_file.read()
-    with open(args.outputFile, "wt", encoding="utf8") as output_file:
-        output_file.write(content)
+# with open(args.inputFile, "rt", encoding="utf8") as input_file:
+#     content = input_file.read()
+#     with open(args.outputFile, "wt", encoding="utf8") as output_file:
+#         output_file.write(content)

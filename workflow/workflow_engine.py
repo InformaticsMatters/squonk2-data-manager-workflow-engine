@@ -352,6 +352,50 @@ class WorkflowEngine:
         #
         # TBD
 
+        # print('job_collection', job_collection)
+        # print('job_job', job_job)
+        # print('job', job)
+        # print('step', step)
+        # print('running_workflow_variables', running_workflow_variables)
+        # print('all_variables', all_variables)
+
+        # print('step inputs', step['inputs'])
+        # print('step inputs', step['outputs'])
+
+        # # this is the structure i need to process
+        # # [{'input': 'inputFile', 'from': {'workflow-input': 'candidateMolecules'}}]
+        # # [{'output': 'outputFile', 'as': '__step1__out.smi'}]
+
+        for item in step.get("inputs", []):
+            p_key = item["input"]
+            p_val = ""
+            if "from" in item.keys():
+                val = item["from"]
+                if "workflow-input" in val.keys():
+                    p_val = val["workflow-input"]
+            # don't know what to do with else..
+            all_variables[p_key] = p_val
+            self._wapi_adapter.set_running_workflow_step_variables(
+                running_workflow_step_id=step["name"],
+                variables={p_key: p_val},
+            )
+
+        for item in step.get("outputs", []):
+            p_key = item["output"]
+            p_val = ""
+            if "as" in item.keys():
+                p_val = item["as"]
+
+            # don't know what to do with else..
+            all_variables[p_key] = p_val
+            self._wapi_adapter.set_running_workflow_step_variables(
+                running_workflow_step_id=step["name"],
+                variables={p_key: p_val},
+            )
+
+        # all_variables['inputFile'] = running_workflow_variables['candidateMolecules']
+        # all_variables['outputFile'] = '__step1__out.smi'
+
         message, success = decode(
             job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
         )
