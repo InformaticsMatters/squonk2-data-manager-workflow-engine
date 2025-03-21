@@ -284,6 +284,7 @@ class WorkflowEngine:
     def _validate_step_command(
         self,
         *,
+        running_workflow_step_id: str,
         step: dict[str, Any],
         running_workflow_variables: dict[str, Any] | None = None,
     ) -> str | dict[str, Any]:
@@ -375,10 +376,6 @@ class WorkflowEngine:
                     p_val = val["workflow-input"]
             # don't know what to do with else..
             all_variables[p_key] = p_val
-            self._wapi_adapter.set_running_workflow_step_variables(
-                running_workflow_step_id=step["name"],
-                variables={p_key: p_val},
-            )
 
         for item in step.get("outputs", []):
             p_key = item["output"]
@@ -388,10 +385,11 @@ class WorkflowEngine:
 
             # don't know what to do with else..
             all_variables[p_key] = p_val
-            self._wapi_adapter.set_running_workflow_step_variables(
-                running_workflow_step_id=step["name"],
-                variables={p_key: p_val},
-            )
+
+        self._wapi_adapter.set_running_workflow_step_variables(
+            running_workflow_step_id=running_workflow_step_id,
+            variables=all_variables,
+        )
 
         # all_variables['inputFile'] = running_workflow_variables['candidateMolecules']
         # all_variables['outputFile'] = '__step1__out.smi'
@@ -421,6 +419,7 @@ class WorkflowEngine:
         # running workflow record)
         running_workflow_variables: dict[str, Any] | None = rwf.get("variables")
         error_or_variables: str | dict[str, Any] = self._validate_step_command(
+            running_workflow_step_id=rwfs_id,
             step=step,
             running_workflow_variables=running_workflow_variables,
         )
