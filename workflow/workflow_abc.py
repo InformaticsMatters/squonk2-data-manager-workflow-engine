@@ -186,11 +186,26 @@ class WorkflowAPIAdapter(ABC):
         #       "success": false,
         #       "error": None,
         #       "error_msg": None,
+        #       "variables": {
+        #          "x": 1,
+        #          "y": 2,
+        #       },
         #       "running_workflow": {
         #          "id": "r-workflow-00000000-0000-0000-0000-000000000001"
         #       },
         # }
         # If not present an empty dictionary should be returned.
+
+    @abstractmethod
+    def set_running_workflow_step_variables(
+        self,
+        *,
+        running_workflow_step_id: str,
+        variables: dict[str, Any],
+    ) -> None:
+        """Set the variables used prior to decoding the step command for each step.
+        This can be used to understand step failures but will also be vital
+        when adding variables values to subsequent steps from prior step values."""
 
     @abstractmethod
     def set_running_workflow_step_done(

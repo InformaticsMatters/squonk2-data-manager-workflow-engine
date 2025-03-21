@@ -163,6 +163,31 @@ def test_create_running_workflow_step():
     assert response["id"] == "r-workflow-step-00000000-0000-0000-0000-000000000001"
 
 
+def test_set_running_workflow_step_variables():
+    # Arrange
+    utaa = UnitTestWorkflowAPIAdapter()
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    response = utaa.create_running_workflow(
+        user_id="dlister",
+        workflow_id=response["id"],
+        project_id=TEST_PROJECT_ID,
+        variables={},
+    )
+    response, _ = utaa.create_running_workflow_step(
+        running_workflow_id=response["id"], step="step-1"
+    )
+    rwfsid = response["id"]
+
+    # Act
+    utaa.set_running_workflow_step_variables(
+        running_workflow_step_id=rwfsid, variables={"z": 42}
+    )
+
+    # Assert
+    response, _ = utaa.get_running_workflow_step(running_workflow_step_id=rwfsid)
+    assert response["variables"] == {"z": 42}
+
+
 def test_set_running_workflow_step_done_when_success():
     # Arrange
     utaa = UnitTestWorkflowAPIAdapter()
@@ -187,6 +212,7 @@ def test_set_running_workflow_step_done_when_success():
     assert response["success"]
     assert response["error"] is None
     assert response["error_msg"] is None
+    assert response["variables"] == {}
 
 
 def test_set_running_workflow_step_done_when_failed():
