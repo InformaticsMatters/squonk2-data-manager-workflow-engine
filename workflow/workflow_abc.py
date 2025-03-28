@@ -155,7 +155,7 @@ class WorkflowAPIAdapter(ABC):
         *,
         running_workflow_id: str,
         success: bool,
-        error: int | None = None,
+        error_num: int | None = None,
         error_msg: str | None = None,
     ) -> None:
         """Set the success value for a RunningWorkflow Record.
@@ -213,7 +213,7 @@ class WorkflowAPIAdapter(ABC):
         *,
         running_workflow_step_id: str,
         success: bool,
-        error: int | None = None,
+        error_num: int | None = None,
         error_msg: str | None = None,
     ) -> None:
         """Set the success value for a RunningWorkflowStep Record,
