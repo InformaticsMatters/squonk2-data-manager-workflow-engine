@@ -29,6 +29,26 @@ def test_validate_example_nop_file():
     assert error.error_msg is None
 
 
+def test_validate_duplicate_step_names():
+    # Arrange
+    workflow_file: str = os.path.join(
+        os.path.dirname(__file__), "workflow-definitions", "duplicate-step-names.yaml"
+    )
+    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+    assert workflow
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.RUN,
+        workflow_definition=workflow,
+    )
+
+    # Assert
+    assert error.error_num == 2
+    assert error.error_msg == ["Duplicate step names found: step-1"]
+
+
 def test_validate_example_smiles_to_file():
     # Arrange
     workflow_file: str = os.path.join(
@@ -49,7 +69,7 @@ def test_validate_example_smiles_to_file():
     assert error.error_msg is None
 
 
-def test_validate_example_tow_step_nop():
+def test_validate_example_two_step_nop():
     # Arrange
     workflow_file: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-two-step-nop.yaml"
@@ -87,3 +107,47 @@ def test_validate_shortcut_example_1():
     # Assert
     assert error.error_num == 0
     assert error.error_msg is None
+
+
+def test_validate_simple_python_molprops():
+    # Arrange
+    workflow_file: str = os.path.join(
+        os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
+    )
+    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+    assert workflow
+    variables = {"candidateMolecules": "input.sdf", "clusteredMolecules": "output.sdf"}
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.RUN,
+        workflow_definition=workflow,
+        variables=variables,
+    )
+
+    # Assert
+    assert error.error_num == 0
+    assert error.error_msg is None
+
+
+def test_validate_duplicate_workflow_variable_names():
+    # Arrange
+    workflow_file: str = os.path.join(
+        os.path.dirname(__file__),
+        "workflow-definitions",
+        "duplicate-workflow-variable-names.yaml",
+    )
+    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+    assert workflow
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.TAG,
+        workflow_definition=workflow,
+    )
+
+    # Assert
+    assert error.error_num == 3
+    assert error.error_msg == ["Duplicate workflow variable names found: x"]

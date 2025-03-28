@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from .decoder import get_variable_names, validate_schema
+from .decoder import get_steps, get_variable_names, validate_schema
 
 
 class ValidationLevel(Enum):
@@ -53,15 +53,63 @@ class WorkflowValidator:
             return ValidationResult(error_num=1, error_msg=[error])
 
         # Now level-specific validation...
+        if level in (ValidationLevel.TAG, ValidationLevel.RUN):
+            level_result: ValidationResult = WorkflowValidator._validate_tag_level(
+                workflow_definition=workflow_definition,
+            )
+            if level_result.error_num:
+                return level_result
         if level == ValidationLevel.RUN:
-            run_level_result: ValidationResult = WorkflowValidator._validate_run_level(
+            level_result = WorkflowValidator._validate_run_level(
                 workflow_definition=workflow_definition,
                 variables=variables,
             )
-            if run_level_result.error_num:
-                return run_level_result
+            if level_result.error_num:
+                return level_result
 
         # OK if we get here
+        return _VALIDATION_SUCCESS
+
+    @classmethod
+    def _validate_tag_level(
+        cls,
+        *,
+        workflow_definition: dict[str, Any],
+    ) -> ValidationResult:
+        assert workflow_definition
+
+        # TAG level requires that each step name is unique.
+        duplicate_names: set[str] = set()
+        step_names: set[str] = set()
+        for step in get_steps(workflow_definition):
+            step_name = step["name"]
+            if step_name not in duplicate_names and step_name in step_names:
+                duplicate_names.add(step_name)
+            step_names.add(step_name)
+        if duplicate_names:
+            return ValidationResult(
+                error_num=2,
+                error_msg=[f"Duplicate step names found: {', '.join(duplicate_names)}"],
+            )
+        # Workflow variables must be unique.
+        duplicate_names = set()
+        variable_names: set[str] = set()
+        wf_variable_names: list[str] = get_variable_names(workflow_definition)
+        for wf_variable_name in wf_variable_names:
+            if (
+                wf_variable_name not in duplicate_names
+                and wf_variable_name in variable_names
+            ):
+                duplicate_names.add(wf_variable_name)
+            variable_names.add(wf_variable_name)
+        if duplicate_names:
+            return ValidationResult(
+                error_num=3,
+                error_msg=[
+                    f"Duplicate workflow variable names found: {', '.join(duplicate_names)}"
+                ],
+            )
+
         return _VALIDATION_SUCCESS
 
     @classmethod
@@ -108,9 +156,11 @@ class WorkflowValidator:
         # We must have values for all the inputs defined in the workflow.
         wf_variables: list[str] = get_variable_names(workflow_definition)
         missing_values: list[str] = []
-        for wf_variable in wf_variables:
-            if not variables or wf_variable not in variables:
-                missing_values.append(wf_variable)
+        missing_values.extend(
+            wf_variable
+            for wf_variable in wf_variables
+            if not variables or wf_variable not in variables
+        )
         if missing_values:
             return ValidationResult(
                 error_num=3,
