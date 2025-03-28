@@ -134,8 +134,8 @@ class WorkflowAPIAdapter(ABC):
         #       "running_user_api_token": "123456789",
         #       "done": False,
         #       "success": false,
-        #       "error": None,
-        #       "error_msg": None,
+        #       "error_num": 0,
+        #       "error_msg": "",
         #       "workflow": {
         #          "id": "workflow-000",
         #       },
@@ -184,8 +184,8 @@ class WorkflowAPIAdapter(ABC):
         #       "name:": "step-1234",
         #       "done": False,
         #       "success": false,
-        #       "error": None,
-        #       "error_msg": None,
+        #       "error_num": 0,
+        #       "error_msg": "",
         #       "variables": {
         #          "x": 1,
         #          "y": 2,
@@ -224,12 +224,7 @@ class WorkflowAPIAdapter(ABC):
         """Get an Instance Record"""
         # For a RunningWorkflowStep Instance it should return:
         # {
-        #    "id": "instance-00000000-0000-0000-0000-000000000001",
-        #    "running_workflow_step": {
-        #       "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
-        #       "step": "step-1234",
-        #    },
-        #    [...],
+        #    "running_workflow_step_id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
         # }
         # If not present an empty dictionary should be returned.
 
