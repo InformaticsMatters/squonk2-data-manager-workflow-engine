@@ -438,13 +438,13 @@ class WorkflowEngine:
         self._wapi_adapter.set_running_workflow_step_done(
             running_workflow_step_id=r_wfsid,
             success=False,
-            error=error,
+            error_num=error,
             error_msg=error_msg,
         )
         # We must also set the running workflow as done (failed)
         self._wapi_adapter.set_running_workflow_done(
             running_workflow_id=r_wfid,
             success=False,
-            error=error,
+            error_num=error,
             error_msg=error_msg,
         )
