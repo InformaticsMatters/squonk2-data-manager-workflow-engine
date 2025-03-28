@@ -105,7 +105,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         *,
         running_workflow_id: str,
         success: bool,
-        error: int | None = None,
+        error_num: int | None = None,
         error_msg: str | None = None,
     ) -> None:
         UnitTestWorkflowAPIAdapter.lock.acquire()
@@ -115,7 +115,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         assert running_workflow_id in running_workflow
         running_workflow[running_workflow_id]["done"] = True
         running_workflow[running_workflow_id]["success"] = success
-        running_workflow[running_workflow_id]["error"] = error
+        running_workflow[running_workflow_id]["error_num"] = error_num
         running_workflow[running_workflow_id]["error_msg"] = error_msg
 
         with open(_RUNNING_WORKFLOW_PICKLE_FILE, "wb") as pickle_file:
@@ -184,7 +184,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         *,
         running_workflow_step_id: str,
         success: bool,
-        error: int | None = None,
+        error_num: int | None = None,
         error_msg: str | None = None,
     ) -> None:
         UnitTestWorkflowAPIAdapter.lock.acquire()
@@ -194,7 +194,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         assert running_workflow_step_id in running_workflow_step
         running_workflow_step[running_workflow_step_id]["done"] = True
         running_workflow_step[running_workflow_step_id]["success"] = success
-        running_workflow_step[running_workflow_step_id]["error"] = error
+        running_workflow_step[running_workflow_step_id]["error_num"] = error_num
         running_workflow_step[running_workflow_step_id]["error_msg"] = error_msg
 
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "wb") as pickle_file:
