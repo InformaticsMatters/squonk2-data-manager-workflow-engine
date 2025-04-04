@@ -114,7 +114,7 @@ def test_set_running_workflow_done_when_success():
     response, _ = utaa.get_running_workflow(running_workflow_id=rwfid)
     assert response["done"]
     assert response["success"]
-    assert response["error"] is None
+    assert response["error_num"] is None
     assert response["error_msg"] is None
 
 
@@ -132,14 +132,14 @@ def test_set_running_workflow_done_when_failed():
 
     # Act
     utaa.set_running_workflow_done(
-        running_workflow_id=rwfid, success=False, error=1, error_msg="Bang!"
+        running_workflow_id=rwfid, success=False, error_num=1, error_msg="Bang!"
     )
 
     # Assert
     response, _ = utaa.get_running_workflow(running_workflow_id=rwfid)
     assert response["done"]
     assert not response["success"]
-    assert response["error"] == 1
+    assert response["error_num"] == 1
     assert response["error_msg"] == "Bang!"
 
 
@@ -210,7 +210,7 @@ def test_set_running_workflow_step_done_when_success():
     response, _ = utaa.get_running_workflow_step(running_workflow_step_id=rwfsid)
     assert response["done"]
     assert response["success"]
-    assert response["error"] is None
+    assert response["error_num"] is None
     assert response["error_msg"] is None
     assert response["variables"] == {}
 
@@ -232,14 +232,14 @@ def test_set_running_workflow_step_done_when_failed():
 
     # Act
     utaa.set_running_workflow_step_done(
-        running_workflow_step_id=rwfsid, success=False, error=1, error_msg="Bang!"
+        running_workflow_step_id=rwfsid, success=False, error_num=1, error_msg="Bang!"
     )
 
     # Assert
     response, _ = utaa.get_running_workflow_step(running_workflow_step_id=rwfsid)
     assert response["done"]
     assert not response["success"]
-    assert response["error"] == 1
+    assert response["error_num"] == 1
     assert response["error_msg"] == "Bang!"
 
 
