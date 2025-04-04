@@ -84,7 +84,7 @@ definitions:
     - name
     - type
 
-  # An workflow output parameter is essentially a file
+  # A workflow output parameter is essentially a file
   # taken from the output of a step with a default (as) value.
   workflow-output-parameter:
     type: object
