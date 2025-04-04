@@ -6,22 +6,7 @@ import yaml
 
 pytestmark = pytest.mark.unit
 
-from tests.test_decoder import _MINIMAL_WORKFLOW
 from workflow.workflow_validator import ValidationLevel, WorkflowValidator
-
-
-def test_validate_minimal():
-    # Arrange
-
-    # Act
-    error = WorkflowValidator.validate(
-        level=ValidationLevel.CREATE,
-        workflow_definition=_MINIMAL_WORKFLOW,
-    )
-
-    # Assert
-    assert error.error_num == 0
-    assert error.error_msg is None
 
 
 def test_validate_example_nop_file():
@@ -35,13 +20,33 @@ def test_validate_example_nop_file():
 
     # Act
     error = WorkflowValidator.validate(
-        level=ValidationLevel.CREATE,
+        level=ValidationLevel.TAG,
         workflow_definition=workflow,
     )
 
     # Assert
     assert error.error_num == 0
     assert error.error_msg is None
+
+
+def test_validate_duplicate_step_names():
+    # Arrange
+    workflow_file: str = os.path.join(
+        os.path.dirname(__file__), "workflow-definitions", "duplicate-step-names.yaml"
+    )
+    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+    assert workflow
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.TAG,
+        workflow_definition=workflow,
+    )
+
+    # Assert
+    assert error.error_num == 2
+    assert error.error_msg == ["Duplicate step names found: step-1"]
 
 
 def test_validate_example_smiles_to_file():
@@ -55,7 +60,7 @@ def test_validate_example_smiles_to_file():
 
     # Act
     error = WorkflowValidator.validate(
-        level=ValidationLevel.CREATE,
+        level=ValidationLevel.TAG,
         workflow_definition=workflow,
     )
 
@@ -75,7 +80,7 @@ def test_validate_example_two_step_nop():
 
     # Act
     error = WorkflowValidator.validate(
-        level=ValidationLevel.CREATE,
+        level=ValidationLevel.TAG,
         workflow_definition=workflow,
     )
 
@@ -95,7 +100,7 @@ def test_validate_shortcut_example_1():
 
     # Act
     error = WorkflowValidator.validate(
-        level=ValidationLevel.CREATE,
+        level=ValidationLevel.TAG,
         workflow_definition=workflow,
     )
 
@@ -115,10 +120,32 @@ def test_validate_simple_python_molprops():
 
     # Act
     error = WorkflowValidator.validate(
-        level=ValidationLevel.CREATE,
+        level=ValidationLevel.TAG,
         workflow_definition=workflow,
     )
 
     # Assert
     assert error.error_num == 0
     assert error.error_msg is None
+
+
+def test_validate_duplicate_workflow_variable_names():
+    # Arrange
+    workflow_file: str = os.path.join(
+        os.path.dirname(__file__),
+        "workflow-definitions",
+        "duplicate-workflow-variable-names.yaml",
+    )
+    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+    assert workflow
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.TAG,
+        workflow_definition=workflow,
+    )
+
+    # Assert
+    assert error.error_num == 3
+    assert error.error_msg == ["Duplicate workflow variable names found: x"]

@@ -167,6 +167,7 @@ class WorkflowAPIAdapter(ABC):
         *,
         running_workflow_id: str,
         step: str,
+        prior_running_workflow_step_id: str | None = None,
     ) -> tuple[dict[str, Any], int]:
         """Create a RunningWorkflowStep Record (from a RunningWorkflow)"""
         # Should return:
@@ -191,10 +192,17 @@ class WorkflowAPIAdapter(ABC):
         #          "y": 2,
         #       },
         #       "running_workflow": {
-        #          "id": "r-workflow-00000000-0000-0000-0000-000000000001"
+        #          "id": "r-workflow-00000000-0000-0000-0000-000000000001",
         #       },
         # }
         # If not present an empty dictionary should be returned.
+        #
+        # For steps that are not the first in a workflow the following field
+        # can be expected in the response: -
+        #
+        #       "prior_running_workflow_step": {
+        #          "id": "r-worflkow-step-00000000-0000-0000-0000-000000000001",
+        #       },
 
     @abstractmethod
     def set_running_workflow_step_variables(
@@ -218,6 +226,26 @@ class WorkflowAPIAdapter(ABC):
     ) -> None:
         """Set the success value for a RunningWorkflowStep Record,
         If not successful an error code and message should be provided."""
+
+    @abstractmethod
+    def get_workflow_steps_driving_this_step(
+        self,
+        *,
+        running_workflow_step_id: str,
+    ) -> tuple[dict[str, Any], int]:
+        """Get all the step records that belong to the Workflow for the given
+        RunningWorkflowStep record ID. You are also given the caller's position
+        in the list, which will be -1 if the caller is not present."""
+        # It should return:
+        # {
+        #    "caller_step_index": 0,
+        #    "steps": "steps": [
+        #      {
+        #        "name": "step-name"
+        #        "specification": "{}",
+        #       }
+        #     ]
+        # }
 
     @abstractmethod
     def get_instance(self, *, instance_id: str) -> tuple[dict[str, Any], int]:

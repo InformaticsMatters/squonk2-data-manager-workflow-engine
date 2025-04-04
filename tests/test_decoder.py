@@ -30,8 +30,21 @@ with open(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW_FILE, "r", encoding="utf8") as workfl
     _SIMPLE_PYTHON_MOLPROPS_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
 assert _SIMPLE_PYTHON_MOLPROPS_WORKFLOW
 
+_DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
+    os.path.dirname(__file__),
+    "workflow-definitions",
+    "duplicate-workflow-variable-names.yaml",
+)
+with open(
+    _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW_FILE, "r", encoding="utf8"
+) as workflow_file:
+    _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW: Dict[str, Any] = yaml.safe_load(
+        workflow_file
+    )
+assert _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW
 
-def test_validate_minimal():
+
+def test_validate_schema_for_minimal():
     # Arrange
 
     # Act
@@ -41,7 +54,7 @@ def test_validate_minimal():
     assert error is None
 
 
-def test_validate_minimal_get_step_names():
+def test_minimal_get_step_names():
     # Arrange
 
     # Act
@@ -51,7 +64,7 @@ def test_validate_minimal_get_step_names():
     assert names == ["step-1"]
 
 
-def test_validate_without_name():
+def test_workflow_without_name():
     # Arrange
     workflow = _MINIMAL_WORKFLOW.copy()
     _ = workflow.pop("name", None)
@@ -63,7 +76,7 @@ def test_validate_without_name():
     assert error == "'name' is a required property"
 
 
-def test_validate_name_with_spaces():
+def test_workflow_name_with_spaces():
     # Arrange
     workflow = _MINIMAL_WORKFLOW.copy()
     workflow["name"] = "workflow with spaces"
@@ -77,7 +90,7 @@ def test_validate_name_with_spaces():
     )
 
 
-def test_validate_shortcut_example_1():
+def test_validate_schema_for_shortcut_example_1():
     # Arrange
 
     # Act
@@ -87,7 +100,7 @@ def test_validate_shortcut_example_1():
     assert error is None
 
 
-def test_validate_python_simple_molprops():
+def test_validate_schema_for_python_simple_molprops():
     # Arrange
 
     # Act
@@ -97,15 +110,16 @@ def test_validate_python_simple_molprops():
     assert error is None
 
 
-def test_get_workflow_variables():
+def test_get_workflow_variables_for_smiple_python_molprops():
     # Arrange
 
     # Act
     wf_variables = decoder.get_variable_names(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
 
     # Assert
-    assert len(wf_variables) == 1
+    assert len(wf_variables) == 2
     assert "candidateMolecules" in wf_variables
+    assert "clusteredMolecules" in wf_variables
 
 
 def test_get_workflow_description():
@@ -138,3 +152,15 @@ def test_get_workflow_steps():
     assert len(steps) == 2
     assert steps[0]["name"] == "step1"
     assert steps[1]["name"] == "step2"
+
+
+def test_get_workflow_variables_for_duplicate_variables():
+    # Arrange
+
+    # Act
+    names = decoder.get_variable_names(_DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW)
+
+    # Assert
+    assert len(names) == 2
+    assert names[0] == "x"
+    assert names[1] == "x"
