@@ -76,3 +76,17 @@ def get_variable_names(definition: dict[str, Any]) -> list[str]:
             output_variable["name"] for output_variable in variables.get("outputs", [])
         )
     return wf_variable_names
+
+
+def get_required_variable_names(definition: dict[str, Any]) -> list[str]:
+    """Given a Workflow definition this function returns all the names of the
+    variables that are required to be defined when it is RUN - i.e.
+    all those the user needs to provide."""
+    required_variables: list[str] = []
+    variables: dict[str, Any] | None = definition.get("variables")
+    if variables:
+        # For now, all inputs are required...
+        required_variables.extend(
+            input_variable["name"] for input_variable in variables.get("inputs", [])
+        )
+    return required_variables
