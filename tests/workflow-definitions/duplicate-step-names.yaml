@@ -1,0 +1,11 @@
+---
+kind: DataManagerWorkflow
+kind-version: "2024.1"
+name: duplicate-step-names
+steps:
+- name: step-1
+  specification: >-
+    {}
+- name: step-1
+  specification: >-
+    {}

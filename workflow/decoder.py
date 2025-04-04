@@ -64,12 +64,15 @@ def get_description(definition: dict[str, Any]) -> str | None:
 
 def get_variable_names(definition: dict[str, Any]) -> list[str]:
     """Given a Workflow definition this function returns all the names of the
-    variables defined at the workflow level."""
-    wf_variable_names: set[str] = set()
+    variables defined at the workflow level. This function DOES NOT deduplicate names,
+    that is the role of the validator."""
+    wf_variable_names: list[str] = []
     variables: dict[str, Any] | None = definition.get("variables")
     if variables:
-        for input_variable in variables.get("inputs", []):
-            name: str = input_variable["name"]
-            assert name not in wf_variable_names
-            wf_variable_names.add(name)
-    return list(wf_variable_names)
+        wf_variable_names.extend(
+            input_variable["name"] for input_variable in variables.get("inputs", [])
+        )
+        wf_variable_names.extend(
+            output_variable["name"] for output_variable in variables.get("outputs", [])
+        )
+    return wf_variable_names
