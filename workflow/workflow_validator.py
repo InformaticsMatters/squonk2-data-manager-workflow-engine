@@ -5,7 +5,12 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from .decoder import get_steps, get_variable_names, validate_schema
+from .decoder import (
+    get_required_variable_names,
+    get_steps,
+    get_variable_names,
+    validate_schema,
+)
 
 
 class ValidationLevel(Enum):
@@ -153,8 +158,8 @@ class WorkflowValidator:
                     error_msg=[f"Specification is missing: {', '.join(missing_keys)}"],
                 )
 
-        # We must have values for all the inputs defined in the workflow.
-        wf_variables: list[str] = get_variable_names(workflow_definition)
+        # We must have values for all the variables defined in the workflow.
+        wf_variables: list[str] = get_required_variable_names(workflow_definition)
         missing_values: list[str] = []
         missing_values.extend(
             wf_variable
@@ -164,7 +169,9 @@ class WorkflowValidator:
         if missing_values:
             return ValidationResult(
                 error_num=3,
-                error_msg=[f"Missing input values for: {', '.join(missing_values)}"],
+                error_msg=[
+                    f"Missing workflow variable values for: {', '.join(missing_values)}"
+                ],
             )
 
         return _VALIDATION_SUCCESS
