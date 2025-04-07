@@ -204,7 +204,6 @@ def test_workflow_engine_example_smiles_to_file(basic_engine):
     assert project_file_exists(output_file)
 
 
-@pytest.mark.skip(reason="The engine does not currently create the required variables")
 def test_workflow_engine_shortcut_example_1(basic_engine):
     # Arrange
     da, md = basic_engine
