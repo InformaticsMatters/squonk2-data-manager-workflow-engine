@@ -239,7 +239,7 @@ class WorkflowAPIAdapter(ABC):
         # It should return:
         # {
         #    "caller_step_index": 0,
-        #    "steps": "steps": [
+        #    "steps": [
         #      {
         #        "name": "step-name"
         #        "specification": "{}",
