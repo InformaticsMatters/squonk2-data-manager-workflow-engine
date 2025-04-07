@@ -284,6 +284,7 @@ class WorkflowEngine:
     def _validate_step_command(
         self,
         *,
+        running_workflow_step_id: str,
         step: dict[str, Any],
         running_workflow_variables: dict[str, Any] | None = None,
     ) -> str | dict[str, Any]:
@@ -352,6 +353,35 @@ class WorkflowEngine:
         #
         # TBD
 
+        wf_step_data, _ = self._wapi_adapter.get_workflow_steps_driving_this_step(
+            running_workflow_step_id=running_workflow_step_id,
+        )
+
+        wf_steps = wf_step_data.get("steps", [])
+        try:
+            previous_step = wf_steps[wf_step_data["caller_step_index"] - 1]
+        except IndexError:
+            previous_step = {}
+
+        inputs = step.get("inputs", [])
+        outputs = step.get("outputs", [])
+        previous_step_outputs = previous_step.get("outputs", [])
+
+        step_vars = self._set_step_variables(
+            inputs=inputs,
+            outputs=outputs,
+            previous_step_outputs=previous_step_outputs,
+            workflow_variables=all_variables,
+        )
+
+        all_variables |= step_vars
+        print("all_variables", all_variables)
+
+        self._wapi_adapter.set_running_workflow_step_variables(
+            running_workflow_step_id=running_workflow_step_id,
+            variables=all_variables,
+        )
+
         message, success = decode(
             job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
         )
@@ -377,6 +407,7 @@ class WorkflowEngine:
         # running workflow record)
         running_workflow_variables: dict[str, Any] | None = rwf.get("variables")
         error_or_variables: str | dict[str, Any] = self._validate_step_command(
+            running_workflow_step_id=rwfs_id,
             step=step,
             running_workflow_variables=running_workflow_variables,
         )
@@ -448,3 +479,38 @@ class WorkflowEngine:
             error_num=error,
             error_msg=error_msg,
         )
+
+    def _set_step_variables(
+        self,
+        inputs: list[dict[str, Any]],
+        outputs: list[dict[str, Any]],
+        previous_step_outputs: list[dict[str, Any]],
+        workflow_variables: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Prepare input- and output variables for the following step.
+
+        Inputs are defined in step definition but their values may
+        come from previous step outputs.
+        """
+        result = {}
+
+        for item in inputs:
+            p_key = item["input"]
+            p_val = ""
+            val = item["from"]
+            if "workflow-input" in val.keys():
+                p_val = workflow_variables[val["workflow-input"]]
+            elif "step" in val.keys():
+                for out in previous_step_outputs:
+                    if out["output"] == val["output"]:
+                        p_val = out["as"]
+                        break
+
+            result[p_key] = p_val
+
+        for item in outputs:
+            p_key = item["output"]
+            p_val = item["as"]
+            result[p_key] = p_val
+
+        return result

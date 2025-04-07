@@ -3,3 +3,8 @@ dist/
 **/__pycache__/
 **/*.pickle
 tests/project-root/project-*/
+
+# temp files
+*~
+\#*#
+\#*
