@@ -60,7 +60,12 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         # Every launcher starts with an empty execution directory...
         print(f"Removing execution directory ({EXECUTION_DIRECTORY})")
         assert EXECUTION_DIRECTORY.startswith("tests/project-root")
-        shutil.rmtree(EXECUTION_DIRECTORY, ignore_errors=True)
+        for filename in os.listdir(EXECUTION_DIRECTORY):
+            file_path = os.path.join(EXECUTION_DIRECTORY, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
 
     def launch(self, launch_parameters: LaunchParameters) -> LaunchResult:
         assert launch_parameters
