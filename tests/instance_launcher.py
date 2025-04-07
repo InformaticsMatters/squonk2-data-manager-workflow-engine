@@ -31,16 +31,17 @@ from tests.message_dispatcher import UnitTestMessageDispatcher
 from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.workflow_abc import InstanceLauncher, LaunchParameters, LaunchResult
 
+# Relative path to the execution (project) directory
+EXECUTION_DIRECTORY: str = os.path.join("tests", "project-root", TEST_PROJECT_ID)
+
 # Full path to the 'jobs' directory
 _JOB_PATH: str = os.path.join(os.path.dirname(__file__), "jobs")
-# Relative path to the execution (project) directory
-_EXECUTION_DIRECTORY: str = os.path.join("tests", "project-root", TEST_PROJECT_ID)
 
 
 def project_file_exists(file_name: str) -> bool:
     """A convenient test function to verify a file exists
     in the execution (project) directory."""
-    return os.path.isfile(os.path.join(_EXECUTION_DIRECTORY, file_name))
+    return os.path.isfile(os.path.join(EXECUTION_DIRECTORY, file_name))
 
 
 class UnitTestInstanceLauncher(InstanceLauncher):
@@ -57,9 +58,9 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         self._msg_dispatcher = msg_dispatcher
 
         # Every launcher starts with an empty execution directory...
-        print(f"Removing execution directory ({_EXECUTION_DIRECTORY})")
-        assert _EXECUTION_DIRECTORY.startswith("tests/project-root")
-        shutil.rmtree(_EXECUTION_DIRECTORY, ignore_errors=True)
+        print(f"Removing execution directory ({EXECUTION_DIRECTORY})")
+        assert EXECUTION_DIRECTORY.startswith("tests/project-root")
+        shutil.rmtree(EXECUTION_DIRECTORY, ignore_errors=True)
 
     def launch(self, launch_parameters: LaunchParameters) -> LaunchResult:
         assert launch_parameters
@@ -67,7 +68,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         assert launch_parameters.specification
         assert isinstance(launch_parameters.specification, dict)
 
-        os.makedirs(_EXECUTION_DIRECTORY, exist_ok=True)
+        os.makedirs(EXECUTION_DIRECTORY, exist_ok=True)
 
         # We're passed a RunningWorkflowStep ID but a record is expected to have been
         # created bt the caller, we simply create instance records.
@@ -108,8 +109,9 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         assert os.path.isfile(module)
         subprocess_cmd: List[str] = ["python"] + command_list
         print(f"Subprocess command: {subprocess_cmd}")
+        print(f"Execution directory: {EXECUTION_DIRECTORY}")
         completed_process: CompletedProcess = subprocess.run(
-            subprocess_cmd, check=False, cwd=_EXECUTION_DIRECTORY
+            subprocess_cmd, check=False, cwd=EXECUTION_DIRECTORY
         )
 
         # Simulate a PodMessage (that will contain the instance ID),
