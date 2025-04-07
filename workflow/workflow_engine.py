@@ -353,46 +353,32 @@ class WorkflowEngine:
         #
         # TBD
 
-        # print('job_collection', job_collection)
-        # print('job_job', job_job)
-        # print('job', job)
-        # print('step', step)
-        # print('running_workflow_variables', running_workflow_variables)
-        # print('all_variables', all_variables)
+        wf_step_data, _ = self._wapi_adapter.get_workflow_steps_driving_this_step(
+            running_workflow_step_id=running_workflow_step_id,
+        )
 
-        # print('step inputs', step['inputs'])
-        # print('step inputs', step['outputs'])
+        wf_steps = wf_step_data.get("steps", [])
+        try:
+            previous_step = wf_steps[wf_step_data["caller_step_index"] - 1]
+        except IndexError:
+            previous_step = {}
 
-        # # this is the structure i need to process
-        # # [{'input': 'inputFile', 'from': {'workflow-input': 'candidateMolecules'}}]
-        # # [{'output': 'outputFile', 'as': '__step1__out.smi'}]
+        inputs = step.get("inputs", [])
+        outputs = step.get("outputs", [])
+        previous_step_outputs = previous_step.get("outputs", [])
+        step_vars = self._set_step_variables(
+            inputs=inputs,
+            outputs=outputs,
+            previous_step_outputs=previous_step_outputs,
+        )
 
-        for item in step.get("inputs", []):
-            p_key = item["input"]
-            p_val = ""
-            if "from" in item.keys():
-                val = item["from"]
-                if "workflow-input" in val.keys():
-                    p_val = val["workflow-input"]
-            # don't know what to do with else..
-            all_variables[p_key] = p_val
-
-        for item in step.get("outputs", []):
-            p_key = item["output"]
-            p_val = ""
-            if "as" in item.keys():
-                p_val = item["as"]
-
-            # don't know what to do with else..
-            all_variables[p_key] = p_val
+        all_variables |= step_vars
+        print("all_variables", all_variables)
 
         self._wapi_adapter.set_running_workflow_step_variables(
             running_workflow_step_id=running_workflow_step_id,
             variables=all_variables,
         )
-
-        # all_variables['inputFile'] = running_workflow_variables['candidateMolecules']
-        # all_variables['outputFile'] = '__step1__out.smi'
 
         message, success = decode(
             job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
@@ -491,3 +477,37 @@ class WorkflowEngine:
             error_num=error,
             error_msg=error_msg,
         )
+
+    def _set_step_variables(
+        self,
+        inputs: list[dict[str, Any]],
+        outputs: list[dict[str, Any]],
+        previous_step_outputs: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Prepare input- and output variables for the following step.
+
+        Inputs are defined in step definition but their values may
+        come from previous step outputs.
+        """
+        result = {}
+
+        for item in inputs:
+            p_key = item["input"]
+            p_val = ""
+            val = item["from"]
+            if "workflow-input" in val.keys():
+                p_val = val["workflow-input"]
+            elif "step" in val.keys():
+                for out in previous_step_outputs:
+                    if out["output"] == val["output"]:
+                        p_val = out["as"]
+                        break
+
+            result[p_key] = p_val
+
+        for item in outputs:
+            p_key = item["output"]
+            p_val = item["as"]
+            result[p_key] = p_val
+
+        return result
