@@ -366,10 +366,12 @@ class WorkflowEngine:
         inputs = step.get("inputs", [])
         outputs = step.get("outputs", [])
         previous_step_outputs = previous_step.get("outputs", [])
+
         step_vars = self._set_step_variables(
             inputs=inputs,
             outputs=outputs,
             previous_step_outputs=previous_step_outputs,
+            workflow_variables=all_variables,
         )
 
         all_variables |= step_vars
@@ -483,6 +485,7 @@ class WorkflowEngine:
         inputs: list[dict[str, Any]],
         outputs: list[dict[str, Any]],
         previous_step_outputs: list[dict[str, Any]],
+        workflow_variables: dict[str, Any],
     ) -> dict[str, Any]:
         """Prepare input- and output variables for the following step.
 
@@ -496,7 +499,7 @@ class WorkflowEngine:
             p_val = ""
             val = item["from"]
             if "workflow-input" in val.keys():
-                p_val = val["workflow-input"]
+                p_val = workflow_variables[val["workflow-input"]]
             elif "step" in val.keys():
                 for out in previous_step_outputs:
                     if out["output"] == val["output"]:

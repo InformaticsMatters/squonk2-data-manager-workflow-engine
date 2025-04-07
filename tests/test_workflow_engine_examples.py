@@ -311,5 +311,5 @@ def test_workflow_engine_simple_python_molprops(basic_engine):
     assert response["running_workflow_steps"][1]["done"]
     assert response["running_workflow_steps"][1]["success"]
     # This test should generate a file in the simulated project directory
-    assert project_file_exists(output_file_a)
-    assert project_file_exists(output_file_b)
+    assert project_file_exists(output_file_1)
+    assert project_file_exists(output_file_2)
