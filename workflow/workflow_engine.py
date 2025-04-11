@@ -303,10 +303,11 @@ class WorkflowEngine:
             collection=job_collection, job=job_job, version=job_version
         )
         _LOGGER.debug(
-            "API.get_job(%s, %s, %s) returned: -\n%s",
+            "API.get_job(%s, %s, %s) for %s returned: -\n%s",
             job_collection,
             job_job,
             job_version,
+            running_workflow_step_id,
             str(job),
         )
 
@@ -356,23 +357,37 @@ class WorkflowEngine:
         )
 
         # We must always process the current step's variables
-        _LOGGER.debug("Validating step %s", step)
+        _LOGGER.debug("Validating step %s (%s)", step, running_workflow_step_id)
         inputs = step.get("inputs", [])
         outputs = step.get("outputs", [])
         previous_step_outputs = []
         our_index: int = wf_step_data["caller_step_index"]
         assert our_index >= 0
-        _LOGGER.debug("We are at workflow step index %d", our_index)
+        _LOGGER.debug(
+            "We are at workflow step index %d (%s)", our_index, running_workflow_step_id
+        )
 
         if our_index > 0:
             previous_step = wf_step_data["steps"][our_index - 1]
             previous_step_outputs = previous_step.get("outputs", [])
 
-        _LOGGER.debug("Index %s workflow_variables=%s", our_index, all_variables)
-        _LOGGER.debug("Index %s inputs=%s", our_index, inputs)
-        _LOGGER.debug("Index %s outputs=%s", our_index, outputs)
         _LOGGER.debug(
-            "Index %s previous_step_outputs=%s", our_index, previous_step_outputs
+            "Index %s (%s) workflow_variables=%s",
+            our_index,
+            running_workflow_step_id,
+            all_variables,
+        )
+        _LOGGER.debug(
+            "Index %s (%s) inputs=%s", our_index, running_workflow_step_id, inputs
+        )
+        _LOGGER.debug(
+            "Index %s (%s) outputs=%s", our_index, running_workflow_step_id, outputs
+        )
+        _LOGGER.debug(
+            "Index %s (%s) previous_step_outputs=%s",
+            our_index,
+            running_workflow_step_id,
+            previous_step_outputs,
         )
         step_vars = self._set_step_variables(
             workflow_variables=all_variables,
@@ -381,7 +396,12 @@ class WorkflowEngine:
             previous_step_outputs=previous_step_outputs,
         )
         all_variables |= step_vars
-        _LOGGER.debug("Index %s all_variables=%s", our_index, previous_step_outputs)
+        _LOGGER.debug(
+            "Index %s (%s) all_variables=%s",
+            our_index,
+            running_workflow_step_id,
+            all_variables,
+        )
 
         # Set the variables for this step (so they can be inspected on error)
         self._wapi_adapter.set_running_workflow_step_variables(
