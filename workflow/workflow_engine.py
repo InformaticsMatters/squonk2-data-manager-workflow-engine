@@ -350,38 +350,46 @@ class WorkflowEngine:
         # Now we have to inspect the workflow step 'inputs' (and 'options')
         # and see if there are further variables that need constructing
         # and then adding (merging) into the 'all_variables' dictionary.
-        #
-        # TBD
 
         wf_step_data, _ = self._wapi_adapter.get_workflow_steps_driving_this_step(
             running_workflow_step_id=running_workflow_step_id,
         )
 
-        wf_steps = wf_step_data.get("steps", [])
-        try:
-            previous_step = wf_steps[wf_step_data["caller_step_index"] - 1]
-        except IndexError:
-            previous_step = {}
-
+        # We must always process the current step's variables
+        _LOGGER.debug("Validating step %s", step)
         inputs = step.get("inputs", [])
         outputs = step.get("outputs", [])
-        previous_step_outputs = previous_step.get("outputs", [])
+        previous_step_outputs = []
+        our_index: int = wf_step_data["caller_step_index"]
+        assert our_index >= 0
+        _LOGGER.debug("We are at workflow step index %d", our_index)
 
+        if our_index > 0:
+            previous_step = wf_step_data["steps"][our_index - 1]
+            previous_step_outputs = previous_step.get("outputs", [])
+
+        _LOGGER.debug("Index %s workflow_variables=%s", our_index, all_variables)
+        _LOGGER.debug("Index %s inputs=%s", our_index, inputs)
+        _LOGGER.debug("Index %s outputs=%s", our_index, outputs)
+        _LOGGER.debug(
+            "Index %s previous_step_outputs=%s", our_index, previous_step_outputs
+        )
         step_vars = self._set_step_variables(
+            workflow_variables=all_variables,
             inputs=inputs,
             outputs=outputs,
             previous_step_outputs=previous_step_outputs,
-            workflow_variables=all_variables,
         )
-
         all_variables |= step_vars
-        print("all_variables", all_variables)
+        _LOGGER.debug("Index %s all_variables=%s", our_index, previous_step_outputs)
 
+        # Set the variables for this step (so they can be inspected on error)
         self._wapi_adapter.set_running_workflow_step_variables(
             running_workflow_step_id=running_workflow_step_id,
             variables=all_variables,
         )
 
+        # Now ... can the command be compiled!?
         message, success = decode(
             job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
         )
@@ -413,17 +421,16 @@ class WorkflowEngine:
         )
         if isinstance(error_or_variables, str):
             error_msg = error_or_variables
-            _LOGGER.warning(
-                "First step '%s' failed command validation (%s)", step_name, error_msg
-            )
-            self._set_step_error(step_name, rwf_id, rwfs_id, 1, error_msg)
+            msg = f"Failed command validation error_msg={error_msg}"
+            _LOGGER.warning(msg)
+            self._set_step_error(step_name, rwf_id, rwfs_id, 1, msg)
             return
 
         project_id = rwf["project"]["id"]
         variables: dict[str, Any] = error_or_variables
 
         _LOGGER.info(
-            "Launching first step: RunningWorkflow=%s RunningWorkflowStep=%s step=%s"
+            "Launching step: RunningWorkflow=%s RunningWorkflowStep=%s step=%s"
             " (name=%s project=%s, variables=%s)",
             rwf_id,
             rwfs_id,
@@ -455,33 +462,35 @@ class WorkflowEngine:
         step_name: str,
         r_wfid: str,
         r_wfsid: str,
-        error: Optional[int],
+        error_num: Optional[int],
         error_msg: Optional[str],
     ) -> None:
         """Set the error state for a running workflow step (and the running workflow).
         Calling this method essentially 'ends' the running workflow."""
         _LOGGER.warning(
-            "Failed to launch step '%s' (error=%d error_msg=%s)",
+            "Failed to launch step '%s' (error_num=%d error_msg=%s)",
             step_name,
-            error,
+            error_num,
             error_msg,
         )
+        r_wf_error: str = f"Step '{step_name}' ERROR({error_num}): {error_msg}"
         self._wapi_adapter.set_running_workflow_step_done(
             running_workflow_step_id=r_wfsid,
             success=False,
-            error_num=error,
-            error_msg=error_msg,
+            error_num=error_num,
+            error_msg=r_wf_error,
         )
         # We must also set the running workflow as done (failed)
         self._wapi_adapter.set_running_workflow_done(
             running_workflow_id=r_wfid,
             success=False,
-            error_num=error,
-            error_msg=error_msg,
+            error_num=error_num,
+            error_msg=r_wf_error,
         )
 
     def _set_step_variables(
         self,
+        *,
         inputs: list[dict[str, Any]],
         outputs: list[dict[str, Any]],
         previous_step_outputs: list[dict[str, Any]],
