@@ -147,5 +147,5 @@ def test_validate_duplicate_workflow_variable_names():
     )
 
     # Assert
-    assert error.error_num == 3
+    assert error.error_num == 6
     assert error.error_msg == ["Duplicate workflow variable names found: x"]

@@ -83,11 +83,11 @@ class WorkflowValidator:
     ) -> ValidationResult:
         assert workflow_definition
 
-        # TAG level requires that each step name is unique.
+        # TAG level requires that each step name is unique,
         duplicate_names: set[str] = set()
         step_names: set[str] = set()
         for step in get_steps(workflow_definition):
-            step_name = step["name"]
+            step_name: str = step["name"]
             if step_name not in duplicate_names and step_name in step_names:
                 duplicate_names.add(step_name)
             step_names.add(step_name)
@@ -96,6 +96,40 @@ class WorkflowValidator:
                 error_num=2,
                 error_msg=[f"Duplicate step names found: {', '.join(duplicate_names)}"],
             )
+        # Each step specification must be a valid JSON string.
+        # and contain properties for 'collection', 'job', and 'version'.
+        for step in workflow_definition["steps"]:
+            step_name = step["name"]
+            try:
+                specification = json.loads(step["specification"])
+            except json.decoder.JSONDecodeError as e:
+                return ValidationResult(
+                    error_num=3,
+                    error_msg=[
+                        f"Got JSONDecodeError decoding Step '{step_name}' specification: {e}"
+                    ],
+                )
+            except TypeError as e:
+                return ValidationResult(
+                    error_num=4,
+                    error_msg=[
+                        f"Got ValidationResult decoding Step '{step_name}' specification: {e}"
+                    ],
+                )
+            expected_keys: set[str] = {"collection", "job", "version"}
+            missing_keys: list[str] = []
+            missing_keys.extend(
+                expected_key
+                for expected_key in expected_keys
+                if expected_key not in specification
+            )
+            if missing_keys:
+                return ValidationResult(
+                    error_num=5,
+                    error_msg=[
+                        f"Step '{step_name}' specification is missing: {', '.join(missing_keys)}"
+                    ],
+                )
         # Workflow variables must be unique.
         duplicate_names = set()
         variable_names: set[str] = set()
@@ -109,7 +143,7 @@ class WorkflowValidator:
             variable_names.add(wf_variable_name)
         if duplicate_names:
             return ValidationResult(
-                error_num=3,
+                error_num=6,
                 error_msg=[
                     f"Duplicate workflow variable names found: {', '.join(duplicate_names)}"
                 ],
@@ -126,38 +160,6 @@ class WorkflowValidator:
     ) -> ValidationResult:
         assert workflow_definition
 
-        # RUN level requires that each step specification is a valid JSON string.
-        # and contains properties for 'collection', 'job', and 'version'.
-        for step in workflow_definition["steps"]:
-            try:
-                specification = json.loads(step["specification"])
-            except json.decoder.JSONDecodeError as e:
-                return ValidationResult(
-                    error_num=2,
-                    error_msg=[
-                        f"Error decoding specification, which is not valid JSON: {e}"
-                    ],
-                )
-            except TypeError as e:
-                return ValidationResult(
-                    error_num=3,
-                    error_msg=[
-                        f"Error decoding specification, which is not valid JSON: {e}"
-                    ],
-                )
-            expected_keys: set[str] = {"collection", "job", "version"}
-            missing_keys: list[str] = []
-            missing_keys.extend(
-                expected_key
-                for expected_key in expected_keys
-                if expected_key not in specification
-            )
-            if missing_keys:
-                return ValidationResult(
-                    error_num=2,
-                    error_msg=[f"Specification is missing: {', '.join(missing_keys)}"],
-                )
-
         # We must have values for all the variables defined in the workflow.
         wf_variables: list[str] = get_required_variable_names(workflow_definition)
         missing_values: list[str] = []
@@ -168,7 +170,7 @@ class WorkflowValidator:
         )
         if missing_values:
             return ValidationResult(
-                error_num=3,
+                error_num=7,
                 error_msg=[
                     f"Missing workflow variable values for: {', '.join(missing_values)}"
                 ],
