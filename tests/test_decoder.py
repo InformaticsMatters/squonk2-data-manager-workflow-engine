@@ -43,6 +43,19 @@ with open(
     )
 assert _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW
 
+_STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
+    os.path.dirname(__file__),
+    "workflow-definitions",
+    "step-specification-variable-names.yaml",
+)
+with open(
+    _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE, "r", encoding="utf8"
+) as workflow_file:
+    _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW: Dict[str, Any] = yaml.safe_load(
+        workflow_file
+    )
+assert _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW
+
 
 def test_validate_schema_for_minimal():
     # Arrange
@@ -105,6 +118,16 @@ def test_validate_schema_for_python_simple_molprops():
 
     # Act
     error = decoder.validate_schema(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
+
+    # Assert
+    assert error is None
+
+
+def test_validate_schema_for_step_specification_variable_names():
+    # Arrange
+
+    # Act
+    error = decoder.validate_schema(_STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW)
 
     # Assert
     assert error is None

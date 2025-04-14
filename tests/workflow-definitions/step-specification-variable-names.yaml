@@ -1,0 +1,16 @@
+---
+kind: DataManagerWorkflow
+kind-version: "2024.1"
+name: step-variables
+description: Test a lot of variables whose format is supported
+steps:
+- name: step-1
+  specification:
+    collection: a
+    job: b
+    version: '1.0.0'
+    variables:
+      _a: 1
+      A-1: 2.0
+      a_14_: A string
+      A-Long_boolean_variable_Name: true

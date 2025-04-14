@@ -4,5 +4,7 @@ kind-version: "2024.1"
 name: workflow-minimal
 steps:
 - name: step-1
-  specification: >-
-    {}
+  specification:
+    collection: a
+    job: b
+    version: "1.0.0"

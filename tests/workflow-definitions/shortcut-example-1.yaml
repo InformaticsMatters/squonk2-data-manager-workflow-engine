@@ -6,23 +6,19 @@ description: The shortcut example 1 workflow
 steps:
 - name: example-1-step-1
   description: The first step
-  specification: >-
-    {
-      "collection": "workflow-engine-unit-test-jobs",
-      "job": "shortcut-example-1-process-a",
-      "version": "1.0.0"
-    }
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: shortcut-example-1-process-a
+    version: "1.0.0"
   outputs:
   - output: 'outputFile'
     as: 'a.sdf'
 - name: example-1-step-2
   description: The first step
-  specification: >-
-    {
-      "collection": "workflow-engine-unit-test-jobs",
-      "job": "shortcut-example-1-process-b",
-      "version": "1.0.0"
-    }
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: shortcut-example-1-process-b
+    version: "1.0.0"
   inputs:
   - input: 'inputFile'
     from:

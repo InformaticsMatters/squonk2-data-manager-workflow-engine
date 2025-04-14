@@ -7,9 +7,7 @@ description: >-
   The step takes an input string and the Job creates a file from it.
 steps:
 - name: step-1
-  specification: >-
-    {
-      "collection": "workflow-engine-unit-test-jobs",
-      "job": "smiles-to-file",
-      "version": "1.0.0"
-    }
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: smiles-to-file
+    version: "1.0.0"
