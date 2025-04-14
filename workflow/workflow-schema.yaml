@@ -105,7 +105,7 @@ definitions:
     - name
     - as
 
-  # Declaration of a value from a workflow input (variable)
+  # Declaration of a step option value from a workflow option (variable)
   as-step-option:
     type: object
     additionalProperties: false
@@ -157,11 +157,9 @@ definitions:
         - type: number
         - type: boolean
       minimum:
-        oneOf:
-        - type: number
+        type: number
       maximum:
-        oneOf:
-        - type: number
+        type: number
       as:
         type: array
         items:
