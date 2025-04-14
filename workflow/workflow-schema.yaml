@@ -164,15 +164,15 @@ definitions:
 
   # A step specification variable
   # (there must be at least one if a variables block is defined).
-  # Typical variable syntax - must start with a letter
-  # and only contain letters, numbers, hyphen or underbar.
-  # The value of the object is quite relaxed...
+  # Typical variable syntax based on Python's definition of a variable
+  # but with the inclusion of 'hyphen' within the variable.
+  # The value of the variable (the object itself) is quite relaxed...
   # it simply needs to be a string, number (integer or float), or boolean.
   step-specification-variable:
     type: object
     additionalProperties: false
     patternProperties:
-      '^[a-zA-Z]{1}[a-zA-Z0-9-_]{0,79}$':
+      '^[a-zA-Z_]{1}[a-zA-Z0-9_-]{0,79}$':
         oneOf:
         - type: string
         - type: integer
