@@ -10,7 +10,7 @@ steps:
     job: b
     version: '1.0.0'
     variables:
-      _a: 1
-      A-1: 2.0
+      a: 1
+      A_1: 2.0
       a_14_: A string
-      A-Long_boolean_variable_Name: true
+      A_Long_boolean_variableName: true

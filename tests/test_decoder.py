@@ -56,6 +56,15 @@ with open(
     )
 assert _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW
 
+_WORKFLOW_OPTIONS_WORKFLOW_FILE: str = os.path.join(
+    os.path.dirname(__file__),
+    "workflow-definitions",
+    "workflow-options.yaml",
+)
+with open(_WORKFLOW_OPTIONS_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
+    _WORKFLOW_OPTIONS: Dict[str, Any] = yaml.safe_load(workflow_file)
+assert _WORKFLOW_OPTIONS
+
 
 def test_validate_schema_for_minimal():
     # Arrange
@@ -128,6 +137,16 @@ def test_validate_schema_for_step_specification_variable_names():
 
     # Act
     error = decoder.validate_schema(_STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW)
+
+    # Assert
+    assert error is None
+
+
+def test_validate_schema_for_workflow_options():
+    # Arrange
+
+    # Act
+    error = decoder.validate_schema(_WORKFLOW_OPTIONS)
 
     # Assert
     assert error is None
