@@ -38,12 +38,15 @@ variables:
     as:
     - option: variable7
       step: step-1
+
 steps:
+
 - name: step-1
   specification:
     collection: a
     job: b
     version: '1.0.0'
+
 - name: step-2
   specification:
     collection: a

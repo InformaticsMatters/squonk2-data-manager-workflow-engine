@@ -15,6 +15,7 @@ variables:
     as: clustered-molecules.smi
 
 steps:
+
 - name: step1
   description: Add column 1
   specification:
