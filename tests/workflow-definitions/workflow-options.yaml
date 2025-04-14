@@ -1,0 +1,54 @@
+---
+kind: DataManagerWorkflow
+kind-version: "2024.1"
+name: workflow-options
+description: Illustrate the use of workflow options
+variables:
+  options:
+  - name: variableWithoutDefault
+    as:
+    - option: variable1
+      step: step-1
+    - option: variable2
+      step: step-2
+  - name: variableWithIntegerDefault
+    default: 7
+    as:
+    - option: variable3
+      step: step-1
+  - name: variableWithIntegerDefaultAndRange
+    default: 7
+    minimum: 1
+    maximum: 8
+    as:
+    - option: variable4
+      step: step-1
+  - name: variableWithFloatDefault
+    default: 1.0
+    as:
+    - option: variable5
+      step: step-1
+  - name: variableWithBooleanDefault
+    default: true
+    as:
+    - option: variable6
+      step: step-1
+  - name: variableWithStringDefault
+    default: Hello, World!
+    as:
+    - option: variable7
+      step: step-1
+
+steps:
+
+- name: step-1
+  specification:
+    collection: a
+    job: b
+    version: '1.0.0'
+
+- name: step-2
+  specification:
+    collection: a
+    job: b
+    version: '1.0.0'

@@ -131,6 +131,88 @@ def test_validate_simple_python_molprops():
     assert error.error_msg is None
 
 
+def test_validate_simple_python_molprops_with_options_when_missing_required():
+    # Arrange
+    workflow_file: str = os.path.join(
+        os.path.dirname(__file__),
+        "workflow-definitions",
+        "simple-python-molprops-with-options.yaml",
+    )
+    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+    assert workflow
+    variables = {
+        "candidateMolecules": "input.sdf",
+        "clusteredMolecules": "output.sdf",
+    }
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.RUN,
+        workflow_definition=workflow,
+        variables=variables,
+    )
+
+    # Assert
+    assert error.error_num == 7
+    assert error.error_msg == [
+        "Missing workflow variable values for: rdkitPropertyValue"
+    ]
+
+
+def test_validate_simple_python_molprops_with_options():
+    # Arrange
+    workflow_file: str = os.path.join(
+        os.path.dirname(__file__),
+        "workflow-definitions",
+        "simple-python-molprops-with-options.yaml",
+    )
+    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+    assert workflow
+    variables = {
+        "candidateMolecules": "input.sdf",
+        "clusteredMolecules": "output.sdf",
+        "rdkitPropertyName": "col1",
+        "rdkitPropertyValue": 123,
+    }
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.RUN,
+        workflow_definition=workflow,
+        variables=variables,
+    )
+
+    # Assert
+    assert error.error_num == 0
+    assert error.error_msg is None
+
+
+def test_validate_simple_python_molprops_with_missing_input():
+    # Arrange
+    workflow_file: str = os.path.join(
+        os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
+    )
+    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+    assert workflow
+    variables = {"clusteredMolecules": "output.sdf"}
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.RUN,
+        workflow_definition=workflow,
+        variables=variables,
+    )
+
+    # Assert
+    assert error.error_num == 7
+    assert error.error_msg == [
+        "Missing workflow variable values for: candidateMolecules"
+    ]
+
+
 def test_validate_duplicate_workflow_variable_names():
     # Arrange
     workflow_file: str = os.path.join(

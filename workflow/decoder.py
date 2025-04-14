@@ -64,7 +64,8 @@ def get_description(definition: dict[str, Any]) -> str | None:
 
 def get_variable_names(definition: dict[str, Any]) -> list[str]:
     """Given a Workflow definition this function returns all the names of the
-    variables defined at the workflow level. This function DOES NOT deduplicate names,
+    variables defined at the workflow level. These are the 'names' for inputs,
+    outputs and options. This function DOES NOT de-duplicate names,
     that is the role of the validator."""
     wf_variable_names: list[str] = []
     variables: dict[str, Any] | None = definition.get("variables")
@@ -74,6 +75,9 @@ def get_variable_names(definition: dict[str, Any]) -> list[str]:
         )
         wf_variable_names.extend(
             output_variable["name"] for output_variable in variables.get("outputs", [])
+        )
+        wf_variable_names.extend(
+            option_variable["name"] for option_variable in variables.get("options", [])
         )
     return wf_variable_names
 
@@ -85,8 +89,16 @@ def get_required_variable_names(definition: dict[str, Any]) -> list[str]:
     required_variables: list[str] = []
     variables: dict[str, Any] | None = definition.get("variables")
     if variables:
-        # For now, all inputs are required...
+        # All inputs are required (no defaults atm)...
         required_variables.extend(
             input_variable["name"] for input_variable in variables.get("inputs", [])
+        )
+        # Options without defaults are required...
+        # It is the role of the engine to provide the actual default for those
+        # that have defaults but no user-defined value.
+        required_variables.extend(
+            option_variable["name"]
+            for option_variable in variables.get("options", [])
+            if "default" not in option_variable
         )
     return required_variables

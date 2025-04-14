@@ -29,6 +29,7 @@ properties:
       $ref: "#/definitions/step"
   variables:
     type: object
+    additionalProperties: false
     properties:
       inputs:
         type: array
@@ -38,6 +39,10 @@ properties:
         type: array
         items:
           $ref: "#/definitions/workflow-output-parameter"
+      options:
+        type: array
+        items:
+          $ref: "#/definitions/workflow-option-parameter"
 required:
 - kind
 - kind-version
@@ -101,6 +106,20 @@ definitions:
     - as
 
   # Declaration of a value from a workflow input (variable)
+  as-step-option:
+    type: object
+    additionalProperties: false
+    properties:
+      option:
+        $ref: '#/definitions/template-variable-name'
+      step:
+        $ref: '#/definitions/rfc1035-label-name'
+    required:
+    - option
+    - step
+
+
+  # Declaration of a value from a workflow input (variable)
   from-workflow-input:
     type: object
     additionalProperties: false
@@ -122,6 +141,34 @@ definitions:
     required:
     - step
     - output
+
+  # A workflow option used as a step option
+  workflow-option-parameter:
+    type: object
+    additionalProperties: false
+    properties:
+      name:
+        $ref: '#/definitions/template-variable-name'
+      description:
+        type: string
+      default:
+        oneOf:
+        - type: string
+        - type: number
+        - type: boolean
+      minimum:
+        oneOf:
+        - type: number
+      maximum:
+        oneOf:
+        - type: number
+      as:
+        type: array
+        items:
+          $ref: '#/definitions/as-step-option'
+    required:
+    - name
+    - as
 
   # A Step input (from an output of a prior step)
   step-input-from-step:
@@ -172,7 +219,7 @@ definitions:
     type: object
     additionalProperties: false
     patternProperties:
-      '^[a-zA-Z_]{1}[a-zA-Z0-9_-]{0,79}$':
+      '^[a-zA-Z]{1}[a-zA-Z0-9_]{0,79}$':
         oneOf:
         - type: string
         - type: integer

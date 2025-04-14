@@ -5,7 +5,9 @@ name: smiles-to-file
 description: >-
   A workflow with one step that uses variables.
   The step takes an input string and the Job creates a file from it.
+
 steps:
+
 - name: step-1
   specification:
     collection: workflow-engine-unit-test-jobs
