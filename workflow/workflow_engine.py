@@ -22,7 +22,6 @@ and the workflow. The engine creates RunningWorkflowStep records for each step t
 is executed, and it uses thew InstanceLauncher to launch the Job (a Pod) for each step.
 """
 
-import json
 import logging
 import sys
 from typing import Any, Dict, Optional
@@ -295,7 +294,7 @@ class WorkflowEngine:
         # the keys "collection", "job", and "version". Here we assume that
         # the workflow definition has passed the RUN-level validation
         # which means we can get these values.
-        step_spec: dict[str, Any] = json.loads(step["specification"])
+        step_spec: dict[str, Any] = step["specification"]
         job_collection: str = step_spec["collection"]
         job_job: str = step_spec["job"]
         job_version: str = step_spec["version"]
@@ -466,7 +465,7 @@ class WorkflowEngine:
             debug=rwf.get("debug"),
             launching_user_name=rwf["running_user"],
             launching_user_api_token=rwf["running_user_api_token"],
-            specification=json.loads(step["specification"]),
+            specification=step["specification"],
             specification_variables=variables,
             running_workflow_id=rwf_id,
             running_workflow_step_id=rwfs_id,

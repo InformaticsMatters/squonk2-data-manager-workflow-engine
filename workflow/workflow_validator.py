@@ -1,6 +1,5 @@
 """The WorkflowEngine validation logic."""
 
-import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -96,40 +95,6 @@ class WorkflowValidator:
                 error_num=2,
                 error_msg=[f"Duplicate step names found: {', '.join(duplicate_names)}"],
             )
-        # Each step specification must be a valid JSON string.
-        # and contain properties for 'collection', 'job', and 'version'.
-        for step in workflow_definition["steps"]:
-            step_name = step["name"]
-            try:
-                specification = json.loads(step["specification"])
-            except json.decoder.JSONDecodeError as e:
-                return ValidationResult(
-                    error_num=3,
-                    error_msg=[
-                        f"Got JSONDecodeError decoding Step '{step_name}' specification: {e}"
-                    ],
-                )
-            except TypeError as e:
-                return ValidationResult(
-                    error_num=4,
-                    error_msg=[
-                        f"Got ValidationResult decoding Step '{step_name}' specification: {e}"
-                    ],
-                )
-            expected_keys: set[str] = {"collection", "job", "version"}
-            missing_keys: list[str] = []
-            missing_keys.extend(
-                expected_key
-                for expected_key in expected_keys
-                if expected_key not in specification
-            )
-            if missing_keys:
-                return ValidationResult(
-                    error_num=5,
-                    error_msg=[
-                        f"Step '{step_name}' specification is missing: {', '.join(missing_keys)}"
-                    ],
-                )
         # Workflow variables must be unique.
         duplicate_names = set()
         variable_names: set[str] = set()

@@ -161,6 +161,42 @@ definitions:
     - output
     - as
 
+
+  # A step specification variable
+  # (there must be at least one if a variables block is defined).
+  # Typical variable syntax - must start with a letter
+  # and only contain letters, numbers, hyphen or underbar.
+  # The value of the object is quite relaxed...
+  # it simply needs to be a string, number (integer or float), or boolean.
+  step-specification-variable:
+    type: object
+    additionalProperties: false
+    patternProperties:
+      '^[a-zA-Z]{1}[a-zA-Z0-9-_]{0,79}$':
+        oneOf:
+        - type: string
+        - type: integer
+        - type: boolean
+    minProperties: 1
+
+  # Step specification
+  step-specification:
+    type: object
+    additionalProperties: false
+    properties:
+      collection:
+        type: string
+      job:
+        type: string
+      version:
+        type: string
+      variables:
+        $ref: "#/definitions/step-specification-variable"
+    required:
+    - collection
+    - job
+    - version
+
   # Steps (in a workflow)
   step:
     type: object
@@ -172,8 +208,7 @@ definitions:
         type: string
         description: A description of the step
       specification:
-        type: string
-        description: The Data Manager Job Specification, a JSON string
+        $ref: '#/definitions/step-specification'
       inputs:
         type: array
         items:

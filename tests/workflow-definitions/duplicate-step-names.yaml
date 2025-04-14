@@ -4,8 +4,12 @@ kind-version: "2024.1"
 name: duplicate-step-names
 steps:
 - name: step-1
-  specification: >-
-    {}
+  specification:
+    collection: a
+    job: b
+    version: '1.0.0'
 - name: step-1
-  specification: >-
-    {}
+  specification:
+    collection: a
+    job: b
+    version: '2.0.0'
