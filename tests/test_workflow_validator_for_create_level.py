@@ -122,3 +122,25 @@ def test_validate_simple_python_molprops():
     # Assert
     assert error.error_num == 0
     assert error.error_msg is None
+
+
+def test_validate_simple_python_molprops_with_options():
+    # Arrange
+    workflow_file: str = os.path.join(
+        os.path.dirname(__file__),
+        "workflow-definitions",
+        "simple-python-molprops-with-options.yaml",
+    )
+    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+    assert workflow
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.CREATE,
+        workflow_definition=workflow,
+    )
+
+    # Assert
+    assert error.error_num == 0
+    assert error.error_msg is None
