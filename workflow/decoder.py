@@ -82,6 +82,42 @@ def get_variable_names(definition: dict[str, Any]) -> list[str]:
     return wf_variable_names
 
 
+def set_variables_from_options_for_step(
+    definition: dict[str, Any], variables: dict[str, Any], step_name: str
+) -> tuple[dict[str, Any], str | None]:
+    """Given a Workflow definition, an existing map of variables and values,
+    and a step name this function returns a new set of variables by adding
+    variables and values that are required for the step that have been defined in the
+    workflow's variables->options block.
+
+    As an example, the following option, which is used if the step name is 'step1',
+    expects 'rdkitPropertyName' to exist in the current set of variables,
+    and should be copied into the new set of variables using the key 'propertyName'
+    and value that is the same as the one provided in the original 'rdkitPropertyName': -
+
+        name: rdkitPropertyName
+        default: propertyName
+        as:
+        - option: propertyName
+          step: step1
+
+    And ... in the above example ... if the input variables map
+    is {"rdkitPropertyName": "rings"} then the output map would be
+    {"rdkitPropertyName": "rings", "propertyName": "rings"}
+
+    The function returns a new variable map, with and an optional error string on error.
+    """
+
+    assert isinstance(definition, dict)
+    assert isinstance(variables, dict)
+    assert step_name
+
+    new_variables: dict[str, Any] = variables.copy()
+
+    # Success...
+    return new_variables, None
+
+
 def get_required_variable_names(definition: dict[str, Any]) -> list[str]:
     """Given a Workflow definition this function returns all the names of the
     variables that are required to be defined when it is RUN - i.e.

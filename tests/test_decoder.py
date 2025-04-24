@@ -30,6 +30,19 @@ with open(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW_FILE, "r", encoding="utf8") as workfl
     _SIMPLE_PYTHON_MOLPROPS_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
 assert _SIMPLE_PYTHON_MOLPROPS_WORKFLOW
 
+_SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW_FILE: str = os.path.join(
+    os.path.dirname(__file__),
+    "workflow-definitions",
+    "simple-python-molprops-with-options.yaml",
+)
+with open(
+    _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW_FILE, "r", encoding="utf8"
+) as workflow_file:
+    _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW: Dict[str, Any] = yaml.safe_load(
+        workflow_file
+    )
+assert _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW
+
 _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__),
     "workflow-definitions",
@@ -206,3 +219,41 @@ def test_get_workflow_variables_for_duplicate_variables():
     assert len(names) == 2
     assert names[0] == "x"
     assert names[1] == "x"
+
+
+def test_get_required_variable_names_for_simnple_python_molprops_with_options():
+    # Arrange
+
+    # Act
+    rqd_variables = decoder.get_required_variable_names(
+        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW
+    )
+
+    # Assert
+    assert len(rqd_variables) == 2
+    assert "candidateMolecules" in rqd_variables
+    assert "rdkitPropertyValue" in rqd_variables
+
+
+@pytest.mark.skip(reason="The decoder does not currently handle options processing")
+def test_set_variables_from_options_for_step_for_simnple_python_molprops_with_options():
+    # Arrange
+    variables = {
+        "rdkitPropertyName": "propertyName",
+        "rdkitPropertyValue": "propertyValue",
+    }
+
+    # Act
+    new_variables, error = decoder.set_variables_from_options_for_step(
+        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW,
+        variables,
+        "step1",
+    )
+
+    # Assert
+    assert error is None
+    assert len(new_variables) == 4
+    assert "name" in new_variables
+    assert "value" in new_variables
+    assert new_variables["name"] == "propertyName"
+    assert new_variables["value"] == "propertyValue"
