@@ -313,7 +313,7 @@ def test_workflow_engine_simple_python_molprops(basic_engine):
     assert project_file_exists(output_file_2)
 
 
-@pytest.mark.skip(reason="The engine does not currently create the required variables")
+# @pytest.mark.skip(reason="The engine does not currently create the required variables")
 def test_workflow_engine_simple_python_molprops_with_options(basic_engine):
     # Arrange
     da, md = basic_engine
@@ -380,7 +380,11 @@ def test_workflow_engine_simple_python_molprops_with_options(basic_engine):
         md,
         da,
         "simple-python-molprops-with-options",
-        {"candidateMolecules": input_file_1},
+        {
+            "candidateMolecules": input_file_1,
+            "rdkitPropertyName": "prop",
+            "rdkitPropertyValue": 1.2,
+        },
     )
 
     # Assert

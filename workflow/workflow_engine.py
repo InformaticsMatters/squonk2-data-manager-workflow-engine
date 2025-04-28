@@ -38,6 +38,8 @@ from workflow.workflow_abc import (
     WorkflowAPIAdapter,
 )
 
+from .decoder import set_step_variables
+
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.INFO)
 _LOGGER.addHandler(logging.StreamHandler(sys.stdout))
@@ -388,11 +390,25 @@ class WorkflowEngine:
             running_workflow_step_id,
             previous_step_outputs,
         )
-        step_vars = self._set_step_variables(
+
+        # there should probably be an easier way to access this
+        running_wf_step, _ = self._wapi_adapter.get_running_workflow_step(
+            running_workflow_step_id=running_workflow_step_id
+        )
+        running_wf_id = running_wf_step["running_workflow"]["id"]
+        running_wf, _ = self._wapi_adapter.get_running_workflow(
+            running_workflow_id=running_wf_id
+        )
+        workflow_id = running_wf["workflow"]["id"]
+        workflow, _ = self._wapi_adapter.get_workflow(workflow_id=workflow_id)
+
+        step_vars = set_step_variables(
+            workflow=workflow,
             workflow_variables=all_variables,
             inputs=inputs,
             outputs=outputs,
             previous_step_outputs=previous_step_outputs,
+            step_name=running_wf_step["name"],
         )
         all_variables |= step_vars
         _LOGGER.debug(
@@ -506,39 +522,3 @@ class WorkflowEngine:
             error_num=error_num,
             error_msg=r_wf_error,
         )
-
-    def _set_step_variables(
-        self,
-        *,
-        inputs: list[dict[str, Any]],
-        outputs: list[dict[str, Any]],
-        previous_step_outputs: list[dict[str, Any]],
-        workflow_variables: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Prepare input- and output variables for the following step.
-
-        Inputs are defined in step definition but their values may
-        come from previous step outputs.
-        """
-        result = {}
-
-        for item in inputs:
-            p_key = item["input"]
-            p_val = ""
-            val = item["from"]
-            if "workflow-input" in val.keys():
-                p_val = workflow_variables[val["workflow-input"]]
-            elif "step" in val.keys():
-                for out in previous_step_outputs:
-                    if out["output"] == val["output"]:
-                        p_val = out["as"]
-                        break
-
-            result[p_key] = p_val
-
-        for item in outputs:
-            p_key = item["output"]
-            p_val = item["as"]
-            result[p_key] = p_val
-
-        return result

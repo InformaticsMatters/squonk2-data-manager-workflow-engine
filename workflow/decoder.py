@@ -84,7 +84,7 @@ def get_variable_names(definition: dict[str, Any]) -> list[str]:
 
 def set_variables_from_options_for_step(
     definition: dict[str, Any], variables: dict[str, Any], step_name: str
-) -> tuple[dict[str, Any], str | None]:
+) -> dict[str, Any]:
     """Given a Workflow definition, an existing map of variables and values,
     and a step name this function returns a new set of variables by adding
     variables and values that are required for the step that have been defined in the
@@ -109,13 +109,26 @@ def set_variables_from_options_for_step(
     """
 
     assert isinstance(definition, dict)
-    assert isinstance(variables, dict)
     assert step_name
 
-    new_variables: dict[str, Any] = variables.copy()
+    print("workflow", definition)
+    print("workflow_variables", variables)
+
+    result = {}
+    options = definition.get("variables", {}).get("options", [])
+    print("options", options)
+    print("variables", variables)
+
+    for opt in options:
+        for step_alias in opt["as"]:
+            if step_alias["step"] == step_name:
+                result[step_alias["option"]] = variables[opt["name"]]
+                # can break the loop because a variable can be a step
+                # variable only once
+                break
 
     # Success...
-    return new_variables, None
+    return result
 
 
 def get_required_variable_names(definition: dict[str, Any]) -> list[str]:
@@ -138,3 +151,49 @@ def get_required_variable_names(definition: dict[str, Any]) -> list[str]:
             if "default" not in option_variable
         )
     return required_variables
+
+
+def set_step_variables(
+    *,
+    workflow: dict[str, Any],
+    inputs: list[dict[str, Any]],
+    outputs: list[dict[str, Any]],
+    previous_step_outputs: list[dict[str, Any]],
+    workflow_variables: dict[str, Any],
+    step_name: str,
+) -> dict[str, Any]:
+    """Prepare input- and output variables for the following step.
+
+    Inputs are defined in step definition but their values may
+    come from previous step outputs.
+    """
+    result = {}
+
+    for item in inputs:
+        p_key = item["input"]
+        p_val = ""
+        val = item["from"]
+        if "workflow-input" in val.keys():
+            p_val = workflow_variables[val["workflow-input"]]
+        elif "step" in val.keys():
+            for out in previous_step_outputs:
+                if out["output"] == val["output"]:
+                    p_val = out["as"]
+                    break
+
+        result[p_key] = p_val
+
+    for item in outputs:
+        p_key = item["output"]
+        p_val = item["as"]
+        result[p_key] = p_val
+
+    options = set_variables_from_options_for_step(
+        definition=workflow,
+        variables=workflow_variables,
+        step_name=step_name,
+    )
+
+    result |= options
+
+    return result
