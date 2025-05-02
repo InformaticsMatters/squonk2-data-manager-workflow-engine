@@ -111,13 +111,8 @@ def set_variables_from_options_for_step(
     assert isinstance(definition, dict)
     assert step_name
 
-    print("workflow", definition)
-    print("workflow_variables", variables)
-
     result = {}
     options = definition.get("variables", {}).get("options", [])
-    print("options", options)
-    print("variables", variables)
 
     for opt in options:
         for step_alias in opt["as"]:
