@@ -313,7 +313,6 @@ def test_workflow_engine_simple_python_molprops(basic_engine):
     assert project_file_exists(output_file_2)
 
 
-# @pytest.mark.skip(reason="The engine does not currently create the required variables")
 def test_workflow_engine_simple_python_molprops_with_options(basic_engine):
     # Arrange
     da, md = basic_engine

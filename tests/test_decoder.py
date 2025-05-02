@@ -235,7 +235,6 @@ def test_get_required_variable_names_for_simnple_python_molprops_with_options():
     assert "rdkitPropertyValue" in rqd_variables
 
 
-@pytest.mark.skip(reason="The decoder does not currently handle options processing")
 def test_set_variables_from_options_for_step_for_simnple_python_molprops_with_options():
     # Arrange
     variables = {
@@ -244,15 +243,14 @@ def test_set_variables_from_options_for_step_for_simnple_python_molprops_with_op
     }
 
     # Act
-    new_variables, error = decoder.set_variables_from_options_for_step(
+    new_variables = decoder.set_variables_from_options_for_step(
         _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW,
         variables,
         "step1",
     )
 
     # Assert
-    assert error is None
-    assert len(new_variables) == 4
+    assert len(new_variables) == 2
     assert "name" in new_variables
     assert "value" in new_variables
     assert new_variables["name"] == "propertyName"
