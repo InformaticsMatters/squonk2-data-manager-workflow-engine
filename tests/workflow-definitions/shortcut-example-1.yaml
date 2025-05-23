@@ -25,7 +25,7 @@ steps:
   inputs:
   - input: 'inputFile'
     from:
-      step: step-1
+      step: example-1-step-1
       output: 'outputFile'
   outputs:
   - output: 'outputFile'
