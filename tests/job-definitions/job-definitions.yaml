@@ -124,3 +124,11 @@ jobs:
   cluster-butina:
     command: >-
       addcol.py --inputFile {{ inputFile }} --outputFile {{ outputFile }} --name {{ name }} --value {{ value }}
+
+  append-col:
+    command: >-
+      addcol2.py --inputFile {{ inputFile }} --outputFile {{ outputFile }} --name {{ name }} --value {{ value }}
+
+  concatenate:
+    command: >-
+      concatenate.py {% for ifile in  inputFile %}{{ ifile }} {% endfor %} --outputFile {{ outputFile }}

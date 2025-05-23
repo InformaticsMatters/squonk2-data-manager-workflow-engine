@@ -1,0 +1,90 @@
+---
+kind: DataManagerWorkflow
+kind-version: "2024.1"
+name: python-workflow
+description: A simple branching workflow
+variables:
+  inputs:
+  - name: candidateMolecules
+    type: squonk/x-smiles
+  outputs:
+  - name: clusteredMolecules
+    from:
+      step: final-step
+      output: outputFile
+    as: clustered-molecules.smi
+
+
+steps:
+
+- name: first-step
+  description: Create inputs
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: rdkit-molprops
+    version: "1.0.0"
+    variables:
+      name: "unnecessary"
+      value: "0"
+  inputs:
+  - input: inputFile
+    from:
+      workflow-input: candidateMolecules
+  outputs:
+  - output: outputFile
+    as: first-step.out.smi
+
+- name: parallel-step-a
+  description: Add some params
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: append-col
+    version: "1.0.0"
+    variables:
+      name: "desc1"
+      value: "777"
+  inputs:
+  - input: inputFile
+    from:
+      step: first-step
+      output: outputFile
+  outputs:
+  - output: outputFile
+    as: parallel-step-a.out.smi
+
+- name: parallel-step-b
+  description: Add some other params
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: append-col
+    version: "1.0.0"
+    variables:
+      name: "desc2"
+      value: "999"
+  inputs:
+  - input: inputFile
+    from:
+      step: first-step
+      output: outputFile
+  outputs:
+  - output: outputFile
+    as: parallel-step-b.out.smi
+
+- name: final-step
+  description: Collate results
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: concatenate
+    version: "1.0.0"
+  inputs:
+  - input: inputFile
+    from:
+      step: parallel-step-a
+      output: outputFile
+  - input: inputFile
+    from:
+      step: parallel-step-b
+      output: outputFile
+  outputs:
+  - output: outputFile
+    as: final-step.out.smi

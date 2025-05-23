@@ -369,8 +369,15 @@ class WorkflowEngine:
         )
 
         if our_index > 0:
-            previous_step = wf_step_data["steps"][our_index - 1]
-            previous_step_outputs = previous_step.get("outputs", [])
+            # resolve all previous steps
+            previous_step_names = set()
+            for inp in inputs:
+                if step_name := inp["from"].get("step", None):
+                    previous_step_names.add(step_name)
+
+            for step in wf_step_data["steps"]:
+                if step["name"] in previous_step_names:
+                    previous_step_outputs.extend(step.get("outputs", []))
 
         _LOGGER.debug(
             "Index %s (%s) workflow_variables=%s",

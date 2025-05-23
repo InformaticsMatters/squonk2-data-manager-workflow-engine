@@ -170,13 +170,23 @@ def set_step_variables(
         val = item["from"]
         if "workflow-input" in val.keys():
             p_val = workflow_variables[val["workflow-input"]]
+            result[p_key] = p_val
         elif "step" in val.keys():
             for out in previous_step_outputs:
                 if out["output"] == val["output"]:
                     p_val = out["as"]
-                    break
 
-        result[p_key] = p_val
+                    # this bit handles multiple inputs: if a step
+                    # requires input from multiple steps, add them to
+                    # the list in result dict. this is the reason for
+                    # mypy ignore statements, mypy doesn't understand
+                    # redefinition
+                    if p_key in result:
+                        if not isinstance(result[p_key], set):
+                            result[p_key] = {result[p_key]}  # type: ignore [assignment]
+                        result[p_key].add(p_val)  # type: ignore [attr-defined]
+                    else:
+                        result[p_key] = p_val
 
     for item in outputs:
         p_key = item["output"]
@@ -190,5 +200,7 @@ def set_step_variables(
     )
 
     result |= options
+
+    print("final step vars", result)
 
     return result
