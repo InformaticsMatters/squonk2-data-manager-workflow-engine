@@ -3,7 +3,7 @@ kind: DataManagerWorkflow
 kind-version: "2024.1"
 name: workflow-options
 description: Illustrate the use of workflow options
-variables:
+variable-mapping:
   options:
   - name: variableWithoutDefault
     as:

@@ -28,6 +28,14 @@ properties:
     items:
       $ref: "#/definitions/step"
   variables:
+    # A Job-compliant set of variable declarations for the workflow.
+    # This block structure is a reproduction of that used in Job definitions
+    # and, like JObs, has no current schema.
+    type: object
+    additionalProperties: false
+  variable-mapping:
+    # Workflow-specific variable declarations,
+    # used (at the moment) to map workflow variables to steps.
     type: object
     additionalProperties: false
     properties:

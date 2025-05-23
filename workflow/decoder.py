@@ -68,7 +68,7 @@ def get_variable_names(definition: dict[str, Any]) -> list[str]:
     outputs and options. This function DOES NOT de-duplicate names,
     that is the role of the validator."""
     wf_variable_names: list[str] = []
-    variables: dict[str, Any] | None = definition.get("variables")
+    variables: dict[str, Any] | None = definition.get("variable-mapping")
     if variables:
         wf_variable_names.extend(
             input_variable["name"] for input_variable in variables.get("inputs", [])
@@ -112,7 +112,7 @@ def set_variables_from_options_for_step(
     assert step_name
 
     result = {}
-    options = definition.get("variables", {}).get("options", [])
+    options = definition.get("variable-mapping", {}).get("options", [])
 
     for opt in options:
         for step_alias in opt["as"]:
@@ -131,7 +131,7 @@ def get_required_variable_names(definition: dict[str, Any]) -> list[str]:
     variables that are required to be defined when it is RUN - i.e.
     all those the user needs to provide."""
     required_variables: list[str] = []
-    variables: dict[str, Any] | None = definition.get("variables")
+    variables: dict[str, Any] | None = definition.get("variable-mapping")
     if variables:
         # All inputs are required (no defaults atm)...
         required_variables.extend(

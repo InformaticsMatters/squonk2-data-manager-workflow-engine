@@ -3,7 +3,7 @@ kind: DataManagerWorkflow
 kind-version: "2024.1"
 name: python-workflow
 description: A simple python experimental workflow
-variables:
+variable-mapping:
   inputs:
   - name: candidateMolecules
     type: squonk/x-smiles
