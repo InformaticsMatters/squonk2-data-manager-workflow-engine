@@ -1,6 +1,6 @@
 ---
 kind: DataManagerWorkflow
-kind-version: "2024.1"
+kind-version: "2025.1"
 name: two-step-nop
 description: >-
   A workflow with two steps.
