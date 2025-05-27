@@ -30,9 +30,9 @@ properties:
   variables:
     # A Job-compliant set of variable declarations for the workflow.
     # This block structure is a reproduction of that used in Job definitions
-    # and, like JObs, has no current schema.
+    # and, like Jobs, has no current schema so we permit anything here.
     type: object
-    additionalProperties: false
+    additionalProperties: true
   variable-mapping:
     # Workflow-specific variable declarations,
     # used (at the moment) to map workflow variables to steps.

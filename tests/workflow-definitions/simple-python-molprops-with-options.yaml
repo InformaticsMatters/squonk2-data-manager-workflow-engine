@@ -3,6 +3,56 @@ kind: DataManagerWorkflow
 kind-version: "2025.1"
 name: python-workflow
 description: A simple python experimental workflow
+
+# Some meaningless variables.
+# Just to make sure the decoder accepts this.
+# The Workflow engin eis not (yet) interested in this block.
+variables:
+  inputs:
+    type: object
+    required:
+    - inputFile
+    properties:
+      inputFile:
+        title: Molecules to pick from
+        mime-types:
+        - squonk/x-smiles
+        type: file
+      seeds:
+        title: Molecules that are already picked
+        mime-types:
+        - squonk/x-smiles
+        type: file
+        multiple: true
+  outputs:
+    type: object
+    properties:
+      outputFile:
+        title: Output file
+        mime-types:
+        - chemical/x-csv
+        creates: '{{ outputFile }}'
+        type: file
+  options:
+    type: object
+    required:
+    - count
+    properties:
+      outputFile:
+        title: Output file name
+        type: string
+        pattern: "^[A-Za-z0-9_/\\.\\-]+$"
+        default: diverse.smi
+      count:
+        title: Number of molecules to pick
+        type: integer
+        minimum: 1
+      threshold:
+        title: Similarity threshold
+        type: number
+        minimum: 0
+        maximum: 1
+
 variable-mapping:
   inputs:
   - name: candidateMolecules
