@@ -102,6 +102,12 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         response["id"] = running_workflow_id
         return response, 0
 
+    def get_running_steps(
+        self, *, running_workflow_id: str
+    ) -> tuple[dict[str, Any], int]:
+        # Does nothing at the moment - this is used for the STOP logic.
+        return {"count": 0, "steps": []}, 0
+
     def set_running_workflow_done(
         self,
         *,

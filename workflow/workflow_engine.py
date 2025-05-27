@@ -77,7 +77,7 @@ class WorkflowEngine:
 
     def _handle_workflow_message(self, msg: WorkflowMessage) -> None:
         """WorkflowMessages signal the need to start (or stop) a workflow using its
-        'action' string field (one of 'START' or 'START').
+        'action' string field (one of 'START' or 'STOP').
         The message contains a 'running_workflow' field that contains the UUID
         of an existing RunningWorkflow record in the DM. Using this
         we can locate the Workflow record and interrogate that to identify which
@@ -85,17 +85,15 @@ class WorkflowEngine:
         assert msg
 
         _LOGGER.info("WorkflowMessage:\n%s", str(msg))
-        assert msg.action in ["START", "STOP"]
+        if msg.action not in ["START", "STOP"]:
+            _LOGGER.error("Ignoring unsupported action (%s)", msg.action)
+            return
 
         r_wfid = msg.running_workflow
         if msg.action == "START":
             self._handle_workflow_start_message(r_wfid)
         else:
-            # STOP is not implemented yet and probably not for some time.
-            # So just log and ignore for now!
-            _LOGGER.warning(
-                "Got STOP action for %s - but it's not implemented yet!", r_wfid
-            )
+            self._handle_workflow_stop_message(r_wfid)
 
     def _handle_workflow_start_message(self, r_wfid: str) -> None:
         """Logic to handle a START message. This is the beginning of a new
@@ -141,6 +139,40 @@ class WorkflowEngine:
         # If there's a launch problem the step (and running workflow) will have
         # and error, stopping it. There will be no Pod event as the launch has failed.
         self._launch(rwf=rwf_response, rwfs_id=r_wfsid, step=first_step)
+
+    def _handle_workflow_stop_message(self, r_wfid: str) -> None:
+        """Logic to handle a STOP message."""
+        # Do nothing if the running workflow has already stopped.
+        rwf_response, _ = self._wapi_adapter.get_running_workflow(
+            running_workflow_id=r_wfid
+        )
+        _LOGGER.debug(
+            "API.get_running_workflow(%s) returned: -\n%s", r_wfid, str(rwf_response)
+        )
+        if not rwf_response:
+            _LOGGER.debug("Running workflow does not exist (%s)", r_wfid)
+            return
+        elif rwf_response["done"] is True:
+            _LOGGER.debug("Running workflow already stopped (%s)", r_wfid)
+            return
+
+        # For this version all we can do is check that no steps are running.
+        # If no steps are running we can safely mark the running workflow as stopped.
+        response, _ = self._wapi_adapter.get_running_steps(running_workflow_id=r_wfid)
+        _LOGGER.debug(
+            "API.get_running_steps(%s) returned: -\n%s", r_wfid, str(response)
+        )
+        if response:
+            if count := response["count"]:
+                msg: str = "1 step is" if count == 1 else f"{count} steps are"
+                _LOGGER.debug("Ignoring STOP for %s. %s still running", r_wfid, msg)
+            else:
+                self._wapi_adapter.set_running_workflow_done(
+                    running_workflow_id=r_wfid,
+                    success=False,
+                    error_num=1,
+                    error_msg="User stopped",
+                )
 
     def _handle_pod_message(self, msg: PodMessage) -> None:
         """Handles a PodMessage. This is a message that signals the completion of a
