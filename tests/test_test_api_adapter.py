@@ -95,6 +95,27 @@ def test_get_running_workflow():
     assert response["variables"] == {"x": 1}
 
 
+def test_get_running_steps_when_none_running():
+    # Arrange
+    utaa = UnitTestWorkflowAPIAdapter()
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    wfid = response["id"]
+    response = utaa.create_running_workflow(
+        user_id="dlister",
+        workflow_id=wfid,
+        project_id=TEST_PROJECT_ID,
+        variables={"x": 1},
+    )
+    rwfid = response["id"]
+
+    # Act
+    response, _ = utaa.get_running_steps(running_workflow_id=rwfid)
+
+    # Assert
+    assert response["count"] == 0
+    assert response["steps"] == []
+
+
 def test_set_running_workflow_done_when_success():
     # Arrange
     utaa = UnitTestWorkflowAPIAdapter()

@@ -150,6 +150,22 @@ class WorkflowAPIAdapter(ABC):
         # If not present an empty dictionary should be returned.
 
     @abstractmethod
+    def get_running_steps(
+        self, *, running_workflow_id: str
+    ) -> tuple[dict[str, Any], int]:
+        """Get a list of steps (their names) that are currently running for the
+        given RunningWorkflow Record"""
+        # Should return:
+        # {
+        #    "count": 1,
+        #    "steps": [
+        #       {
+        #           "name:": "step-1234"
+        #       }
+        #    ]
+        # }
+
+    @abstractmethod
     def set_running_workflow_done(
         self,
         *,
@@ -201,7 +217,7 @@ class WorkflowAPIAdapter(ABC):
         # can be expected in the response: -
         #
         #       "prior_running_workflow_step": {
-        #          "id": "r-worflkow-step-00000000-0000-0000-0000-000000000001",
+        #          "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
         #       },
 
     @abstractmethod
