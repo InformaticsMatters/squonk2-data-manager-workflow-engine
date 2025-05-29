@@ -12,7 +12,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.12"
 im-protobuf = "^8.2.0"
 im-data-manager-job-decoder = "^2.1.0"
 jsonschema = "^4.21.1"
