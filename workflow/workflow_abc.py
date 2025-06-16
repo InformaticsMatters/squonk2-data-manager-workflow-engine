@@ -38,6 +38,30 @@ class LaunchParameters:
     # The RunningWorkflowStep UUID.
     # Required if the Instance is part of a Workflow step.
     running_workflow_step_id: str | None = None
+    # A map of prior workflow steps and files to copy (link) into the step.
+    # Used by the Workflow Engine when the instance to be launched depends on the
+    # execution of a prior instance (or instances). The map is indexed by prior workflow
+    # step ID and is a list of tuples that consist of two values - a prior workflow
+    # (instance-relative) file name, and the name of that file when copied (linked)
+    # into the step to be executed.
+    #
+    # This map gives the InstanceLauncher an opportunity to take the outputs
+    # of a prior instance and link them to the instance directory for the
+    # instance to be launched. We need to do this for Workflows because Instances
+    # run as apart of a Workflow do not automatically have their outputs copied (linked)
+    # to the Project directory when they complete. As an example, a step that relies
+    # on the output files 'x.sdf' and 'y.sdf' from step 'a04d', and expects them to be
+    # called 'a.sdf' and 'b.sdf' in its own instance directory
+    # will provide the following map: -
+    #
+    #   {"r-workflow-step-a04d": [("x.sdf", "a.sdf"), ("y.sdf", "b.sdf")]}
+    #
+    # Each source file must be linked to a unique destination file -
+    # you cannot map the input examples shown above ()'x.sdf' and 'y.sdf') to the
+    # same file (i.e. 'a.sdf').
+    running_workflow_step_prior_step_output_map: (
+        dict[str, list[tuple[str, str]]] | None
+    ) = None
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'
