@@ -62,6 +62,12 @@ class LaunchParameters:
     running_workflow_step_prior_step_output_map: (
         dict[str, list[tuple[str, str]]] | None
     ) = None
+    # Workflow inputs (for this step Instance). These Workflow Inputs (files) are
+    # expected to be present in the Project directory. They are typically a subset of
+    # the Workflows variables - not necessarily all the workflow inputs, just the
+    # ones that are required for this step. If provided the structure is expected to
+    # match that found in a Job definition's variables->inputs.
+    running_workflow_step_inputs: dict[str, Any] | None = None
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'
