@@ -323,7 +323,7 @@ class WorkflowAPIAdapter(ABC):
 
     @abstractmethod
     def realise_outputs(
-        self, *, running_workflow_step_id: str, variables: dict[str, str]
+        self, *, running_workflow_step_id: str, output_variables: dict[str, str]
     ) -> tuple[dict[str, Any], int]:
         """Copy (link) the step's files as outputs into the Project directory.
         A step ID is provided, along with a map of variables (names and values).
