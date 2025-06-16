@@ -360,3 +360,10 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
                 item["id"] = key
                 steps.append(item)
         return {"count": len(steps), "running_workflow_steps": steps}
+
+    def realise_outputs(
+        self, *, running_workflow_step_id: str, variables: dict[str, str]
+    ) -> tuple[dict[str, Any], int]:
+        del running_workflow_step_id
+        del variables
+        return {}, 0

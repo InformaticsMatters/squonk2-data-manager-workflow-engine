@@ -126,7 +126,10 @@ class WorkflowAPIAdapter(ABC):
     """The APIAdapter providing read/write access to various Workflow tables and records
     in the Model that is owned by the DM. It provides the ability to create and retrieve
     Workflow, RunningWorkflow and RunningWorkflowStep records returning dictionary
-    (API-like) responses."""
+    (API-like) responses.
+
+    This adapter also provides methods to copy outputs to the
+    corresponding Project from Workflow steps that generate outputs."""
 
     @abstractmethod
     def get_workflow(
@@ -317,6 +320,17 @@ class WorkflowAPIAdapter(ABC):
         #   "definition": "<the definition as a Python dictionary>",
         # }
         # If not present an empty dictionary should be returned.
+
+    @abstractmethod
+    def realise_outputs(
+        self, *, running_workflow_step_id: str, outputs: list[str]
+    ) -> tuple[dict[str, Any], int]:
+        """Copy (link) the step's files as outputs into the Project directory.
+        A step ID is provided, along with a list of outputs (files)."""
+        # Should return an empty map or:
+        # {
+        #   "error": "<error message>",
+        # }
 
 
 class MessageDispatcher(ABC):
