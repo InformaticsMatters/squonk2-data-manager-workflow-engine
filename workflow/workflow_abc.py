@@ -63,11 +63,13 @@ class LaunchParameters:
         dict[str, list[tuple[str, str]]] | None
     ) = None
     # Workflow inputs (for this step Instance). These Workflow Inputs (files) are
-    # expected to be present in the Project directory. They are typically a subset of
-    # the Workflows variables - not necessarily all the workflow inputs, just the
-    # ones that are required for this step. If provided the structure is expected to
-    # match that found in a Job definition's variables->inputs.
-    running_workflow_step_inputs: dict[str, Any] | None = None
+    # expected to be present in the Project directory. It is simply a list of files
+    # with the ability to rename them. For example, if the step requires "a.sdf"
+    # from the Project directory (and renamed as 'input.sdf" in the step's
+    # instance directory) the engine would provide the following list: -
+    #
+    #   [("a.sdf", "input.sdf")]
+    running_workflow_step_inputs: list[tuple[str, str]] | None = None
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'
@@ -323,10 +325,12 @@ class WorkflowAPIAdapter(ABC):
 
     @abstractmethod
     def realise_outputs(
-        self, *, running_workflow_step_id: str, outputs: list[str]
+        self, *, running_workflow_step_id: str, outputs: list[tuple[str, str]]
     ) -> tuple[dict[str, Any], int]:
-        """Copy (link) the step's files as outputs into the Project directory.
-        A step ID is provided, along with a list of outputs (files)."""
+        """Copy (link) the step's files as outputs into the Project directory,
+        while also renaming the file. A step ID is provided, along with a list of
+        outputs (files in the instance directory) and the required counterpart file
+        in the Project directory."""
         # Should return an empty map or:
         # {
         #   "error": "<error message>",
