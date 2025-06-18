@@ -255,3 +255,40 @@ def test_set_variables_from_options_for_step_for_simnple_python_molprops_with_op
     assert "value" in new_variables
     assert new_variables["name"] == "propertyName"
     assert new_variables["value"] == "propertyValue"
+
+
+def test_get_workflow_inputs_for_step_with_name_step1():
+    # Arrange
+
+    # Act
+    inputs = decoder.get_workflow_input_names_for_step(
+        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step1"
+    )
+
+    # Assert
+    assert len(inputs) == 1
+    assert "candidateMolecules" in inputs
+
+
+def test_get_workflow_inputs_for_step_with_name_step2():
+    # Arrange
+
+    # Act
+    inputs = decoder.get_workflow_input_names_for_step(
+        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step2"
+    )
+
+    # Assert
+    assert not inputs
+
+
+def test_get_workflow_inputs_for_step_with_unkown_step_name():
+    # Arrange
+
+    # Act
+    inputs = decoder.get_workflow_input_names_for_step(
+        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "unknown"
+    )
+
+    # Assert
+    assert not inputs
