@@ -51,6 +51,7 @@ warn_unused_ignores = true
 
 [tool.pylint]
 disable = [
+    "fixme",
     "R",
     "too-few-public-methods",
     "too-many-arguments",

@@ -250,9 +250,15 @@ class WorkflowEngine:
             self._set_step_error(step_name, r_wfid, r_wfsid, exit_code, "Job failed")
             return
 
-        # If we get here the prior step completed successfully
-        # and so we can mark the Step as DOne (successfully),
-        # and then inspect the Workflow to determine the next step.
+        # If we get here the prior step completed successfully and we can decide
+        # whether the step has outputs (files) that need to be written to the
+        # Project directory, while also marking the Step as DONE (successfully).
+        # We pass the outputs to the DM via a call to the API adapter's realise_outputs().
+        # In return it copies (links) these files to the Project directory.
+        #
+        # We then inspect the Workflow to determine the next step.
+
+        # ToDo
 
         self._wapi_adapter.set_running_workflow_step_done(
             running_workflow_step_id=r_wfsid,
@@ -319,11 +325,18 @@ class WorkflowEngine:
         *,
         running_workflow_step_id: str,
         step: dict[str, Any],
+        workflow_steps: list[dict[str, Any]],
+        our_step_index: int,
         running_workflow_variables: dict[str, Any] | None = None,
     ) -> str | dict[str, Any]:
         """Returns an error message if the command isn't valid.
         Without a message we return all the variables that were (successfully)
-        applied to the command."""
+        applied to the command.
+
+        We are also given a list of steps in workflow_steps and out position in
+        the list with our_step_index."""
+        assert our_step_index >= 0
+
         # We get the Job from the step specification, which must contain
         # the keys "collection", "job", and "version". Here we assume that
         # the workflow definition has passed the RUN-level validation
@@ -380,52 +393,46 @@ class WorkflowEngine:
         if running_workflow_variables:
             all_variables |= running_workflow_variables
 
-        # This gives all the running workflow and step-specific variables.
-        # Now we have to inspect the workflow step 'inputs' (and 'options')
-        # and see if there are further variables that need constructing
-        # and then adding (merging) into the 'all_variables' dictionary.
-
-        wf_step_data, _ = self._wapi_adapter.get_workflow_steps_driving_this_step(
-            running_workflow_step_id=running_workflow_step_id,
-        )
-
         # We must always process the current step's variables
         _LOGGER.debug("Validating step %s (%s)", step, running_workflow_step_id)
         inputs = step.get("inputs", [])
         outputs = step.get("outputs", [])
         previous_step_outputs = []
-        our_index: int = wf_step_data["caller_step_index"]
-        assert our_index >= 0
         _LOGGER.debug(
-            "We are at workflow step index %d (%s)", our_index, running_workflow_step_id
+            "We are at workflow step index %d (%s)",
+            our_step_index,
+            running_workflow_step_id,
         )
 
-        if our_index > 0:
+        if our_step_index > 0:
             # resolve all previous steps
             previous_step_names = set()
             for inp in inputs:
                 if step_name := inp["from"].get("step", None):
                     previous_step_names.add(step_name)
 
-            for step in wf_step_data["steps"]:
+            for step in workflow_steps:
                 if step["name"] in previous_step_names:
                     previous_step_outputs.extend(step.get("outputs", []))
 
         _LOGGER.debug(
             "Index %s (%s) workflow_variables=%s",
-            our_index,
+            our_step_index,
             running_workflow_step_id,
             all_variables,
         )
         _LOGGER.debug(
-            "Index %s (%s) inputs=%s", our_index, running_workflow_step_id, inputs
+            "Index %s (%s) inputs=%s", our_step_index, running_workflow_step_id, inputs
         )
         _LOGGER.debug(
-            "Index %s (%s) outputs=%s", our_index, running_workflow_step_id, outputs
+            "Index %s (%s) outputs=%s",
+            our_step_index,
+            running_workflow_step_id,
+            outputs,
         )
         _LOGGER.debug(
             "Index %s (%s) previous_step_outputs=%s",
-            our_index,
+            our_step_index,
             running_workflow_step_id,
             previous_step_outputs,
         )
@@ -452,7 +459,7 @@ class WorkflowEngine:
         all_variables |= step_vars
         _LOGGER.debug(
             "Index %s (%s) all_variables=%s",
-            our_index,
+            our_step_index,
             running_workflow_step_id,
             all_variables,
         )
@@ -481,6 +488,15 @@ class WorkflowEngine:
 
         _LOGGER.info("Validating step command: %s (step=%s)...", rwf_id, step_name)
 
+        # Get step data - importantly, giving us the sequence of steps in the response.
+        # Steps will be in wf_step_data["steps"] and our position in the list
+        # is wf_step_data["caller_step_index"]
+        wf_step_data, _ = self._wapi_adapter.get_workflow_steps_driving_this_step(
+            running_workflow_step_id=rwfs_id,
+        )
+        assert wf_step_data["caller_step_index"] >= 0
+        our_step_index: int = wf_step_data["caller_step_index"]
+
         # Now check the step command can be executed
         # (by trying to decoding the Job command).
         #
@@ -491,6 +507,8 @@ class WorkflowEngine:
         error_or_variables: str | dict[str, Any] = self._validate_step_command(
             running_workflow_step_id=rwfs_id,
             step=step,
+            workflow_steps=wf_step_data["steps"],
+            our_step_index=our_step_index,
             running_workflow_variables=running_workflow_variables,
         )
         if isinstance(error_or_variables, str):
@@ -514,6 +532,36 @@ class WorkflowEngine:
             variables,
         )
 
+        # When we launch a step we need to identify all the prior steps in the workflow,
+        # those we depend on. The DataManager will then link their outputs to
+        # out instance directory. For simple workflows there is only one prior step,
+        # and it's the one immediately prior to this one.
+        #
+        # We put all the prior step IDs in: -
+        #   'running_workflow_step_prior_steps'
+        #       A list of step UUID strings.
+        #
+        # In this 'simple' linear implementation that is simply the immediately
+        # preceding step.
+        prior_steps: list[str] = []
+        if our_step_index > 0:
+            # We need the step ID of the prior step.
+            prior_step_name: str = wf_step_data["steps"][our_step_index - 1]["name"]
+            step_response, _ = self._wapi_adapter.get_running_workflow_step_by_name(
+                name=prior_step_name,
+                running_workflow_id=rwf_id,
+            )
+            assert "id" in step_response
+            prior_steps.append(step_response["id"])
+
+        # We must also identify workflow inputs that are required by the step we are
+        # about to launch and pass those using: -
+        #
+        #   'running_workflow_step_inputs'
+        #       A list of string pairs (input filename and output filename)
+        #       (with relative paths if appropriate.
+        inputs: list[tuple[str, str]] | None = None
+
         lp: LaunchParameters = LaunchParameters(
             project_id=project_id,
             name=step_name,
@@ -524,6 +572,8 @@ class WorkflowEngine:
             specification_variables=variables,
             running_workflow_id=rwf_id,
             running_workflow_step_id=rwfs_id,
+            running_workflow_step_prior_steps=prior_steps,
+            running_workflow_step_inputs=inputs,
         )
         lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
         if lr.error_num:
