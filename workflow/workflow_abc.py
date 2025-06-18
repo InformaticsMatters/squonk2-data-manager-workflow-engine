@@ -243,6 +243,37 @@ class WorkflowAPIAdapter(ABC):
         #       },
 
     @abstractmethod
+    def get_running_workflow_step_by_name(
+        self, *, name: str, running_workflow_id: str
+    ) -> tuple[dict[str, Any], int]:
+        """Get a RunningWorkflowStep Record given a step name
+        (and its RUnningWorkflow ID)"""
+        # Should return:
+        # {
+        #       "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
+        #       "name:": "step-1234",
+        #       "done": False,
+        #       "success": false,
+        #       "error_num": 0,
+        #       "error_msg": "",
+        #       "variables": {
+        #          "x": 1,
+        #          "y": 2,
+        #       },
+        #       "running_workflow": {
+        #          "id": "r-workflow-00000000-0000-0000-0000-000000000001",
+        #       },
+        # }
+        # If not present an empty dictionary should be returned.
+        #
+        # For steps that are not the first in a workflow the following field
+        # can be expected in the response: -
+        #
+        #       "prior_running_workflow_step": {
+        #          "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
+        #       },
+
+    @abstractmethod
     def set_running_workflow_step_variables(
         self,
         *,
@@ -312,12 +343,11 @@ class WorkflowAPIAdapter(ABC):
 
     @abstractmethod
     def realise_outputs(
-        self, *, running_workflow_step_id: str, outputs: list[tuple[str, str]]
+        self, *, running_workflow_step_id: str, outputs: list[str]
     ) -> tuple[dict[str, Any], int]:
-        """Copy (link) the step's files as outputs into the Project directory,
-        while also renaming the file. A step ID is provided, along with a list of
-        outputs (files in the instance directory) and the required counterpart file
-        in the Project directory."""
+        """Copy (link) the step's files as outputs into the Project directory.
+        A step ID is provided, along with a list of outputs
+        (files that will be in the step's instance directory)."""
         # Should return an empty map or:
         # {
         #   "error": "<error message>",

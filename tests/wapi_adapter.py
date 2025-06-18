@@ -178,6 +178,25 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         response["id"] = running_workflow_step_id
         return response, 0
 
+    def get_running_workflow_step_by_name(
+        self, *, name: str, running_workflow_id: str
+    ) -> dict[str, Any]:
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
+            running_workflow_step = Unpickler(pickle_file).load()
+        UnitTestWorkflowAPIAdapter.lock.release()
+
+        print(f"name={name} running_workflow_id={running_workflow_id}")
+        for rwfs_id, record in running_workflow_step.items():
+            print(f"rwfs_id={rwfs_id} record={record}")
+            if record["running_workflow"]["id"] != running_workflow_id:
+                continue
+            if record["name"] == name:
+                response = record
+                response["id"] = rwfs_id
+                return response, 0
+        return {}, 0
+
     def set_running_workflow_step_variables(
         self,
         *,
@@ -362,8 +381,8 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         return {"count": len(steps), "running_workflow_steps": steps}
 
     def realise_outputs(
-        self, *, running_workflow_step_id: str, variables: dict[str, str]
+        self, *, running_workflow_step_id: str, outputs: list[str, str]
     ) -> tuple[dict[str, Any], int]:
         del running_workflow_step_id
-        del variables
+        del outputs
         return {}, 0
