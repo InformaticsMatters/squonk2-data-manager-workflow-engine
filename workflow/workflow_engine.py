@@ -38,7 +38,11 @@ from workflow.workflow_abc import (
     WorkflowAPIAdapter,
 )
 
-from .decoder import get_workflow_input_names_for_step, set_step_variables
+from .decoder import (
+    get_workflow_input_names_for_step,
+    get_workflow_output_values_for_step,
+    set_step_variables,
+)
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.INFO)
@@ -258,16 +262,24 @@ class WorkflowEngine:
         #
         # We then inspect the Workflow to determine the next step.
 
-        # ToDo
-
-        self._wapi_adapter.set_running_workflow_step_done(
-            running_workflow_step_id=r_wfsid,
-            success=True,
-        )
         wfid = rwf_response["workflow"]["id"]
         assert wfid
         wf_response, _ = self._wapi_adapter.get_workflow(workflow_id=wfid)
         _LOGGER.debug("API.get_workflow(%s) returned: -\n%s", wfid, str(wf_response))
+
+        if output_values := get_workflow_output_values_for_step(wf_response, step_name):
+            # Got some output values
+            # Inform the DM so it can link them to the Project directory
+            self._wapi_adapter.realise_outputs(
+                running_workflow_step_id=r_wfsid,
+                outputs=output_values,
+            )
+
+        # Now we can mark this step as DONE...
+        self._wapi_adapter.set_running_workflow_step_done(
+            running_workflow_step_id=r_wfsid,
+            success=True,
+        )
 
         # We have the step from the Instance that's just finished,
         # so we can use that to find the next step in the Workflow definition.
