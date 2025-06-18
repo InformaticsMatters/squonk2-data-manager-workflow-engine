@@ -38,7 +38,7 @@ from workflow.workflow_abc import (
     WorkflowAPIAdapter,
 )
 
-from .decoder import set_step_variables
+from .decoder import get_workflow_input_names_for_step, set_step_variables
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.INFO)
@@ -138,7 +138,7 @@ class WorkflowEngine:
         # Launch the first step.
         # If there's a launch problem the step (and running workflow) will have
         # and error, stopping it. There will be no Pod event as the launch has failed.
-        self._launch(rwf=rwf_response, rwfs_id=r_wfsid, step=first_step)
+        self._launch(wf=wf_response, rwf=rwf_response, rwfs_id=r_wfsid, step=first_step)
 
     def _handle_workflow_stop_message(self, r_wfid: str) -> None:
         """Logic to handle a STOP message."""
@@ -302,6 +302,7 @@ class WorkflowEngine:
                     )
 
                     self._launch(
+                        wf=wf_response,
                         rwf=rwf_response,
                         rwfs_id=r_wfsid,
                         step=next_step,
@@ -479,6 +480,7 @@ class WorkflowEngine:
     def _launch(
         self,
         *,
+        wf: dict[str, Any],
         rwf: dict[str, Any],
         rwfs_id: str,
         step: dict[str, Any],
@@ -555,12 +557,19 @@ class WorkflowEngine:
             prior_steps.append(step_response["id"])
 
         # We must also identify workflow inputs that are required by the step we are
-        # about to launch and pass those using: -
+        # about to launch and pass those using a launch parameter. The launcher
+        # will ensure these are copied into out instance directory before we are run.
         #
         #   'running_workflow_step_inputs'
-        #       A list of string pairs (input filename and output filename)
+        #       A list of string pairs (input/Project filename and output/Instance filename)
         #       (with relative paths if appropriate.
-        inputs: list[tuple[str, str]] | None = None
+        inputs: list[tuple[str, str]] = []
+        for wf_input_name in get_workflow_input_names_for_step(wf, step_name):
+            # The variable must be known.
+            # It should have been checked by the time we get here!
+            assert wf_input_name in variables
+            # No name change of inputs in this version
+            inputs.append((variables[wf_input_name], variables[wf_input_name]))
 
         lp: LaunchParameters = LaunchParameters(
             project_id=project_id,
