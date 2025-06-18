@@ -91,7 +91,6 @@ def get_workflow_input_names_for_step(
 
     To get the input (a filename) the caller simply looks these names up
     in the variable map."""
-    print(f"definition={definition}")
     inputs: list[str] = []
     for step in definition.get("steps", {}):
         if step["name"] == name and "inputs" in step:
@@ -104,6 +103,24 @@ def get_workflow_input_names_for_step(
                 if "from" in step_input and "workflow-input" in step_input["from"]
             )
     return inputs
+
+
+def get_workflow_output_values_for_step(
+    definition: dict[str, Any], name: str
+) -> list[str]:
+    """Given a Workflow definition and a step name we return a list of workflow
+    out variable names the step creates. To do this we iterate through the workflows's
+    outputs to find those that are declared 'from' our step."""
+    wf_outputs = definition.get("variable-mapping", {}).get("outputs", {})
+    outputs: list[str] = []
+    outputs.extend(
+        output["as"]
+        for output in wf_outputs
+        if "from" in output
+        and "step" in output["from"]
+        and output["from"]["step"] == name
+    )
+    return outputs
 
 
 def set_variables_from_options_for_step(
