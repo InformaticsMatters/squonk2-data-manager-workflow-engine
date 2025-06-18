@@ -441,3 +441,17 @@ def test_get_running_workflow_step_by_name():
     assert response["running_workflow"]["id"] == rwf_id
     assert response["name"] == "step-2"
     assert response["id"] == rwfs_id
+
+
+def test_basic_realise():
+    # Arrange
+    utaa = UnitTestWorkflowAPIAdapter()
+
+    # Act
+    response, _ = utaa.realise_outputs(
+        running_workflow_step_id="r-workflow-step-00000000-0000-0000-0000-000000000001",
+        outputs=["a.txt"],
+    )
+
+    # Assert
+    assert not response
