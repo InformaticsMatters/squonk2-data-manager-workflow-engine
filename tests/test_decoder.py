@@ -261,20 +261,20 @@ def test_get_workflow_inputs_for_step_with_name_step1():
     # Arrange
 
     # Act
-    inputs = decoder.get_workflow_input_names_for_step(
+    inputs = decoder.get_workflow_job_input_names_for_step(
         _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step1"
     )
 
     # Assert
     assert len(inputs) == 1
-    assert "candidateMolecules" in inputs
+    assert "inputFile" in inputs
 
 
 def test_get_workflow_inputs_for_step_with_name_step2():
     # Arrange
 
     # Act
-    inputs = decoder.get_workflow_input_names_for_step(
+    inputs = decoder.get_workflow_job_input_names_for_step(
         _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step2"
     )
 
@@ -286,7 +286,7 @@ def test_get_workflow_inputs_for_step_with_unkown_step_name():
     # Arrange
 
     # Act
-    inputs = decoder.get_workflow_input_names_for_step(
+    inputs = decoder.get_workflow_job_input_names_for_step(
         _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "unknown"
     )
 

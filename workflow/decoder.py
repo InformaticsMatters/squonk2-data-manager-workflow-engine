@@ -82,15 +82,12 @@ def get_variable_names(definition: dict[str, Any]) -> list[str]:
     return wf_variable_names
 
 
-def get_workflow_input_names_for_step(
+def get_workflow_job_input_names_for_step(
     definition: dict[str, Any], name: str
 ) -> list[str]:
-    """Given a Workflow definition and a step name we return a list of workflow
-    input variable names the step expects. To do this we iterate through the step's
-    inputs to find those that are declared 'from->workflow-input'.
-
-    To get the input (a filename) the caller simply looks these names up
-    in the variable map."""
+    """Given a Workflow definition and a step name we return a list of step Job input
+    variable names the step expects. To do this we iterate through the step's
+    inputs to find those that are declared 'from->workflow-input'."""
     inputs: list[str] = []
     for step in definition.get("steps", {}):
         if step["name"] == name and "inputs" in step:
@@ -98,7 +95,7 @@ def get_workflow_input_names_for_step(
             # This gives us the name of the workflow input variable
             # and the name of the step input (Job) variable.
             inputs.extend(
-                step_input["from"]["workflow-input"]
+                step_input["input"]
                 for step_input in step["inputs"]
                 if "from" in step_input and "workflow-input" in step_input["from"]
             )

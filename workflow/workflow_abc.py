@@ -49,14 +49,14 @@ class LaunchParameters:
     #
     #   ["r-workflow-step-a04d", "r-workflow-step-d904"]
     running_workflow_step_prior_steps: list[str] | None = None
-    # Workflow inputs (for this step Instance). These Workflow Inputs (files) are
-    # expected to be present in the Project directory. It is simply a list of files
-    # with the ability to rename them. For example, if the step requires "a.sdf"
-    # from the Project directory (and renamed as 'input.sdf" in the step's
-    # instance directory) the engine would provide the following list: -
+    # Workflow step Job inputs (for this step Instance). These Workflow Inputs (files)
+    # are a list of Job input variable names for file variables where the
+    # file is expected to be present in the Project directory. It is simply a list of
+    # Job variable names. The launcher is expected to find the 'value' of these
+    # variables and then move the file to the instance directory.
     #
-    #   [("a.sdf", "input.sdf")]
-    running_workflow_step_inputs: list[tuple[str, str]] | None = None
+    #   ["inputFile"]
+    running_workflow_step_inputs: list[str] | None = None
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'

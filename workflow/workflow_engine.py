@@ -39,7 +39,7 @@ from workflow.workflow_abc import (
 )
 
 from .decoder import (
-    get_workflow_input_names_for_step,
+    get_workflow_job_input_names_for_step,
     get_workflow_output_values_for_step,
     set_step_variables,
 )
@@ -571,18 +571,15 @@ class WorkflowEngine:
         # We must also identify workflow inputs that are required by the step we are
         # about to launch and pass those using a launch parameter. The launcher
         # will ensure these are copied into out instance directory before we are run.
+        # We cannot provide the variable values (even though we have them) because
+        # the DM passes input through 'InputHandlers', which may translate the value.
+        # So we have to pass the name and let the DM move the files after
+        # the InputHandler has run.
         #
         #   'running_workflow_step_inputs'
-        #       A list of string pairs (input/Project filename and output/Instance filename)
-        #       (with relative paths if appropriate.
-        inputs: list[tuple[str, str]] = []
-        for wf_input_name in get_workflow_input_names_for_step(wf, step_name):
-            # The variable must be known.
-            # It should have been checked by the time we get here!
-            assert wf_input_name in variables
-            # No name change of inputs in this version
-            inputs.append((variables[wf_input_name], variables[wf_input_name]))
-
+        #       A list of Job input variable names
+        inputs: list[str] = []
+        inputs.extend(iter(get_workflow_job_input_names_for_step(wf, step_name)))
         lp: LaunchParameters = LaunchParameters(
             project_id=project_id,
             name=step_name,
