@@ -276,7 +276,11 @@ class WorkflowEngine:
             )
             if status_code != HTTPStatus.OK:
                 error_num = status_code
-                error_msg = response["error"]
+                error_msg = (
+                    response["error"]
+                    if "error" in response
+                    else "Undisclosed error when realising outputs"
+                )
 
         if error_num is not None:
             # The job was successful but linking outputs (back to the Project directory)
