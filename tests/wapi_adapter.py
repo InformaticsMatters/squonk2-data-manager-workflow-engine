@@ -16,6 +16,7 @@ method.
 """
 
 import os
+from http import HTTPStatus
 from multiprocessing import Lock
 from pickle import Pickler, Unpickler
 from typing import Any
@@ -385,4 +386,4 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
     ) -> tuple[dict[str, Any], int]:
         del running_workflow_step_id
         del outputs
-        return {}, 0
+        return {}, HTTPStatus.OK
