@@ -204,13 +204,6 @@ class WorkflowEngine:
         # The PodMessage has an 'instance', 'has_exit_code', and 'exit_code' values.
         _LOGGER.info("PodMessage:\n%s", str(msg))
 
-        # ALL THIS CODE ADDED SIMPLY TO DEMONSTRATE THE USE OF THE API ADAPTER
-        # AND THE INSTANCE LAUNCHER FOR THE SIMPLEST OF WORKFLOWS: -
-        # THE "TWO-STEP NOP".
-        # THERE IS NO SPECIFICATION MANIPULATION NEEDED FOR THIS EXAMPLE
-        # THE STEPS HAVE NO INPUTS OR OUTPUTS.
-        # THIS FUNCTION PROBABLY NEEDS TO BE A LOT MORE SOPHISTICATED!
-
         # Ignore anything without an exit code.
         if not msg.has_exit_code:
             _LOGGER.error("PodMessage has no exit code")
