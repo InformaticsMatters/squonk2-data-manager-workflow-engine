@@ -260,7 +260,4 @@ def set_step_variables(
     )
 
     result |= options
-
-    print("final step vars", result)
-
     return result
