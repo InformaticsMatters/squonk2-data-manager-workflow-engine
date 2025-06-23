@@ -381,7 +381,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
                 steps.append(item)
         return {"count": len(steps), "running_workflow_steps": steps}
 
-    def get_generated_outputs_for_step_output(
+    def get_running_workflow_step_outputs(
         self, *, running_workflow_step_id: str, output: str
     ) -> tuple[dict[str, Any], int]:
         del running_workflow_step_id

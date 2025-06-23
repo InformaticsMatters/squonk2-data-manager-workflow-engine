@@ -342,7 +342,7 @@ class WorkflowAPIAdapter(ABC):
         # If not present an empty dictionary should be returned.
 
     @abstractmethod
-    def get_generated_outputs_for_step_output(
+    def get_running_workflow_step_outputs(
         self, *, running_workflow_step_id: str, output: str
     ) -> tuple[dict[str, Any], int]:
         """Gets the set of outputs for the output variable of a given step.
