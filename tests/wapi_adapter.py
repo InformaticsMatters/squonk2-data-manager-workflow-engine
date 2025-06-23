@@ -136,8 +136,12 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         *,
         running_workflow_id: str,
         step: str,
+        replica: int = 0,
         prior_running_workflow_step_id: str | None = None,
     ) -> dict[str, Any]:
+        if replica:
+            assert replica > 0
+
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
@@ -150,6 +154,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             "name": step,
             "done": False,
             "success": False,
+            "replica": replica,
             "variables": {},
             "running_workflow": {"id": running_workflow_id},
         }
@@ -177,24 +182,28 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             return {}, 0
         response = running_workflow_step[running_workflow_step_id]
         response["id"] = running_workflow_step_id
+        if response["replica"] == 0:
+            _ = response.pop("replica")
         return response, 0
 
     def get_running_workflow_step_by_name(
-        self, *, name: str, running_workflow_id: str
+        self, *, name: str, running_workflow_id: str, replica: int = 0
     ) -> dict[str, Any]:
+        if replica:
+            assert replica > 0
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
         UnitTestWorkflowAPIAdapter.lock.release()
 
-        print(f"name={name} running_workflow_id={running_workflow_id}")
         for rwfs_id, record in running_workflow_step.items():
-            print(f"rwfs_id={rwfs_id} record={record}")
             if record["running_workflow"]["id"] != running_workflow_id:
                 continue
-            if record["name"] == name:
+            if record["name"] == name and record["replica"] == replica:
                 response = record
                 response["id"] = rwfs_id
+                if record["replica"] == 0:
+                    _ = response.pop("replica")
                 return response, 0
         return {}, 0
 

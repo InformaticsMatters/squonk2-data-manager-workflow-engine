@@ -205,9 +205,14 @@ class WorkflowAPIAdapter(ABC):
         *,
         running_workflow_id: str,
         step: str,
+        replica: int = 0,
         prior_running_workflow_step_id: str | None = None,
     ) -> tuple[dict[str, Any], int]:
-        """Create a RunningWorkflowStep Record (from a RunningWorkflow)"""
+        """Create a RunningWorkflowStep Record (from a RunningWorkflow).
+        If this is a replica (concurrent execution) of a step the replica
+        value must be set to a value greater than 0. The replica is unique
+        for a given step and is used to distinguish between running workflow steps
+        generated from the same step name."""
         # Should return:
         # {
         #    "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
@@ -244,10 +249,12 @@ class WorkflowAPIAdapter(ABC):
 
     @abstractmethod
     def get_running_workflow_step_by_name(
-        self, *, name: str, running_workflow_id: str
+        self, *, name: str, running_workflow_id: str, replica: int = 0
     ) -> tuple[dict[str, Any], int]:
         """Get a RunningWorkflowStep Record given a step name
-        (and its RUnningWorkflow ID)"""
+        (and its RunningWorkflow ID). For steps that may be replicated
+        the replica, a value of 1 or higher, is used to identify the specific replica.
+        """
         # Should return:
         # {
         #       "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
