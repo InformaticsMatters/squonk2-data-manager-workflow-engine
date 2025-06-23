@@ -443,6 +443,21 @@ def test_get_running_workflow_step_by_name():
     assert response["id"] == rwfs_id
 
 
+def test_basic_get_running_workflow_step_output_values_for_output_when_step_unknown():
+    # Arrange
+    utaa = UnitTestWorkflowAPIAdapter()
+
+    # Act
+    response, _ = utaa.get_running_workflow_step_output_values_for_output(
+        running_workflow_step_id="r-workflow-step-00000000-0000-0000-0000-000000000001",
+        output="outputFile",
+    )
+
+    # Assert
+    assert "outputs" in response
+    assert len(response["outputs"]) == 0
+
+
 def test_basic_realise():
     # Arrange
     utaa = UnitTestWorkflowAPIAdapter()
