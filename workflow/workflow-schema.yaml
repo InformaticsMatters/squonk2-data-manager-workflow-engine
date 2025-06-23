@@ -90,12 +90,8 @@ definitions:
     properties:
       name:
         $ref: '#/definitions/template-variable-name'
-      type:
-        type: string
-        description: The MIME type of the parameter
     required:
     - name
-    - type
 
   # A workflow output parameter is essentially a file
   # taken from the output of a step with a default (as) value.
@@ -175,6 +171,17 @@ definitions:
     required:
     - name
     - as
+
+  # A step replication control variable
+  # that is based on a step input variable
+  replicate-using-input:
+    type: object
+    additionalProperties: false
+    properties:
+      input:
+        $ref: '#/definitions/template-variable-name'
+    required:
+    - input
 
   # A Step input (from an output of a prior step)
   step-input-from-step:
@@ -262,6 +269,14 @@ definitions:
         description: A description of the step
       specification:
         $ref: '#/definitions/step-specification'
+      replicate:
+        # Used to indicate one input variable that is used to replicate/spawn
+        # step instances based on the number of values generated for the variable.
+        type: object
+        additionalProperties: false
+        properties:
+          using:
+            $ref: '#/definitions/replicate-using-input'
       inputs:
         type: array
         items:

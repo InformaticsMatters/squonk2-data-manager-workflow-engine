@@ -1,21 +1,21 @@
 ---
 kind: DataManagerWorkflow
 kind-version: "2025.2"
-name: duplicate-workflow-variable-names
-description: A workflow with a duplicate variable name in the input and output
+name: duplicate-step-output-variable-names
+description: A workflow where step-1 has duplicate output variable names
 variable-mapping:
   inputs:
   - name: x
   outputs:
-  - name: x
+  - name: y
     from:
-      step: step2
+      step: step-2
       output: outputFile
     as: clustered-molecules.smi
 
 steps:
 
-- name: step1
+- name: step-1
   description: Add column 1
   specification:
     collection: workflow-engine-unit-test-jobs
@@ -28,11 +28,16 @@ steps:
   - input: inputFile
     from:
       workflow-input: candidateMolecules
+  - input: inputFile
+    from:
+      workflow-input: candidateMolecules
   outputs:
   - output: outputFile
     as: __step1__out.smi
+  - output: outputFile
+    as: __step1__out.smi
 
-- name: step2
+- name: step-2
   description: Add column 2
   specification:
     collection: workflow-engine-unit-test-jobs

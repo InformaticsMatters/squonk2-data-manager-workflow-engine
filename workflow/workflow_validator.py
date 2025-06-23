@@ -6,6 +6,8 @@ from typing import Any
 
 from .decoder import (
     get_required_variable_names,
+    get_step_input_variable_names,
+    get_step_output_variable_names,
     get_steps,
     get_variable_names,
     validate_schema,
@@ -83,21 +85,37 @@ class WorkflowValidator:
         assert workflow_definition
 
         # TAG level requires that each step name is unique,
+        # and all the output variable names in the step are unique.
         duplicate_names: set[str] = set()
-        step_names: set[str] = set()
+        all_step_names: set[str] = set()
+        variable_names: set[str] = set()
         for step in get_steps(workflow_definition):
             step_name: str = step["name"]
-            if step_name not in duplicate_names and step_name in step_names:
+            if step_name not in duplicate_names and step_name in all_step_names:
                 duplicate_names.add(step_name)
-            step_names.add(step_name)
+            all_step_names.add(step_name)
+            # Are output variable names unique?
+            variable_names.clear()
+            step_variables: list[str] = get_step_output_variable_names(
+                workflow_definition, step_name
+            )
+            for step_variable in step_variables:
+                if step_variable in variable_names:
+                    return ValidationResult(
+                        error_num=3,
+                        error_msg=[
+                            f"Duplicate step output variable: {step_variable} (step={step_name})"
+                        ],
+                    )
+                variable_names.add(step_variable)
         if duplicate_names:
             return ValidationResult(
                 error_num=2,
                 error_msg=[f"Duplicate step names found: {', '.join(duplicate_names)}"],
             )
         # Workflow variables must be unique.
-        duplicate_names = set()
-        variable_names: set[str] = set()
+        duplicate_names.clear()
+        variable_names.clear()
         wf_variable_names: list[str] = get_variable_names(workflow_definition)
         for wf_variable_name in wf_variable_names:
             if (
@@ -113,6 +131,25 @@ class WorkflowValidator:
                     f"Duplicate workflow variable names found: {', '.join(duplicate_names)}"
                 ],
             )
+        # For each 'replicating' step the replicating variable
+        # must be declared in the step.
+        for step in get_steps(workflow_definition):
+            if (
+                replicate_using_input := step.get("replicate", {})
+                .get("using", {})
+                .get("input")
+            ):
+                step_name = step["name"]
+                if replicate_using_input not in get_step_input_variable_names(
+                    workflow_definition, step_name
+                ):
+                    return ValidationResult(
+                        error_num=7,
+                        error_msg=[
+                            "Replicate input variable is not declared:"
+                            f" {replicate_using_input} (step={step_name})"
+                        ],
+                    )
 
         return _VALIDATION_SUCCESS
 

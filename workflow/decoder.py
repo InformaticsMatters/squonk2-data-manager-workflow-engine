@@ -82,6 +82,36 @@ def get_variable_names(definition: dict[str, Any]) -> list[str]:
     return wf_variable_names
 
 
+def get_step_output_variable_names(
+    definition: dict[str, Any], step_name: str
+) -> list[str]:
+    """Given a Workflow definition and a Step name this function returns all the names
+    of the output variables defined at the Step level. This function DOES NOT
+    de-duplicate names, that is the role of the validator."""
+    variable_names: list[str] = []
+    steps: list[dict[str, Any]] = get_steps(definition)
+    for step in steps:
+        if step["name"] == step_name:
+            variable_names.extend(
+                output["output"] for output in step.get("outputs", [])
+            )
+    return variable_names
+
+
+def get_step_input_variable_names(
+    definition: dict[str, Any], step_name: str
+) -> list[str]:
+    """Given a Workflow definition and a Step name (expected to exist)
+    this function returns all the names of the input
+    variables defined at the step level."""
+    variable_names: list[str] = []
+    steps: list[dict[str, Any]] = get_steps(definition)
+    for step in steps:
+        if step["name"] == step_name:
+            variable_names.extend(input["input"] for input in step.get("inputs", []))
+    return variable_names
+
+
 def get_workflow_job_input_names_for_step(
     definition: dict[str, Any], name: str
 ) -> list[str]:

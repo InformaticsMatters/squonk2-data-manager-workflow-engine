@@ -6,7 +6,6 @@ description: A simple branching workflow
 variable-mapping:
   inputs:
   - name: candidateMolecules
-    type: squonk/x-smiles
   outputs:
   - name: clusteredMolecules
     from:

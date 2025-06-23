@@ -56,6 +56,15 @@ with open(
     )
 assert _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW
 
+_SIMPLE_PYTHON_PARALLEL_FILE: str = os.path.join(
+    os.path.dirname(__file__),
+    "workflow-definitions",
+    "simple-python-parallel.yaml",
+)
+with open(_SIMPLE_PYTHON_PARALLEL_FILE, "r", encoding="utf8") as workflow_file:
+    _SIMPLE_PYTHON_PARALLEL_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
+assert _SIMPLE_PYTHON_PARALLEL_WORKFLOW
+
 _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__),
     "workflow-definitions",
@@ -160,6 +169,16 @@ def test_validate_schema_for_workflow_options():
 
     # Act
     error = decoder.validate_schema(_WORKFLOW_OPTIONS)
+
+    # Assert
+    assert error is None
+
+
+def test_validate_schema_for_simple_python_parallel():
+    # Arrange
+
+    # Act
+    error = decoder.validate_schema(_SIMPLE_PYTHON_PARALLEL_WORKFLOW)
 
     # Assert
     assert error is None
@@ -329,3 +348,36 @@ def test_get_workflow_outputs_for_step_with_unkown_step_name():
 
     # Assert
     assert not outputs
+
+
+def test_get_step_input_variable_names_when_duplicates():
+    # Arrange
+
+    # Act
+    inputs = decoder.get_step_input_variable_names(
+        _SIMPLE_PYTHON_PARALLEL_WORKFLOW, "final-step"
+    )
+
+    # Assert
+    assert len(inputs) == 2
+    assert inputs[0] == "inputFile"
+    assert inputs[1] == "inputFile"
+
+
+def test_get_step_output_variable_names_when_duplicates():
+    # Arrange
+    workflow_filename: str = os.path.join(
+        os.path.dirname(__file__),
+        "workflow-definitions",
+        "duplicate-step-output-variable-names.yaml",
+    )
+    with open(workflow_filename, "r", encoding="utf8") as wf_file:
+        definition: Dict[str, Any] = yaml.safe_load(wf_file)
+
+    # Act
+    outputs = decoder.get_step_output_variable_names(definition, "step-1")
+
+    # Assert
+    assert len(outputs) == 2
+    assert outputs[0] == "outputFile"
+    assert outputs[1] == "outputFile"
