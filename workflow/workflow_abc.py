@@ -342,6 +342,19 @@ class WorkflowAPIAdapter(ABC):
         # If not present an empty dictionary should be returned.
 
     @abstractmethod
+    def get_generated_outputs_for_step_output(
+        self, *, running_workflow_step_id: str, output: str
+    ) -> tuple[dict[str, Any], int]:
+        """Gets the set of outputs for the output variable of a given step.
+        The step must have stopped for this to return any meaningful value.
+        Returned files might also include paths that are relative to the
+        Step's instance directory."""
+        # Should return a (possibly empty) list of paths and filenames:
+        # {
+        #   "outputs": ["file1.sdf", "file2.sdf"]
+        # }
+
+    @abstractmethod
     def realise_outputs(
         self, *, running_workflow_step_id: str, outputs: list[str]
     ) -> tuple[dict[str, Any], int]:
