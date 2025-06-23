@@ -1,6 +1,6 @@
 ---
 kind: DataManagerWorkflow
-kind-version: "2025.1"
+kind-version: "2025.2"
 name: shortcut-example-1
 description: The shortcut example 1 workflow
 

@@ -1,6 +1,6 @@
 ---
 kind: DataManagerWorkflow
-kind-version: "2025.1"
+kind-version: "2025.2"
 name: python-workflow
 description: A simple branching workflow
 variable-mapping:

@@ -1,6 +1,6 @@
 ---
 kind: DataManagerWorkflow
-kind-version: "2025.1"
+kind-version: "2025.2"
 name: smiles-to-file
 description: >-
   A workflow with one step that uses variables.

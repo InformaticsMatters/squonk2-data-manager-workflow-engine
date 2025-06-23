@@ -1,6 +1,6 @@
 ---
 kind: DataManagerWorkflow
-kind-version: "2025.1"
+kind-version: "2025.2"
 name: step-variables
 description: Test a lot of variables whose format is supported
 

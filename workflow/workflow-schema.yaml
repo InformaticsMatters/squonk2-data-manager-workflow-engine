@@ -17,7 +17,7 @@ properties:
     const: DataManagerWorkflow
   kind-version:
     enum:
-    - '2025.1'
+    - '2025.2'
   name:
     $ref: '#/definitions/rfc1035-label-name'
   description:
