@@ -61,7 +61,6 @@ variable-mapping:
     from:
       step: step2
       output: outputFile
-    as: clustered-molecules.smi
   options:
   - name: rdkitPropertyName
     default: name

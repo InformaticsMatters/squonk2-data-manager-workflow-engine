@@ -317,37 +317,36 @@ def test_get_workflow_outputs_for_step_with_name_step1():
     # Arrange
 
     # Act
-    outputs = decoder.get_workflow_output_values_for_step(
+    has_outputs = decoder.workflow_step_has_outputs(
         _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step1"
     )
 
     # Assert
-    assert not outputs
+    assert not has_outputs
 
 
 def test_get_workflow_outputs_for_step_with_name_step2():
     # Arrange
 
     # Act
-    outputs = decoder.get_workflow_output_values_for_step(
+    has_outputs = decoder.workflow_step_has_outputs(
         _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step2"
     )
 
     # Assert
-    assert len(outputs) == 1
-    assert "clustered-molecules.smi" in outputs
+    assert has_outputs
 
 
 def test_get_workflow_outputs_for_step_with_unkown_step_name():
     # Arrange
 
     # Act
-    outputs = decoder.get_workflow_output_values_for_step(
+    has_outputs = decoder.workflow_step_has_outputs(
         _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "unknown"
     )
 
     # Assert
-    assert not outputs
+    assert not has_outputs
 
 
 def test_get_step_input_variable_names_when_duplicates():

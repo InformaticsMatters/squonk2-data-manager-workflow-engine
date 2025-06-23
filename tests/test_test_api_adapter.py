@@ -450,7 +450,6 @@ def test_basic_realise():
     # Act
     response, _ = utaa.realise_outputs(
         running_workflow_step_id="r-workflow-step-00000000-0000-0000-0000-000000000001",
-        outputs=["a.txt"],
     )
 
     # Assert

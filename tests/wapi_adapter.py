@@ -398,8 +398,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         return {"outputs": []}, HTTPStatus.OK
 
     def realise_outputs(
-        self, *, running_workflow_step_id: str, outputs: list[str, str]
+        self, *, running_workflow_step_id: str
     ) -> tuple[dict[str, Any], int]:
         del running_workflow_step_id
-        del outputs
         return {}, HTTPStatus.OK

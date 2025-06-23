@@ -41,8 +41,8 @@ from workflow.workflow_abc import (
 
 from .decoder import (
     get_workflow_job_input_names_for_step,
-    get_workflow_output_values_for_step,
     set_step_variables,
+    workflow_step_has_outputs,
 )
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -260,12 +260,11 @@ class WorkflowEngine:
 
         error_num: int | None = None
         error_msg: str | None = None
-        if output_values := get_workflow_output_values_for_step(wf_response, step_name):
-            # Got some output values
+        if workflow_step_has_outputs(wf_response, step_name):
+            # The step produces at least one output.
             # Inform the DM so it can link them to the Project directory
             response, status_code = self._wapi_adapter.realise_outputs(
                 running_workflow_step_id=r_wfsid,
-                outputs=output_values,
             )
             if status_code != HTTPStatus.OK:
                 error_num = status_code

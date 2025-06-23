@@ -132,22 +132,14 @@ def get_workflow_job_input_names_for_step(
     return inputs
 
 
-def get_workflow_output_values_for_step(
-    definition: dict[str, Any], name: str
-) -> list[str]:
-    """Given a Workflow definition and a step name we return a list of workflow
-    out variable names the step creates. To do this we iterate through the workflows's
-    outputs to find those that are declared 'from' our step."""
+def workflow_step_has_outputs(definition: dict[str, Any], name: str) -> bool:
+    """Given a Workflow definition and a step name we return a boolean
+    that is true if the step produces outputs."""
     wf_outputs = definition.get("variable-mapping", {}).get("outputs", {})
-    outputs: list[str] = []
-    outputs.extend(
-        output["as"]
+    return any(
+        "from" in output and "step" in output["from"] and output["from"]["step"] == name
         for output in wf_outputs
-        if "from" in output
-        and "step" in output["from"]
-        and output["from"]["step"] == name
     )
-    return outputs
 
 
 def set_variables_from_options_for_step(

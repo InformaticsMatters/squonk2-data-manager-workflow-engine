@@ -103,11 +103,8 @@ definitions:
         $ref: '#/definitions/template-variable-name'
       from:
         $ref: '#/definitions/from-step-output'
-      as:
-        $ref: '#/definitions/file-name'
     required:
     - name
-    - as
 
   # Declaration of a step option value from a workflow option (variable)
   as-step-option:
