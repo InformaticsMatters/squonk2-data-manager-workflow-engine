@@ -350,7 +350,7 @@ class WorkflowAPIAdapter(ABC):
 
     @abstractmethod
     def get_running_workflow_step_output_values_for_output(
-        self, *, running_workflow_step_id: str, output: str
+        self, *, running_workflow_step_id: str, output_variable: str
     ) -> tuple[dict[str, Any], int]:
         """Gets the set of outputs generated for the output variable of a given step.
         The step must have stopped for this to return any meaningful value.
@@ -358,7 +358,7 @@ class WorkflowAPIAdapter(ABC):
         Step's instance directory."""
         # Should return a (possibly empty) list of paths and filenames:
         # {
-        #   "outputs": ["dir/file1.sdf", "dir/file2.sdf"]
+        #   "output": ["dir/file1.sdf", "dir/file2.sdf"]
         # }
 
     @abstractmethod

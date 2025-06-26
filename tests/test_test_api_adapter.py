@@ -443,19 +443,75 @@ def test_get_running_workflow_step_by_name():
     assert response["id"] == rwfs_id
 
 
+def test_mock_get_running_workflow_step_output_values_for_output():
+    # Arrange
+    utaa = UnitTestWorkflowAPIAdapter()
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    response = utaa.create_running_workflow(
+        user_id="dlister",
+        workflow_id=response["id"],
+        project_id=TEST_PROJECT_ID,
+        variables={},
+    )
+    response, _ = utaa.create_running_workflow_step(
+        running_workflow_id=response["id"], step="step-1"
+    )
+
+    # Act
+    utaa.mock_get_running_workflow_step_output_values_for_output(
+        step_name="step-1", output_variable="results", output=["a", "b"]
+    )
+
+    # Assert
+    response, _ = utaa.get_running_workflow_step_output_values_for_output(
+        running_workflow_step_id="r-workflow-step-00000000-0000-0000-0000-000000000001",
+        output_variable="results",
+    )
+    assert "output" in response
+    assert len(response["output"]) == 2
+    assert "a" in response["output"]
+    assert "b" in response["output"]
+
+
+def test_basic_get_running_workflow_step_output_values_for_output_when_step_variable_name_unknown():
+    # Arrange
+    utaa = UnitTestWorkflowAPIAdapter()
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    response = utaa.create_running_workflow(
+        user_id="dlister",
+        workflow_id=response["id"],
+        project_id=TEST_PROJECT_ID,
+        variables={},
+    )
+    response, _ = utaa.create_running_workflow_step(
+        running_workflow_id=response["id"], step="step-1"
+    )
+
+    # Act
+    utaa.mock_get_running_workflow_step_output_values_for_output(
+        step_name="step-1", output_variable="results", output=["a", "b"]
+    )
+
+    # Assert
+    with pytest.raises(AssertionError):
+        _, _ = utaa.get_running_workflow_step_output_values_for_output(
+            running_workflow_step_id="r-workflow-step-00000000-0000-0000-0000-000000000001",
+            output_variable="unknownVariable",
+        )
+
+
 def test_basic_get_running_workflow_step_output_values_for_output_when_step_unknown():
     # Arrange
     utaa = UnitTestWorkflowAPIAdapter()
 
     # Act
-    response, _ = utaa.get_running_workflow_step_output_values_for_output(
-        running_workflow_step_id="r-workflow-step-00000000-0000-0000-0000-000000000001",
-        output="outputFile",
-    )
+    with pytest.raises(AssertionError):
+        _, _ = utaa.get_running_workflow_step_output_values_for_output(
+            running_workflow_step_id="r-workflow-step-00000000-0000-0000-0000-000000000001",
+            output_variable="outputFile",
+        )
 
     # Assert
-    assert "outputs" in response
-    assert len(response["outputs"]) == 0
 
 
 def test_basic_realise():

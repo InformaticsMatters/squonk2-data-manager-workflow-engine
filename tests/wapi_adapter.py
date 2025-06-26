@@ -15,6 +15,7 @@ Job definitions are loaded (statically) from the content of the
 method.
 """
 
+import copy
 import os
 from http import HTTPStatus
 from multiprocessing import Lock
@@ -49,6 +50,7 @@ _RUNNING_WORKFLOW_STEP_PICKLE_FILE: str = (
     f"{_PICKLE_DIRECTORY}/running-workflow-step.pickle"
 )
 _INSTANCE_PICKLE_FILE: str = f"{_PICKLE_DIRECTORY}/instance.pickle"
+_MOCK_STEP_OUTPUT_FILE: str = f"{_PICKLE_DIRECTORY}/mock-output.pickle"
 
 
 class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
@@ -73,12 +75,13 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             _RUNNING_WORKFLOW_PICKLE_FILE,
             _RUNNING_WORKFLOW_STEP_PICKLE_FILE,
             _INSTANCE_PICKLE_FILE,
+            _MOCK_STEP_OUTPUT_FILE,
         ]:
             with open(file, "wb") as pickle_file:
                 Pickler(pickle_file).dump({})
         UnitTestWorkflowAPIAdapter.lock.release()
 
-    def get_workflow(self, *, workflow_id: str) -> dict[str, Any]:
+    def get_workflow(self, *, workflow_id: str) -> tuple[dict[str, Any], int]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             workflow = Unpickler(pickle_file).load()
@@ -138,7 +141,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         step: str,
         replica: int = 0,
         prior_running_workflow_step_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], int]:
         if replica:
             assert replica > 0
 
@@ -172,7 +175,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
     def get_running_workflow_step(
         self, *, running_workflow_step_id: str
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], int]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
@@ -188,7 +191,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
     def get_running_workflow_step_by_name(
         self, *, name: str, running_workflow_id: str, replica: int = 0
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], int]:
         if replica:
             assert replica > 0
         UnitTestWorkflowAPIAdapter.lock.acquire()
@@ -293,7 +296,9 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         response = {} if instance_id not in instances else instances[instance_id]
         return response, 0
 
-    def get_job(self, *, collection: str, job: str, version: str) -> dict[str, Any]:
+    def get_job(
+        self, *, collection: str, job: str, version: str
+    ) -> tuple[dict[str, Any], int]:
         assert collection == _JOB_DEFINITIONS["collection"]
         assert job in _JOB_DEFINITIONS["jobs"]
         assert version
@@ -391,14 +396,61 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         return {"count": len(steps), "running_workflow_steps": steps}
 
     def get_running_workflow_step_output_values_for_output(
-        self, *, running_workflow_step_id: str, output: str
+        self, *, running_workflow_step_id: str, output_variable: str
     ) -> tuple[dict[str, Any], int]:
-        del running_workflow_step_id
-        del output
-        return {"outputs": []}, HTTPStatus.OK
+        """We use the 'mock' data to return output values, otherwise
+        we return an empty list. And we need to get the step in order to get its name.
+        """
+        # The RunningWorkflowStep must exist...
+        step, _ = self.get_running_workflow_step(
+            running_workflow_step_id=running_workflow_step_id
+        )
+        assert step
+        step_name: str = step["name"]
+        # Now we can inspect the 'mock' data...
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_MOCK_STEP_OUTPUT_FILE, "rb") as pickle_file:
+            mock_output = Unpickler(pickle_file).load()
+        UnitTestWorkflowAPIAdapter.lock.release()
+
+        if step_name not in mock_output:
+            return {"output": []}, 0
+        # The record's output variable must match (there's only one record per step atm)
+        assert mock_output[step_name]["output_variable"] == output_variable
+        # Now return what was provided to the mock method...
+        response = {"output": copy.copy(mock_output[step_name]["output"])}
+        return response, 0
 
     def realise_outputs(
         self, *, running_workflow_step_id: str
     ) -> tuple[dict[str, Any], int]:
         del running_workflow_step_id
         return {}, HTTPStatus.OK
+
+    # Custom (test) methods
+    # Methods not declared in the ABC
+
+    def mock_get_running_workflow_step_output_values_for_output(
+        self, *, step_name: str, output_variable: str, output: list[str]
+    ) -> None:
+        """Sets the output response for a step.
+        Limitation is that there can only be one record for each step name
+        so, for now, the output_variable is superfluous and only used
+        to check the output variable name matches."""
+        assert isinstance(step_name, str)
+        assert isinstance(output_variable, str)
+        assert isinstance(output, list)
+
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_MOCK_STEP_OUTPUT_FILE, "rb") as pickle_file:
+            mock_output = Unpickler(pickle_file).load()
+
+        record = {
+            "output_variable": output_variable,
+            "output": output,
+        }
+        mock_output[step_name] = record
+
+        with open(_MOCK_STEP_OUTPUT_FILE, "wb") as pickle_file:
+            Pickler(pickle_file).dump(mock_output)
+        UnitTestWorkflowAPIAdapter.lock.release()
