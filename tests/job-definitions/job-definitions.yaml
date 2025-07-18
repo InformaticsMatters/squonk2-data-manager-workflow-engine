@@ -132,3 +132,7 @@ jobs:
   concatenate:
     command: >-
       concatenate.py {% for ifile in  inputFile %}{{ ifile }} {% endfor %} --outputFile {{ outputFile }}
+
+  splitsmiles:
+    command: >-
+      copyf.py {{ inputFile }}

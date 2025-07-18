@@ -206,17 +206,17 @@ definitions:
     - from
 
   # A Step output (with an 'as' - a declared value)
-  step-output-as:
-    type: object
-    additionalProperties: false
-    properties:
-      output:
-        $ref: '#/definitions/template-variable-name'
-      as:
-        $ref: '#/definitions/file-name'
-    required:
-    - output
-    - as
+  # step-output-as:
+  #   type: object
+  #   additionalProperties: false
+  #   properties:
+  #     output:
+  #       $ref: '#/definitions/template-variable-name'
+  #     as:
+  #       $ref: '#/definitions/file-name'
+  #   required:
+  #   - output
+  #   - as
 
 
   # A step specification variable
@@ -282,9 +282,9 @@ definitions:
           - $ref: "#/definitions/step-input-from-workflow"
       outputs:
         type: array
-        items:
-          anyOf:
-          - $ref: "#/definitions/step-output-as"
+        # items:
+        #   anyOf:
+        #   - $ref: "#/definitions/step-output-as"
     required:
     - name
     - specification

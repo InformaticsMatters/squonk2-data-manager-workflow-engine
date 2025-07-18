@@ -213,6 +213,7 @@ def set_step_variables(
     workflow: dict[str, Any],
     inputs: list[dict[str, Any]],
     outputs: list[dict[str, Any]],
+    step_outputs: dict[str, Any],
     previous_step_outputs: list[dict[str, Any]],
     workflow_variables: dict[str, Any],
     step_name: str,
@@ -224,6 +225,13 @@ def set_step_variables(
     """
     result = {}
 
+    print("ssv: wf vars", workflow_variables)
+    print("ssv: inputs", inputs)
+    print("ssv: outputs", outputs)
+    print("ssv: step_outputs", step_outputs)
+    print("ssv: prev step outputs", previous_step_outputs)
+    print("ssv: step_name", step_name)
+
     for item in inputs:
         p_key = item["input"]
         p_val = ""
@@ -234,7 +242,16 @@ def set_step_variables(
         elif "step" in val.keys():
             for out in previous_step_outputs:
                 if out["output"] == val["output"]:
-                    p_val = out["as"]
+                    # p_val = out["as"]
+                    if step_outputs["output"]:
+                        p_val = step_outputs["output"]
+                        print("\n!!!!!!!!!!!!!if clause!!!!!!!!!!!!!!!!!!!!!\n")
+                        print(p_val)
+                    else:
+                        # what do I need to do here??
+                        print("\n!!!!!!!!!!!!!else clause!!!!!!!!!!!!!!!!!!!!!\n")
+                        print(out)
+                        print(val)
 
                     # this bit handles multiple inputs: if a step
                     # requires input from multiple steps, add them to
@@ -250,7 +267,9 @@ def set_step_variables(
 
     for item in outputs:
         p_key = item["output"]
-        p_val = item["as"]
+        # p_val = item["as"]
+        # p_val = step_outputs["output"]
+        p_val = "somefile.smi"
         result[p_key] = p_val
 
     options = set_variables_from_options_for_step(

@@ -202,6 +202,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         for rwfs_id, record in running_workflow_step.items():
             if record["running_workflow"]["id"] != running_workflow_id:
                 continue
+            print("running wf step by name, record:", record)
             if record["name"] == name and record["replica"] == replica:
                 response = record
                 response["id"] = rwfs_id
@@ -412,6 +413,11 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         with open(_MOCK_STEP_OUTPUT_FILE, "rb") as pickle_file:
             mock_output = Unpickler(pickle_file).load()
         UnitTestWorkflowAPIAdapter.lock.release()
+
+        print("mock output", mock_output)
+        print("step", step)
+        print("step_name", step_name)
+        # mock output {'first-step': {'output_variable': 'results', 'output': ['chunk_1.smi', 'chunk_2.smi']}}
 
         if step_name not in mock_output:
             return {"output": []}, 0

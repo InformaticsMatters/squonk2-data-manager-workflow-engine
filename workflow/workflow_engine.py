@@ -424,9 +424,10 @@ class WorkflowEngine:
             running_workflow_step_id,
         )
 
+        # resolve all previous steps
+        previous_step_names = set()
         if our_step_index > 0:
-            # resolve all previous steps
-            previous_step_names = set()
+            print("prev step inputs", inputs)
             for inp in inputs:
                 if step_name := inp["from"].get("step", None):
                     previous_step_names.add(step_name)
@@ -465,14 +466,54 @@ class WorkflowEngine:
         running_wf, _ = self._wapi_adapter.get_running_workflow(
             running_workflow_id=running_wf_id
         )
+        print("running wf", running_wf)
         workflow_id = running_wf["workflow"]["id"]
         workflow, _ = self._wapi_adapter.get_workflow(workflow_id=workflow_id)
+
+        print("workflow", workflow)
+
+        # for step in workflow["steps"]:
+        #     if step["name"] in previous_step_names:
+
+        previous_step_id = None
+        for name in previous_step_names:
+            result, _ = self._wapi_adapter.get_running_workflow_step_by_name(
+                name=name, running_workflow_id=running_wf_id, replica=0
+            )
+            print("by name results", result)
+            print("by name results, vars", result["variables"])
+            print("by name results, od", result["id"])
+            previous_step_id = result["id"]
+            # if name == 'first-step':
+            #     previous_step_id = result["id"]
+
+        # don't understand how this is structured
+        print("prev steps", previous_step_names)
+        print("outputs", outputs)
+        print()
+        step_outputs: dict[str, Any] = {"output": []}
+        if previous_step_id:
+            for output in outputs:
+                for k, v in output.items():
+                    print("sending params to output mock", k, v)
+                    try:
+                        step_outputs, _ = (
+                            self._wapi_adapter.get_running_workflow_step_output_values_for_output(
+                                running_workflow_step_id=previous_step_id,
+                                output_variable=v,  # foraeach outputs key
+                            )
+                        )
+
+                        print("mockputs", running_workflow_step_id, step_outputs)
+                    except AssertionError:
+                        print("no output for step", running_workflow_step_id, k, v)
 
         step_vars = set_step_variables(
             workflow=workflow,
             workflow_variables=all_variables,
             inputs=inputs,
             outputs=outputs,
+            step_outputs=step_outputs,
             previous_step_outputs=previous_step_outputs,
             step_name=running_wf_step["name"],
         )
@@ -515,6 +556,7 @@ class WorkflowEngine:
         wf_step_data, _ = self._wapi_adapter.get_workflow_steps_driving_this_step(
             running_workflow_step_id=rwfs_id,
         )
+        print("wf_step_data", wf_step_data)
         assert wf_step_data["caller_step_index"] >= 0
         our_step_index: int = wf_step_data["caller_step_index"]
 
@@ -541,6 +583,13 @@ class WorkflowEngine:
 
         project_id = rwf["project"]["id"]
         variables: dict[str, Any] = error_or_variables
+        print("variables", variables)
+        # find out if and by which parameter this step should be replicated
+        replicator = ""
+        if replicate := step.get("replicate", {}):
+            if using := replicate.get("using", {}):
+                # using is a dict but there can be only single value for now
+                replicator = list(using.values())[0]
 
         _LOGGER.info(
             "Launching step: RunningWorkflow=%s RunningWorkflowStep=%s step=%s"
@@ -587,24 +636,38 @@ class WorkflowEngine:
         #       A list of Job input variable names
         inputs: list[str] = []
         inputs.extend(iter(get_workflow_job_input_names_for_step(wf, step_name)))
-        lp: LaunchParameters = LaunchParameters(
-            project_id=project_id,
-            name=step_name,
-            debug=rwf.get("debug"),
-            launching_user_name=rwf["running_user"],
-            launching_user_api_token=rwf["running_user_api_token"],
-            specification=step["specification"],
-            specification_variables=variables,
-            running_workflow_id=rwf_id,
-            running_workflow_step_id=rwfs_id,
-            running_workflow_step_prior_steps=prior_steps,
-            running_workflow_step_inputs=inputs,
-        )
-        lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
-        if lr.error_num:
-            self._set_step_error(step_name, rwf_id, rwfs_id, lr.error_num, lr.error_msg)
+        if replicator:
+            single_step_variables = []
+            for replicating_param in variables[replicator]:
+                ssv = {**variables}
+                ssv[replicator] = replicating_param
+                single_step_variables.append(ssv)
         else:
-            _LOGGER.info("Launched step '%s' (command=%s)", step_name, lr.command)
+            single_step_variables = [variables]
+
+        print("single step variables", single_step_variables)
+
+        for params in single_step_variables:
+            lp: LaunchParameters = LaunchParameters(
+                project_id=project_id,
+                name=step_name,
+                debug=rwf.get("debug"),
+                launching_user_name=rwf["running_user"],
+                launching_user_api_token=rwf["running_user_api_token"],
+                specification=step["specification"],
+                specification_variables=params,
+                running_workflow_id=rwf_id,
+                running_workflow_step_id=rwfs_id,
+                running_workflow_step_prior_steps=prior_steps,
+                running_workflow_step_inputs=inputs,
+            )
+            lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
+            if lr.error_num:
+                self._set_step_error(
+                    step_name, rwf_id, rwfs_id, lr.error_num, lr.error_msg
+                )
+            else:
+                _LOGGER.info("Launched step '%s' (command=%s)", step_name, lr.command)
 
     def _set_step_error(
         self,
