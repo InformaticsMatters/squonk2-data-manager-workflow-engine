@@ -240,6 +240,12 @@ class WorkflowAPIAdapter(ABC):
         # }
         # If not present an empty dictionary should be returned.
         #
+        # Additionally, if the step has started (an instance has been created)
+        # the response will contain a "instance_directory" top-level property
+        # that is the directory within the Project that's the step's working directory.
+        #
+        #       "instance_directory": ".instance-00000000-0000-0000-0000-00000000000a",
+        #
         # For steps that are not the first in a workflow the following field
         # can be expected in the response: -
         #
@@ -272,6 +278,12 @@ class WorkflowAPIAdapter(ABC):
         #       },
         # }
         # If not present an empty dictionary should be returned.
+        #
+        # Additionally, if the step has started (an instance has been created)
+        # the response will contain a "instance_directory" top-level property
+        # that is the directory within the Project that's the step's working directory.
+        #
+        #       "instance_directory": ".instance-00000000-0000-0000-0000-00000000000a",
         #
         # For steps that are not the first in a workflow the following field
         # can be expected in the response: -
