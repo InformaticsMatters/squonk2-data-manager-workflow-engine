@@ -334,12 +334,6 @@ class WorkflowAPIAdapter(ABC):
         #       }
         #     ]
         # }
-        #
-        # Additionally, if the step has started (an instance has been created)
-        # each entry on the array of steps will contain a "instance_directory" property
-        # that is the directory within the Project that's the step's working directory.
-        #
-        #       "instance_directory": ".instance-00000000-0000-0000-0000-00000000000a",
 
     @abstractmethod
     def get_instance(self, *, instance_id: str) -> tuple[dict[str, Any], int]:
