@@ -377,6 +377,17 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         with open(_INSTANCE_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(instances)
+
+        # Use the instance ID as the step's instance-directory (prefixing with '.')
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
+            running_workflow_step = Unpickler(pickle_file).load()
+        assert running_workflow_step_id in running_workflow_step
+        running_workflow_step[running_workflow_step_id][
+            "instance_directory"
+        ] = f".{instance_id}"
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "wb") as pickle_file:
+            Pickler(pickle_file).dump(running_workflow_step)
+
         UnitTestWorkflowAPIAdapter.lock.release()
 
         return {"id": instance_id}
