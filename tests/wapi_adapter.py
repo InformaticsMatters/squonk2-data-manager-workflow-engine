@@ -287,7 +287,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             "steps": wf_response["steps"].copy(),
         }, 0
 
-    def get_instance(self, *, instance_id: str) -> dict[str, Any]:
+    def get_instance(self, *, instance_id: str) -> tuple[dict[str, Any], int]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_INSTANCE_PICKLE_FILE, "rb") as pickle_file:
             instances = Unpickler(pickle_file).load()
