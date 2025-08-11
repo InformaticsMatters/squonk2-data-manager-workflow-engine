@@ -1,0 +1,344 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Data Manager Workflow Schema",
+  "description": "The Schema for Data Manager Workflows",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "const": "DataManagerWorkflow"
+    },
+    "kind-version": {
+      "enum": [
+        "2025.2"
+      ]
+    },
+    "name": {
+      "$ref": "#/definitions/rfc1035-label-name"
+    },
+    "description": {
+      "type": "string",
+      "description": "A description of the workflow"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/step"
+      }
+    },
+    "variables": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "variable-mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/workflow-input-parameter"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/workflow-output-parameter"
+          }
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/workflow-option-parameter"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "kind",
+    "kind-version",
+    "name",
+    "steps"
+  ],
+  "definitions": {
+    "rfc1035-label-name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{,63}(?<!-)$",
+      "description": "A value compatible with Kubernetes variables to allow it to be used ins Pod Label"
+    },
+    "template-variable-name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+    },
+    "file-name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9._-]+$"
+    },
+    "workflow-input-parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/template-variable-name"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "workflow-output-parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/template-variable-name"
+        },
+        "from": {
+          "$ref": "#/definitions/from-step-output"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "as-step-option": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "option": {
+          "$ref": "#/definitions/template-variable-name"
+        },
+        "step": {
+          "$ref": "#/definitions/rfc1035-label-name"
+        }
+      },
+      "required": [
+        "option",
+        "step"
+      ]
+    },
+    "from-workflow-input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workflow-input": {
+          "$ref": "#/definitions/template-variable-name"
+        }
+      },
+      "required": [
+        "workflow-input"
+      ]
+    },
+    "from-step-output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "step": {
+          "$ref": "#/definitions/rfc1035-label-name"
+        },
+        "output": {
+          "$ref": "#/definitions/template-variable-name"
+        }
+      },
+      "required": [
+        "step",
+        "output"
+      ]
+    },
+    "workflow-option-parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/template-variable-name"
+        },
+        "description": {
+          "type": "string"
+        },
+        "default": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "as": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/as-step-option"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "as"
+      ]
+    },
+    "replicate-using-input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/definitions/template-variable-name"
+        }
+      },
+      "required": [
+        "input"
+      ]
+    },
+    "step-input-from-step": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/definitions/template-variable-name"
+        },
+        "from": {
+          "$ref": "#/definitions/from-step-output"
+        }
+      },
+      "required": [
+        "input"
+      ]
+    },
+    "step-input-from-workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/definitions/template-variable-name"
+        },
+        "from": {
+          "$ref": "#/definitions/from-workflow-input"
+        }
+      },
+      "required": [
+        "input",
+        "from"
+      ]
+    },
+    "step-output-as": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "output": {
+          "$ref": "#/definitions/template-variable-name"
+        },
+        "as": {
+          "$ref": "#/definitions/file-name"
+        }
+      },
+      "required": [
+        "output",
+        "as"
+      ]
+    },
+    "step-specification-variable": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-zA-Z]{1}[a-zA-Z0-9_]{0,79}$": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      "minProperties": 1
+    },
+    "step-specification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "collection": {
+          "type": "string"
+        },
+        "job": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "variables": {
+          "$ref": "#/definitions/step-specification-variable"
+        }
+      },
+      "required": [
+        "collection",
+        "job",
+        "version"
+      ]
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/rfc1035-label-name"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the step"
+        },
+        "specification": {
+          "$ref": "#/definitions/step-specification"
+        },
+        "replicate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "using": {
+              "$ref": "#/definitions/replicate-using-input"
+            }
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/step-input-from-step"
+              },
+              {
+                "$ref": "#/definitions/step-input-from-workflow"
+              }
+            ]
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/step-output-as"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "name",
+        "specification"
+      ]
+    }
+  }
+}
