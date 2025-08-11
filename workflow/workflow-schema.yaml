@@ -65,7 +65,7 @@ definitions:
   # See https://kubernetes.io/docs/concepts/overview/working-with-objects/names/
   rfc1035-label-name:
     type: string
-    pattern: ^[a-z][a-z0-9-]{,63}$(?<!-)
+    pattern: ^[a-z][a-z0-9-]{0,63}$(?<!-)
     description: >-
       A value compatible with Kubernetes variables
       to allow it to be used ins Pod Label
