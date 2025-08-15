@@ -130,7 +130,7 @@ def test_workflow_name_with_spaces():
 
     # Assert
     assert (
-        error == "'workflow with spaces' does not match '^[a-z][a-z0-9-]{,63}(?<!-)$'"
+        error == "'workflow with spaces' does not match '^[a-z][a-z0-9-]{0,63}$(?<!-)'"
     )
 
 
