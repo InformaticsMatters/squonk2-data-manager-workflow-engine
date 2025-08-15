@@ -76,19 +76,15 @@ class UnitTestInstanceLauncher(InstanceLauncher):
 
         os.makedirs(EXECUTION_DIRECTORY, exist_ok=True)
 
-        # We're passed a RunningWorkflowStep ID but a record is expected to have been
-        # created bt the caller, we simply create instance records.
-        response, _ = self._api_adapter.get_running_workflow_step(
-            running_workflow_step_id=launch_parameters.running_workflow_step_id
-        )
-        # Now simulate the creation of a Task and Instance record
+        # Create an Instance record (and dummy Task ID)
         response = self._api_adapter.create_instance(
             running_workflow_step_id=launch_parameters.running_workflow_step_id
         )
         instance_id = response["id"]
         task_id = "task-00000000-0000-0000-0000-000000000001"
 
-        # Apply variables to the step's Job command.
+        # Get the job defitnion.
+        # This is expected to exist in the tests/job-definitions directory.
         job, _ = self._api_adapter.get_job(
             collection=launch_parameters.specification["collection"],
             job=launch_parameters.specification["job"],
@@ -96,7 +92,8 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         )
         assert job
 
-        # Now apply the variables to the command
+        # Now apply the provided variables to the command.
+        # The command may not need any, but we do the decoding anyway.
         decoded_command, status = job_decoder.decode(
             job["command"],
             launch_parameters.specification_variables,
