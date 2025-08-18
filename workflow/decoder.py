@@ -280,3 +280,13 @@ def set_step_variables(
 
     result |= options
     return result
+
+
+def get_step_replication_param(*, step: dict[str, Any]) -> str | Any:
+    """Return step's replication info"""
+    replicator = step.get("replicate", None)
+    if replicator:
+        # 'using' is a dict but there can be only single value for now
+        replicator = list(replicator["using"].values())[0]
+
+    return replicator

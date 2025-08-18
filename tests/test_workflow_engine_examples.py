@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime, timezone
+from pprint import pprint
 from typing import Any
 
 import pytest
@@ -458,7 +459,8 @@ def test_workflow_engine_simple_python_fanout(basic_engine):
     # Additional, detailed checks...
     # Check we only have one RunningWorkflowStep, and it succeeded
     response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
-    print("response", response)
+    print("response")
+    pprint(response)
 
     assert response["count"] == 2
     assert response["running_workflow_steps"][0]["done"]

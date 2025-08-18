@@ -25,6 +25,7 @@ is executed, and it uses thew InstanceLauncher to launch the Job (a Pod) for eac
 import logging
 import sys
 from http import HTTPStatus
+from pprint import pprint
 from typing import Any, Dict, Optional
 
 from decoder.decoder import TextEncoding, decode
@@ -40,6 +41,7 @@ from workflow.workflow_abc import (
 )
 
 from .decoder import (
+    get_step_replication_param,
     get_workflow_job_input_names_for_step,
     set_step_variables,
     workflow_step_has_outputs,
@@ -466,11 +468,13 @@ class WorkflowEngine:
         running_wf, _ = self._wapi_adapter.get_running_workflow(
             running_workflow_id=running_wf_id
         )
-        print("running wf", running_wf)
+        print("running wf")
+        pprint(running_wf)
         workflow_id = running_wf["workflow"]["id"]
         workflow, _ = self._wapi_adapter.get_workflow(workflow_id=workflow_id)
 
-        print("workflow", workflow)
+        print("workflow")
+        pprint(workflow)
 
         # for step in workflow["steps"]:
         #     if step["name"] in previous_step_names:
@@ -556,9 +560,13 @@ class WorkflowEngine:
         wf_step_data, _ = self._wapi_adapter.get_workflow_steps_driving_this_step(
             running_workflow_step_id=rwfs_id,
         )
-        print("wf_step_data", wf_step_data)
+        print("wf_step_data")
+        pprint(wf_step_data)
         assert wf_step_data["caller_step_index"] >= 0
         our_step_index: int = wf_step_data["caller_step_index"]
+
+        print("step in _launch:", step_name)
+        pprint(step)
 
         # Now check the step command can be executed
         # (by trying to decoding the Job command).
@@ -585,11 +593,7 @@ class WorkflowEngine:
         variables: dict[str, Any] = error_or_variables
         print("variables", variables)
         # find out if and by which parameter this step should be replicated
-        replicator = ""
-        if replicate := step.get("replicate", {}):
-            if using := replicate.get("using", {}):
-                # using is a dict but there can be only single value for now
-                replicator = list(using.values())[0]
+        replicator = get_step_replication_param(step=step)
 
         _LOGGER.info(
             "Launching step: RunningWorkflow=%s RunningWorkflowStep=%s step=%s"
@@ -634,6 +638,10 @@ class WorkflowEngine:
         #
         #   'running_workflow_step_inputs'
         #       A list of Job input variable names
+
+        print("variables")
+        pprint(variables)
+
         inputs: list[str] = []
         inputs.extend(iter(get_workflow_job_input_names_for_step(wf, step_name)))
         if replicator:
@@ -645,7 +653,8 @@ class WorkflowEngine:
         else:
             single_step_variables = [variables]
 
-        print("single step variables", single_step_variables)
+        print("single step variables")
+        pprint(single_step_variables)
 
         for params in single_step_variables:
             lp: LaunchParameters = LaunchParameters(
