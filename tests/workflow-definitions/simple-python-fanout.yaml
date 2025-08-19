@@ -4,18 +4,8 @@ kind-version: "2025.2"
 name: python-workflow
 description: >-
   A simple parallel workflow. Input is split into N chunks and N processes of the same job is started
-variable-mapping:
-  inputs:
-  - name: candidateMolecules
-  outputs:
-  - name: clusteredMolecules
-    from:
-      step: final-step
-      output: outputFile
-
 
 steps:
-
 - name: first-step
   description: Create inputs
   specification:
@@ -25,12 +15,10 @@ steps:
     variables:
       name: "count"
       value: "1"
-  inputs:
-  - input: inputFile
-    from:
-      workflow-input: candidateMolecules
-  outputs:
-  - output: outputFile
+  variable-mapping:
+  - variable: inputFile
+    from-workflow-variable:
+      variable: candidateMolecules
 
 - name: parallel-step
   description: Add some params
@@ -44,10 +32,10 @@ steps:
   replicate:
     using:
       input: inputFile
-  inputs:
-  - input: inputFile
-    from:
-      step: first-step
-      output: outputFile
-  outputs:
-  - output: outputFile
+  variable-mapping:
+  - variable: inputFile
+    from-step:
+      name: first-step
+      variable: outputFile
+  out:
+  - outputFile

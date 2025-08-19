@@ -12,9 +12,6 @@ steps:
     collection: workflow-engine-unit-test-jobs
     job: shortcut-example-1-process-a
     version: "1.0.0"
-  outputs:
-  - output: 'outputFile'
-    # as: 'a.sdf'
 
 - name: example-1-step-2
   description: The first step
@@ -22,11 +19,10 @@ steps:
     collection: workflow-engine-unit-test-jobs
     job: shortcut-example-1-process-b
     version: "1.0.0"
-  inputs:
-  - input: 'inputFile'
-    from:
-      step: example-1-step-1
-      output: 'outputFile'
-  outputs:
-  - output: 'outputFile'
-    # as: 'b.sdf'
+  variable-mapping:
+  - variable: inputFile
+    from-step:
+      name: example-1-step-1
+      variable: outputFile
+  out:
+  - outputFile

@@ -1,5 +1,5 @@
 ---
-# The JSONSchema for 'Workflow' YAML files.
+# The schema for 'Workflow' YAML files.
 #
 # See https://json-schema.org/understanding-json-schema/index.html
 
@@ -33,24 +33,6 @@ properties:
     # and, like Jobs, has no current schema so we permit anything here.
     type: object
     additionalProperties: true
-  variable-mapping:
-    # Workflow-specific variable declarations,
-    # used (at the moment) to map workflow variables to steps.
-    type: object
-    additionalProperties: false
-    properties:
-      inputs:
-        type: array
-        items:
-          $ref: "#/definitions/workflow-input-parameter"
-      outputs:
-        type: array
-        items:
-          $ref: "#/definitions/workflow-output-parameter"
-      options:
-        type: array
-        items:
-          $ref: "#/definitions/workflow-option-parameter"
 required:
 - kind
 - kind-version
@@ -73,101 +55,9 @@ definitions:
   # What does a Job specification template variable look like?
   # The values found in Jinja variables like '{{ x }}'.
   # Stuff like 'candidateMolecules' or 'clustered_molecules'
-  template-variable-name:
+  variable-name:
     type: string
     pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
-
-  # What does a filename look like?
-  # We do not (at the moment) permit spaces!
-  file-name:
-    type: string
-    pattern: ^[a-zA-Z0-9._-]+$
-
-  # An input parameter has a name and a (MIME) type.
-  workflow-input-parameter:
-    type: object
-    additionalProperties: false
-    properties:
-      name:
-        $ref: '#/definitions/template-variable-name'
-    required:
-    - name
-
-  # A workflow output parameter is essentially a file
-  # taken from the output of a step with a default (as) value.
-  workflow-output-parameter:
-    type: object
-    additionalProperties: false
-    properties:
-      name:
-        $ref: '#/definitions/template-variable-name'
-      from:
-        $ref: '#/definitions/from-step-output'
-    required:
-    - name
-
-  # Declaration of a step option value from a workflow option (variable)
-  as-step-option:
-    type: object
-    additionalProperties: false
-    properties:
-      option:
-        $ref: '#/definitions/template-variable-name'
-      step:
-        $ref: '#/definitions/rfc1035-label-name'
-    required:
-    - option
-    - step
-
-
-  # Declaration of a value from a workflow input (variable)
-  from-workflow-input:
-    type: object
-    additionalProperties: false
-    properties:
-      workflow-input:
-        $ref: '#/definitions/template-variable-name'
-    required:
-    - workflow-input
-
-  # Declaration of a value from another step
-  from-step-output:
-    type: object
-    additionalProperties: false
-    properties:
-      step:
-        $ref: '#/definitions/rfc1035-label-name'
-      output:
-        $ref: '#/definitions/template-variable-name'
-    required:
-    - step
-    - output
-
-  # A workflow option used as a step option
-  workflow-option-parameter:
-    type: object
-    additionalProperties: false
-    properties:
-      name:
-        $ref: '#/definitions/template-variable-name'
-      description:
-        type: string
-      default:
-        oneOf:
-        - type: string
-        - type: number
-        - type: boolean
-      minimum:
-        type: number
-      maximum:
-        type: number
-      as:
-        type: array
-        items:
-          $ref: '#/definitions/as-step-option'
-    required:
-    - name
-    - as
 
   # A step replication control variable
   # that is based on a step input variable
@@ -176,48 +66,52 @@ definitions:
     additionalProperties: false
     properties:
       input:
-        $ref: '#/definitions/template-variable-name'
+        $ref: '#/definitions/variable-name'
     required:
     - input
 
-  # A Step input (from an output of a prior step)
-  step-input-from-step:
+  # A Step variable
+  # (whose value is derived from a variable used in a prior step)
+  step-variable-from-step:
     type: object
     additionalProperties: false
     properties:
-      input:
-        $ref: '#/definitions/template-variable-name'
-      from:
-        $ref: '#/definitions/from-step-output'
+      variable:
+        $ref: '#/definitions/variable-name'
+      from-step:
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            $ref: '#/definitions/rfc1035-label-name'
+          variable:
+            $ref: '#/definitions/variable-name'
+        required:
+        - name
+        - variable
     required:
-    - input
+    - variable
+    - from-step
 
-  # A Step input (from a workflow input)
-  step-input-from-workflow:
+  # A Step variable
+  # (whose value is derived from a workflow variable)
+  step-variable-from-workflow:
     type: object
     additionalProperties: false
     properties:
-      input:
-        $ref: '#/definitions/template-variable-name'
-      from:
-        $ref: '#/definitions/from-workflow-input'
+      variable:
+        $ref: '#/definitions/variable-name'
+      from-workflow-variable:
+        type: object
+        additionalProperties: false
+        properties:
+          variable:
+            $ref: '#/definitions/variable-name'
+        required:
+        - variable
     required:
-    - input
-    - from
-
-  # A Step output (with an 'as' - a declared value)
-  # step-output-as:
-  #   type: object
-  #   additionalProperties: false
-  #   properties:
-  #     output:
-  #       $ref: '#/definitions/template-variable-name'
-  #     as:
-  #       $ref: '#/definitions/file-name'
-  #   required:
-  #   - output
-  #   - as
-
+    - variable
+    - from-workflow-variable
 
   # A step specification variable
   # (there must be at least one if a variables block is defined).
@@ -260,11 +154,18 @@ definitions:
     additionalProperties: false
     properties:
       name:
+        # A unique name for the step
         $ref: '#/definitions/rfc1035-label-name'
       description:
+        # An optional description
         type: string
         description: A description of the step
       specification:
+        # The step Job specififcation.
+        # This MUST define `collection`, a 'job', and a 'version'.
+        # 'variables' (a map of name and value)can also be provided.
+        # The format of this is essentially idenical to the specification
+        # used when a Job is launched via the DM API.
         $ref: '#/definitions/step-specification'
       replicate:
         # Used to indicate one input variable that is used to replicate/spawn
@@ -274,17 +175,35 @@ definitions:
         properties:
           using:
             $ref: '#/definitions/replicate-using-input'
-      inputs:
+      variable-mapping:
+        # The map of the source of the step's variables.
+        # all variables the step needs (that aren;t already in the specification)
+        # need to be declared here. They either come "from" a prior step
+        # or are expected in th erunning workflow variables. Here we simply
+        # associate every required variable to a source.
         type: array
         items:
           anyOf:
-          - $ref: "#/definitions/step-input-from-step"
-          - $ref: "#/definitions/step-input-from-workflow"
-      outputs:
+          - $ref: "#/definitions/step-variable-from-step"
+          - $ref: "#/definitions/step-variable-from-workflow"
+        minItems: 1
+      in:
+        # An optional list of the step variables that are inputs.
+        # These are typically files, expected to be present in the Project directory,
+        # that need to be copied (by the DM) into the step's instance directory.
         type: array
-        # items:
-        #   anyOf:
-        #   - $ref: "#/definitions/step-output-as"
+        items:
+          $ref: '#/definitions/variable-name'
+        minItems: 1
+      out:
+        # An optional list of the step variables that are outputs.
+        # These are typically files, expected to be present in the Step Instance directory,
+        # when it finished (successfully), that need to be copied (by the DM)
+        # into the Project directory via "realise_outputs()"
+        type: array
+        items:
+          $ref: '#/definitions/variable-name'
+        minItems: 1
     required:
     - name
     - specification

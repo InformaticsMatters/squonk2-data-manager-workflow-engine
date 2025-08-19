@@ -53,62 +53,7 @@ variables:
         minimum: 0
         maximum: 1
 
-# variable-mapping:
-#   inputs:
-#   - name: candidateMolecules
-#   outputs:
-#   - name: outputFile
-#     from:
-#       step: step1
-#       output: outputFile
-#   - name: clusteredMolecules
-#     from:
-#       step: step1
-#       output: outputFile
-#   options:
-#   - name: rdkitPropertyName
-#     default: name
-#     as:
-#     - option: name
-#       step: step1
-#   - name: rdkitPropertyValue
-#     as:
-#     - option: value
-#       step: step1
-
 steps:
-
-# - name: step1
-#   description: Add column 1
-#   specification:
-#     collection: workflow-engine-unit-test-jobs
-#     job: rdkit-molprops
-#     version: "1.0.0"
-#   inputs:
-#   - input: inputFile
-#     from:
-#       workflow-input: candidateMolecules
-#   # outputs:
-#   # - output: outputFile
-
-# - name: step2
-#   description: Add column 2
-#   specification:
-#     collection: workflow-engine-unit-test-jobs
-#     job: cluster-butina
-#     version: "1.0.0"
-#     variables:
-#       name: "col2"
-#       value: "999"
-#   inputs:
-#   - input: inputFile
-#     from:
-#       step: step1
-#       output: outputFile
-#   outputs:
-#   - output: outputFile
-
-
 - name: step1
   description: Add column 1
   specification:
@@ -116,19 +61,18 @@ steps:
     job: rdkit-molprops
     version: "1.0.0"
   variable-mapping:
-  - name: inputFile
-    from:
-      workflow-variable: candidateMolecules
-  - name: name
-    from:
-      workflow-variable: rdkitPropertyName
-  - name: value
-    from:
-      workflow-variable: rdkitPropertyValue
-  - name: outputFile
-    from:
-      workflow-variable: clusteredMolecules
-
+  - variable: inputFile
+    from-workflow-variable:
+      variable: candidateMolecules
+  - variable: name
+    from-workflow-variable:
+      variable: rdkitPropertyName
+  - variable: value
+    from-workflow-variable:
+      variable: rdkitPropertyValue
+  - variable: outputFile
+    from-workflow-variable:
+      variable: clusteredMolecules
 
 - name: step2
   description: Add column 2
@@ -140,10 +84,12 @@ steps:
       name: "col2"
       value: "999"
   variable-mapping:
-  - name: inputFile
-    from:
-      step: step1
-      output: outputFile
-  - name: outputFile
-    from:
-      workflow-variable: outputFile
+  - variable: inputFile
+    from-step:
+      name: step1
+      variable: outputFile
+  - variable: outputFile
+    from-workflow-variable:
+      variable: outputFile
+  out:
+  - outputFile

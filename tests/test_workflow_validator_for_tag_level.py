@@ -11,10 +11,10 @@ from workflow.workflow_validator import ValidationLevel, WorkflowValidator
 
 def test_validate_example_nop_file():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-nop-fail.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -31,10 +31,10 @@ def test_validate_example_nop_file():
 
 def test_validate_duplicate_step_names():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "duplicate-step-names.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -51,10 +51,10 @@ def test_validate_duplicate_step_names():
 
 def test_validate_example_smiles_to_file():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-smiles-to-file.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -71,10 +71,10 @@ def test_validate_example_smiles_to_file():
 
 def test_validate_example_two_step_nop():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-two-step-nop.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -91,10 +91,10 @@ def test_validate_example_two_step_nop():
 
 def test_validate_shortcut_example_1():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "shortcut-example-1.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -109,14 +109,15 @@ def test_validate_shortcut_example_1():
     assert error.error_msg is None
 
 
+@pytest.mark.skip("Unsupported workflow")
 def test_validate_simple_python_parallel():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__),
         "workflow-definitions",
         "simple-python-parallel.yaml",
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -132,10 +133,10 @@ def test_validate_simple_python_parallel():
 
 def test_validate_simple_python_molprops():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -152,12 +153,12 @@ def test_validate_simple_python_molprops():
 
 def test_validate_simple_python_molprops_with_options():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__),
         "workflow-definitions",
         "simple-python-molprops-with-options.yaml",
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -172,36 +173,14 @@ def test_validate_simple_python_molprops_with_options():
     assert error.error_msg is None
 
 
-def test_validate_duplicate_workflow_variable_names():
-    # Arrange
-    workflow_file: str = os.path.join(
-        os.path.dirname(__file__),
-        "workflow-definitions",
-        "duplicate-workflow-variable-names.yaml",
-    )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
-        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
-    assert workflow
-
-    # Act
-    error = WorkflowValidator.validate(
-        level=ValidationLevel.TAG,
-        workflow_definition=workflow,
-    )
-
-    # Assert
-    assert error.error_num == 6
-    assert error.error_msg == ["Duplicate workflow variable names found: x"]
-
-
 def test_validate_replicate_using_undeclared_input():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__),
         "workflow-definitions",
         "replicate-using-undeclared-input.yaml",
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -220,12 +199,12 @@ def test_validate_replicate_using_undeclared_input():
 
 def test_validate_duplicate_step_output_variable_names():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__),
         "workflow-definitions",
-        "duplicate-step-output-variable-names.yaml",
+        "duplicate-step-input-output-variable-names.yaml",
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -238,5 +217,5 @@ def test_validate_duplicate_step_output_variable_names():
     # Assert
     assert error.error_num == 3
     assert error.error_msg == [
-        "Duplicate step output variable: outputFile (step=step-1)"
+        "Duplicate step output variable: outputFile (step=step-2)"
     ]

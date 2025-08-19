@@ -5,11 +5,10 @@ from enum import Enum
 from typing import Any
 
 from .decoder import (
-    get_required_variable_names,
     get_step_input_variable_names,
     get_step_output_variable_names,
     get_steps,
-    get_variable_names,
+    get_workflow_variable_names,
     validate_schema,
 )
 
@@ -113,24 +112,6 @@ class WorkflowValidator:
                 error_num=2,
                 error_msg=[f"Duplicate step names found: {', '.join(duplicate_names)}"],
             )
-        # Workflow variables must be unique.
-        duplicate_names.clear()
-        variable_names.clear()
-        wf_variable_names: list[str] = get_variable_names(workflow_definition)
-        for wf_variable_name in wf_variable_names:
-            if (
-                wf_variable_name not in duplicate_names
-                and wf_variable_name in variable_names
-            ):
-                duplicate_names.add(wf_variable_name)
-            variable_names.add(wf_variable_name)
-        if duplicate_names:
-            return ValidationResult(
-                error_num=6,
-                error_msg=[
-                    f"Duplicate workflow variable names found: {', '.join(duplicate_names)}"
-                ],
-            )
         # For each 'replicating' step the replicating variable
         # must be declared in the step.
         for step in get_steps(workflow_definition):
@@ -163,7 +144,7 @@ class WorkflowValidator:
         assert workflow_definition
 
         # We must have values for all the variables defined in the workflow.
-        wf_variables: list[str] = get_required_variable_names(workflow_definition)
+        wf_variables: set[str] = get_workflow_variable_names(workflow_definition)
         missing_values: list[str] = []
         missing_values.extend(
             wf_variable

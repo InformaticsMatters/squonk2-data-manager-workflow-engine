@@ -41,8 +41,8 @@ from workflow.workflow_abc import (
 )
 
 from .decoder import (
+    get_step_input_variable_names,
     get_step_replication_param,
-    get_workflow_job_input_names_for_step,
     set_step_variables,
     workflow_step_has_outputs,
 )
@@ -645,7 +645,7 @@ class WorkflowEngine:
         pprint(variables)
 
         inputs: list[str] = []
-        inputs.extend(iter(get_workflow_job_input_names_for_step(wf, step_name)))
+        inputs.extend(iter(get_step_input_variable_names(wf, step_name)))
         if replicator:
             single_step_variables = []
             for replicating_param in variables[replicator]:
