@@ -16,7 +16,7 @@ steps:
       value: 123
   variable-mapping:
   - variable: inputFile
-    from-workflow-variable:
+    from-workflow:
       variable: candidateMolecules
   in:
   - outputFile

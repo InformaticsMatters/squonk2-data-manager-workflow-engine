@@ -73,8 +73,8 @@ def get_workflow_variable_names(definition: dict[str, Any]) -> set[str]:
     for step in steps:
         if v_map := step.get("variable-mapping"):
             for v in v_map:
-                if "from-workflow-variable" in v:
-                    wf_variable_names.add(v["from-workflow-variable"]["variable"])
+                if "from-workflow" in v:
+                    wf_variable_names.add(v["from-workflow"]["variable"])
     return wf_variable_names
 
 
