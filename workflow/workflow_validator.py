@@ -118,7 +118,7 @@ class WorkflowValidator:
             if (
                 replicate_using_input := step.get("replicate", {})
                 .get("using", {})
-                .get("input")
+                .get("variable")
             ):
                 step_name = step["name"]
                 if replicate_using_input not in get_step_input_variable_names(

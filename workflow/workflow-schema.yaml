@@ -60,15 +60,15 @@ definitions:
     pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
 
   # A step replication control variable
-  # that is based on a step input variable
-  replicate-using-input:
+  # that is based on a step variable
+  replicate-using-variable:
     type: object
     additionalProperties: false
     properties:
-      input:
+      variable:
         $ref: '#/definitions/variable-name'
     required:
-    - input
+    - variable
 
   # A Step variable
   # (whose value is derived from a variable used in a prior step)
@@ -174,7 +174,7 @@ definitions:
         additionalProperties: false
         properties:
           using:
-            $ref: '#/definitions/replicate-using-input'
+            $ref: '#/definitions/replicate-using-variable'
       variable-mapping:
         # The map of the source of the step's variables.
         # all variables the step needs (that aren;t already in the specification)

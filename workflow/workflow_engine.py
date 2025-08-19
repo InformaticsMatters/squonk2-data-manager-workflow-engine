@@ -42,7 +42,7 @@ from workflow.workflow_abc import (
 
 from .decoder import (
     get_step_input_variable_names,
-    get_step_replication_param,
+    get_step_replicator,
     set_step_variables,
     workflow_step_has_outputs,
 )
@@ -595,7 +595,7 @@ class WorkflowEngine:
         variables: dict[str, Any] = error_or_variables
         print("variables", variables)
         # find out if and by which parameter this step should be replicated
-        replicator = get_step_replication_param(step=step)
+        replicator = get_step_replicator(step=step)
 
         _LOGGER.info(
             "Launching step: RunningWorkflow=%s RunningWorkflowStep=%s step=%s"

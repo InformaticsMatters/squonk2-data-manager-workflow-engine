@@ -32,7 +32,7 @@ steps:
       value: "999"
   replicate:
     using:
-      input: y
+      variable: y
   variable-mapping:
   - variable: inputFile
     from-step:
