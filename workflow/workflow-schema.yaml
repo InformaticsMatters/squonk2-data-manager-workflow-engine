@@ -101,7 +101,7 @@ definitions:
     properties:
       variable:
         $ref: '#/definitions/variable-name'
-      from-workflow-variable:
+      from-workflow:
         type: object
         additionalProperties: false
         properties:
@@ -111,7 +111,7 @@ definitions:
         - variable
     required:
     - variable
-    - from-workflow-variable
+    - from-workflow
 
   # A step specification variable
   # (there must be at least one if a variables block is defined).
