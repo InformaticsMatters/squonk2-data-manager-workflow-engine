@@ -512,6 +512,8 @@ class WorkflowEngine:
                     except AssertionError:
                         print("no output for step", running_workflow_step_id, k, v)
 
+        print("final prev step outputs", previous_step_outputs)
+
         step_vars = set_step_variables(
             workflow=workflow,
             workflow_variables=all_variables,

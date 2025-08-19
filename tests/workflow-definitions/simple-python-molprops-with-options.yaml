@@ -53,26 +53,61 @@ variables:
         minimum: 0
         maximum: 1
 
-variable-mapping:
-  inputs:
-  - name: candidateMolecules
-  outputs:
-  - name: clusteredMolecules
-    from:
-      step: step2
-      output: outputFile
-  options:
-  - name: rdkitPropertyName
-    default: name
-    as:
-    - option: name
-      step: step1
-  - name: rdkitPropertyValue
-    as:
-    - option: value
-      step: step1
+# variable-mapping:
+#   inputs:
+#   - name: candidateMolecules
+#   outputs:
+#   - name: outputFile
+#     from:
+#       step: step1
+#       output: outputFile
+#   - name: clusteredMolecules
+#     from:
+#       step: step1
+#       output: outputFile
+#   options:
+#   - name: rdkitPropertyName
+#     default: name
+#     as:
+#     - option: name
+#       step: step1
+#   - name: rdkitPropertyValue
+#     as:
+#     - option: value
+#       step: step1
 
 steps:
+
+# - name: step1
+#   description: Add column 1
+#   specification:
+#     collection: workflow-engine-unit-test-jobs
+#     job: rdkit-molprops
+#     version: "1.0.0"
+#   inputs:
+#   - input: inputFile
+#     from:
+#       workflow-input: candidateMolecules
+#   # outputs:
+#   # - output: outputFile
+
+# - name: step2
+#   description: Add column 2
+#   specification:
+#     collection: workflow-engine-unit-test-jobs
+#     job: cluster-butina
+#     version: "1.0.0"
+#     variables:
+#       name: "col2"
+#       value: "999"
+#   inputs:
+#   - input: inputFile
+#     from:
+#       step: step1
+#       output: outputFile
+#   outputs:
+#   - output: outputFile
+
 
 - name: step1
   description: Add column 1
@@ -80,13 +115,20 @@ steps:
     collection: workflow-engine-unit-test-jobs
     job: rdkit-molprops
     version: "1.0.0"
-  inputs:
-  - input: inputFile
+  variable-mapping:
+  - name: inputFile
     from:
-      workflow-input: candidateMolecules
-  outputs:
-  - output: outputFile
-    as: step1.out.smi
+      workflow-variable: candidateMolecules
+  - name: name
+    from:
+      workflow-variable: rdkitPropertyName
+  - name: value
+    from:
+      workflow-variable: rdkitPropertyValue
+  - name: outputFile
+    from:
+      workflow-variable: clusteredMolecules
+
 
 - name: step2
   description: Add column 2
@@ -97,11 +139,11 @@ steps:
     variables:
       name: "col2"
       value: "999"
-  inputs:
-  - input: inputFile
+  variable-mapping:
+  - name: inputFile
     from:
       step: step1
       output: outputFile
-  outputs:
-  - output: outputFile
-    as: step2.out.smi
+  - name: outputFile
+    from:
+      workflow-variable: outputFile

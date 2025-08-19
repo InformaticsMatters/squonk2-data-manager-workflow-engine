@@ -14,7 +14,7 @@ steps:
     version: "1.0.0"
   outputs:
   - output: 'outputFile'
-    as: 'a.sdf'
+    # as: 'a.sdf'
 
 - name: example-1-step-2
   description: The first step
@@ -29,4 +29,4 @@ steps:
       output: 'outputFile'
   outputs:
   - output: 'outputFile'
-    as: 'b.sdf'
+    # as: 'b.sdf'

@@ -31,7 +31,6 @@ steps:
       workflow-input: candidateMolecules
   outputs:
   - output: outputFile
-    # as: chunk_*.smi
 
 - name: parallel-step
   description: Add some params
@@ -52,19 +51,3 @@ steps:
       output: outputFile
   outputs:
   - output: outputFile
-    # as: parallel-step.out.smi
-
-# - name: final-step
-#   description: Collate results
-#   specification:
-#     collection: workflow-engine-unit-test-jobs
-#     job: concatenate
-#     version: "1.0.0"
-#   inputs:
-#   - input: inputFile
-#     from:
-#       step: parallel-step
-#       output: outputFile
-#   outputs:
-#   - output: outputFile
-#     # as: final-step.out.smi

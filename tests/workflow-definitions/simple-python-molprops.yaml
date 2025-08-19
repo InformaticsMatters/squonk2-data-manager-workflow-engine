@@ -29,7 +29,6 @@ steps:
       workflow-input: candidateMolecules
   outputs:
   - output: outputFile
-    as: step1.out.smi
 
 - name: step2
   description: Add column 2
@@ -47,4 +46,3 @@ steps:
       output: outputFile
   outputs:
   - output: outputFile
-    as: step2.out.smi
