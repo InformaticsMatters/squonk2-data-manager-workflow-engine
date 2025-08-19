@@ -153,7 +153,7 @@ class WorkflowValidator:
         )
         if missing_values:
             return ValidationResult(
-                error_num=7,
+                error_num=8,
                 error_msg=[
                     f"Missing workflow variable values for: {', '.join(missing_values)}"
                 ],

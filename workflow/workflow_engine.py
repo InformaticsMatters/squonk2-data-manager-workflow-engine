@@ -24,7 +24,6 @@ is executed, and it uses thew InstanceLauncher to launch the Job (a Pod) for eac
 
 import logging
 import sys
-from http import HTTPStatus
 from pprint import pprint
 from typing import Any, Dict, Optional
 
@@ -44,7 +43,6 @@ from .decoder import (
     get_step_input_variable_names,
     get_step_replicator,
     set_step_variables,
-    workflow_step_has_outputs,
 )
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -250,44 +248,17 @@ class WorkflowEngine:
             self._set_step_error(step_name, r_wfid, r_wfsid, exit_code, "Job failed")
             return
 
-        # If we get here the prior step completed successfully and we can decide
-        # whether the step has outputs (files) that need to be written to the
-        # Project directory, while also marking the Step as DONE (successfully).
-        # We pass the outputs to the DM via a call to the API adapter's realise_outputs().
-        # In return it copies (links) these files to the Project directory.
+        # If we get here the prior step completed successfullyso we
+        # mark the Step as DONE (successfully).
         wfid = rwf_response["workflow"]["id"]
         assert wfid
         wf_response, _ = self._wapi_adapter.get_workflow(workflow_id=wfid)
         _LOGGER.debug("API.get_workflow(%s) returned: -\n%s", wfid, str(wf_response))
 
-        error_num: int | None = None
-        error_msg: str | None = None
-        if workflow_step_has_outputs(wf_response, step_name):
-            # The step produces at least one output.
-            # Inform the DM so it can link them to the Project directory
-            response, status_code = self._wapi_adapter.realise_outputs(
-                running_workflow_step_id=r_wfsid,
-            )
-            if status_code != HTTPStatus.OK:
-                error_num = status_code
-                error_msg = (
-                    response["error"]
-                    if "error" in response
-                    else "Undisclosed error when realising outputs"
-                )
-
-        if error_num is not None:
-            # The job was successful but linking outputs (back to the Project directory)
-            # appears to have failed.
-            self._set_step_error(step_name, r_wfid, r_wfsid, error_num, error_msg)
-            return
-
         # We then inspect the Workflow to determine the next step.
         self._wapi_adapter.set_running_workflow_step_done(
             running_workflow_step_id=r_wfsid,
-            success=error_num is None,
-            error_num=error_num,
-            error_msg=error_msg,
+            success=True,
         )
 
         # We have the step from the Instance that's just finished,

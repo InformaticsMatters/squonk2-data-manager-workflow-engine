@@ -156,7 +156,7 @@ def test_validate_simple_python_molprops_with_options_when_missing_required():
     )
 
     # Assert
-    assert error.error_num == 7
+    assert error.error_num == 8
     assert error.error_msg == [
         "Missing workflow variable values for: rdkitPropertyValue"
     ]
@@ -210,7 +210,7 @@ def test_validate_simple_python_molprops_with_missing_input():
     )
 
     # Assert
-    assert error.error_num == 7
+    assert error.error_num == 8
     assert error.error_msg == [
         "Missing workflow variable values for: candidateMolecules"
     ]

@@ -373,16 +373,6 @@ class WorkflowAPIAdapter(ABC):
         #   "output": ["dir/file1.sdf", "dir/file2.sdf"]
         # }
 
-    @abstractmethod
-    def realise_outputs(
-        self, *, running_workflow_step_id: str
-    ) -> tuple[dict[str, Any], int]:
-        """Copy (link) the step's files as outputs into the Project directory."""
-        # Should return an empty map or:
-        # {
-        #   "error": "<error message>",
-        # }
-
 
 class MessageDispatcher(ABC):
     """The class handling the sending of messages (on the Data Manager message bus)."""

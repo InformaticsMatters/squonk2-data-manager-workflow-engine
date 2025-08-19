@@ -197,42 +197,6 @@ def test_get_workflow_steps():
     assert steps[1]["name"] == "step2"
 
 
-def test_get_workflow_outputs_for_step_with_name_step1():
-    # Arrange
-
-    # Act
-    has_outputs = decoder.workflow_step_has_outputs(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step1"
-    )
-
-    # Assert
-    assert not has_outputs
-
-
-def test_get_workflow_outputs_for_step_with_name_step2():
-    # Arrange
-
-    # Act
-    has_outputs = decoder.workflow_step_has_outputs(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step2"
-    )
-
-    # Assert
-    assert has_outputs
-
-
-def test_get_workflow_outputs_for_step_with_unkown_step_name():
-    # Arrange
-
-    # Act
-    has_outputs = decoder.workflow_step_has_outputs(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "unknown"
-    )
-
-    # Assert
-    assert not has_outputs
-
-
 def test_get_step_input_variable_names_when_duplicates():
     # Arrange
     workflow_filename: str = os.path.join(

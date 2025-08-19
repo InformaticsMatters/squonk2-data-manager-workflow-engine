@@ -108,15 +108,6 @@ def get_step_input_variable_names(
     return variable_names
 
 
-def workflow_step_has_outputs(definition: dict[str, Any], name: str) -> bool:
-    """Given a Workflow definition and a step name we return a boolean
-    that is true if the step produces outputs. This requires inspection
-    of the 'as-yet-unused' variables block."""
-    return (
-        len(get_step_output_variable_names(definition=definition, step_name=name)) > 0
-    )
-
-
 def set_step_variables(
     *,
     workflow: dict[str, Any],
