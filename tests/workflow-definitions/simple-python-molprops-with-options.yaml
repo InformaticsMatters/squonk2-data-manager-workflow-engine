@@ -4,55 +4,6 @@ kind-version: "2025.2"
 name: python-workflow
 description: A simple python experimental workflow
 
-# Some meaningless variables.
-# Just to make sure the decoder accepts this.
-# The Workflow engin eis not (yet) interested in this block.
-variables:
-  inputs:
-    type: object
-    required:
-    - inputFile
-    properties:
-      inputFile:
-        title: Molecules to pick from
-        mime-types:
-        - squonk/x-smiles
-        type: file
-      seeds:
-        title: Molecules that are already picked
-        mime-types:
-        - squonk/x-smiles
-        type: file
-        multiple: true
-  outputs:
-    type: object
-    properties:
-      outputFile:
-        title: Output file
-        mime-types:
-        - chemical/x-csv
-        creates: '{{ outputFile }}'
-        type: file
-  options:
-    type: object
-    required:
-    - count
-    properties:
-      outputFile:
-        title: Output file name
-        type: string
-        pattern: "^[A-Za-z0-9_/\\.\\-]+$"
-        default: diverse.smi
-      count:
-        title: Number of molecules to pick
-        type: integer
-        minimum: 1
-      threshold:
-        title: Similarity threshold
-        type: number
-        minimum: 0
-        maximum: 1
-
 steps:
 - name: step1
   description: Add column 1
@@ -60,6 +11,8 @@ steps:
     collection: workflow-engine-unit-test-jobs
     job: rdkit-molprops
     version: "1.0.0"
+    variables:
+      outputFile: step1.out.smi
   variable-mapping:
   - variable: inputFile
     from-workflow:
@@ -70,9 +23,6 @@ steps:
   - variable: value
     from-workflow:
       variable: rdkitPropertyValue
-  - variable: outputFile
-    from-workflow:
-      variable: clusteredMolecules
 
 - name: step2
   description: Add column 2
@@ -90,6 +40,6 @@ steps:
       variable: outputFile
   - variable: outputFile
     from-workflow:
-      variable: outputFile
+      variable: clusteredMolecules
   out:
   - outputFile

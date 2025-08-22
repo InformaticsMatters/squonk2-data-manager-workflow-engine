@@ -130,6 +130,7 @@ def wait_for_workflow(
     # are the responsibility of the caller.
     attempts = 0
     done = False
+    response = None
     while not done:
         response, _ = da.get_running_workflow(running_workflow_id=r_wfid)
         if response["done"]:
@@ -141,6 +142,7 @@ def wait_for_workflow(
             time.sleep(completion_poll_period_s)
     # When we get here the workflow must have finished (not timed-out),
     # and it must have passed (or failed) according the the caller's expectation.
+    assert response
     assert response["done"]
     assert response["success"] == expect_success
 
@@ -400,7 +402,7 @@ def test_workflow_engine_simple_python_molprops_with_options(basic_engine):
         "simple-python-molprops-with-options",
         {
             "candidateMolecules": input_file_1,
-            "outputFile": output_file_1,
+            "clusteredMolecules": output_file_2,
             "rdkitPropertyName": "prop",
             "rdkitPropertyValue": 1.2,
         },

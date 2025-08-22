@@ -4,7 +4,6 @@ This is typically used by the Data Manager's Workflow Engine.
 """
 
 import os
-from pprint import pprint
 from typing import Any
 
 import jsonschema
@@ -108,87 +107,41 @@ def get_step_input_variable_names(
     return variable_names
 
 
-def set_step_variables(
-    *,
-    workflow: dict[str, Any],
-    inputs: list[dict[str, Any]],
-    outputs: list[dict[str, Any]],
-    step_outputs: dict[str, Any],
-    previous_step_outputs: list[dict[str, Any]],
-    workflow_variables: dict[str, Any],
-    step_name: str,
-) -> dict[str, Any]:
-    """Prepare input- and output variables for the following step.
+def get_step_workflow_variable_mapping(
+    *, step: dict[str, Any]
+) -> list[tuple[str, str]]:
+    """Returns a list of workflow vaiable name to step variable name tuples
+    for the given step."""
+    variable_mapping: list[tuple[str, str]] = []
+    if "variable-mapping" in step:
+        for v_map in step["variable-mapping"]:
+            if "from-workflow" in v_map:
+                # Tuple is "from" -> "to"
+                variable_mapping.append(
+                    (v_map["from-workflow"]["variable"], v_map["variable"])
+                )
+    return variable_mapping
 
-    Inputs are defined in step definition but their values may
-    come from previous step outputs.
-    """
-    assert workflow
 
-    result = {}
-
-    print("ssv: wf vars:")
-    pprint(workflow_variables)
-    print("ssv: inputs:")
-    pprint(inputs)
-    print("ssv: outputs", outputs)
-    print("ssv: step_outputs", step_outputs)
-    print("ssv: prev step outputs", previous_step_outputs)
-    print("ssv: step_name", step_name)
-
-    for item in inputs:
-        p_key = item["input"]
-        p_val = ""
-        val = item["from"]
-        if "workflow-input" in val.keys():
-            p_val = workflow_variables[val["workflow-input"]]
-            result[p_key] = p_val
-        elif "step" in val.keys():
-            # this links the variable to previous step output
-            if previous_step_outputs:
-                for out in previous_step_outputs:
-                    if out["output"] == val["output"]:
-                        # p_val = out["as"]
-                        if step_outputs["output"]:
-                            p_val = step_outputs["output"]
-                            print("\n!!!!!!!!!!!!!if clause!!!!!!!!!!!!!!!!!!!!!\n")
-                            print(p_val)
-                        else:
-                            # what do I need to do here??
-                            print("\n!!!!!!!!!!!!!else clause!!!!!!!!!!!!!!!!!!!!!\n")
-                            print(out)
-                            print(val)
-
-                        # this bit handles multiple inputs: if a step
-                        # requires input from multiple steps, add them to
-                        # the list in result dict. this is the reason for
-                        # mypy ignore statements, mypy doesn't understand
-                        # redefinition
-                        if p_key in result:
-                            if not isinstance(result[p_key], set):
-                                result[p_key] = {result[p_key]}  # type: ignore [assignment]
-                            result[p_key].add(p_val)  # type: ignore [attr-defined]
-                        else:
-                            result[p_key] = p_val
-            else:
-                if val["output"] in workflow_variables:
-                    result[p_key] = workflow_variables[val["output"]]
-
-    for item in outputs:
-        p_key = item["output"]
-        # p_val = item["as"]
-        # p_val = step_outputs["output"]
-        p_val = "somefile.smi"
-        result[p_key] = p_val
-
-    #    options = set_variables_from_options_for_step(
-    #        definition=workflow,
-    #        variables=workflow_variables,
-    #        step_name=step_name,
-    #    )
-    #
-    #    result |= options
-    return result
+def get_step_prior_step_variable_mapping(
+    *, step: dict[str, Any]
+) -> dict[str, list[tuple[str, str]]]:
+    """Returns list of tuples, indexed by prior step name, of source step vaiable name
+    to this step's variable name."""
+    variable_mapping: dict[str, list[tuple[str, str]]] = {}
+    if "variable-mapping" in step:
+        for v_map in step["variable-mapping"]:
+            if "from-step" in v_map:
+                step_name = v_map["from-step"]["name"]
+                step_variable = v_map["from-step"]["variable"]
+                # Tuple is "from" -> "to"
+                if step_name in variable_mapping:
+                    variable_mapping[step_name].append(
+                        (step_variable, v_map["variable"])
+                    )
+                else:
+                    variable_mapping[step_name] = [(step_variable, v_map["variable"])]
+    return variable_mapping
 
 
 def get_step_replicator(*, step: dict[str, Any]) -> str | Any:
