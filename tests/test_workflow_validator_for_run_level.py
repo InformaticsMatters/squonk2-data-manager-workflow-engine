@@ -62,6 +62,7 @@ def test_validate_example_smiles_to_file():
     error = WorkflowValidator.validate(
         level=ValidationLevel.RUN,
         workflow_definition=workflow,
+        variables={"smiles": "C", "outputFile": "blob.smi"},
     )
 
     # Assert

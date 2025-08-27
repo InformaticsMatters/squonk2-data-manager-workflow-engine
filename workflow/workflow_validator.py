@@ -5,8 +5,9 @@ from enum import Enum
 from typing import Any
 
 from .decoder import (
-    get_step_input_variable_names,
     get_step_output_variable_names,
+    get_step_prior_step_variable_mapping,
+    get_step_workflow_variable_mapping,
     get_steps,
     get_workflow_variable_names,
     validate_schema,
@@ -113,22 +114,36 @@ class WorkflowValidator:
                 error_msg=[f"Duplicate step names found: {', '.join(duplicate_names)}"],
             )
         # For each 'replicating' step the replicating variable
-        # must be declared in the step.
+        # must be declared in the step - which is either a workflow variable
+        # or a prior step variable.
         for step in get_steps(workflow_definition):
             if (
                 replicate_using_input := step.get("replicate", {})
                 .get("using", {})
                 .get("variable")
             ):
-                step_name = step["name"]
-                if replicate_using_input not in get_step_input_variable_names(
-                    workflow_definition, step_name
-                ):
+                found: bool = False
+                for variable_map in get_step_workflow_variable_mapping(step=step):
+                    if replicate_using_input == variable_map[0]:
+                        found = True
+                        break
+                if not found:
+                    for (
+                        step_name,
+                        variable_map_list,
+                    ) in get_step_prior_step_variable_mapping(step=step).items():
+                        for variable_map in variable_map_list:
+                            if replicate_using_input == variable_map[0]:
+                                found = True
+                                break
+                        if found:
+                            break
+                if not found:
                     return ValidationResult(
                         error_num=7,
                         error_msg=[
                             "Replicate input variable is not declared:"
-                            f" {replicate_using_input} (step={step_name})"
+                            f" {replicate_using_input} (step={step["name"]})"
                         ],
                     )
 
