@@ -39,6 +39,7 @@ from workflow.workflow_abc import (
 )
 
 from .decoder import (
+    Translation,
     get_step_input_variable_names,
     get_step_prior_step_variable_mapping,
     get_step_replicator,
@@ -364,14 +365,14 @@ class WorkflowEngine:
         # "in" variables are worklfow variables, and "out" variables
         # are expected Job variables. We use this to add variables
         # to the "all variables" map.
-        for from_to in get_step_workflow_variable_mapping(step=step):
-            all_variables[from_to[1]] = running_workflow_variables[from_to[0]]
+        for tr in get_step_workflow_variable_mapping(step=step):
+            all_variables[tr.out] = running_workflow_variables[tr.in_]
 
         # Now we apply variables from the "variable mapping" block
         # related to values used in prior steps. The decoder gives
         # us a map indexed by prior step name that's a list of "in" "out"
         # tuples as above.
-        step_prior_v_map: dict[str, list[tuple[str, str]]] = (
+        step_prior_v_map: dict[str, list[Translation]] = (
             get_step_prior_step_variable_mapping(step=step)
         )
         for prior_step_name, v_map in step_prior_v_map.items():
@@ -381,8 +382,8 @@ class WorkflowEngine:
                 name=prior_step_name, running_workflow_id=running_workflow_id
             )
             # Copy "in" value to "out"...
-            for from_to in v_map:
-                all_variables[from_to[1]] = prior_step["variables"][from_to[0]]
+            for tr in v_map:
+                all_variables[tr.out] = prior_step["variables"][tr.in_]
 
         _LOGGER.debug(
             "Index %s (%s) workflow_variables=%s",

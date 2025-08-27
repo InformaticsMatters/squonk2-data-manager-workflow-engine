@@ -4,6 +4,7 @@ This is typically used by the Data Manager's Workflow Engine.
 """
 
 import os
+from dataclasses import dataclass
 from typing import Any
 
 import jsonschema
@@ -21,6 +22,14 @@ assert os.path.isfile(_WORKFLOW_SCHEMA_FILE)
 with open(_WORKFLOW_SCHEMA_FILE, "r", encoding="utf8") as schema_file:
     _WORKFLOW_SCHEMA: dict[str, Any] = yaml.load(schema_file, Loader=yaml.FullLoader)
 assert _WORKFLOW_SCHEMA
+
+
+@dataclass
+class Translation:
+    """A source ("in_") to destination ("out") variable map."""
+
+    in_: str
+    out: str
 
 
 def validate_schema(workflow: dict[str, Any]) -> str | None:
@@ -107,28 +116,27 @@ def get_step_input_variable_names(
     return variable_names
 
 
-def get_step_workflow_variable_mapping(
-    *, step: dict[str, Any]
-) -> list[tuple[str, str]]:
+def get_step_workflow_variable_mapping(*, step: dict[str, Any]) -> list[Translation]:
     """Returns a list of workflow vaiable name to step variable name tuples
     for the given step."""
-    variable_mapping: list[tuple[str, str]] = []
+    variable_mapping: list[Translation] = []
     if "variable-mapping" in step:
         for v_map in step["variable-mapping"]:
             if "from-workflow" in v_map:
-                # Tuple is "from" -> "to"
                 variable_mapping.append(
-                    (v_map["from-workflow"]["variable"], v_map["variable"])
+                    Translation(
+                        in_=v_map["from-workflow"]["variable"], out=v_map["variable"]
+                    )
                 )
     return variable_mapping
 
 
 def get_step_prior_step_variable_mapping(
     *, step: dict[str, Any]
-) -> dict[str, list[tuple[str, str]]]:
-    """Returns list of tuples, indexed by prior step name, of source step vaiable name
-    to this step's variable name."""
-    variable_mapping: dict[str, list[tuple[str, str]]] = {}
+) -> dict[str, list[Translation]]:
+    """Returns list of translate objects, indexed by prior step name,
+    that identify source step vaiable name to this step's variable name."""
+    variable_mapping: dict[str, list[Translation]] = {}
     if "variable-mapping" in step:
         for v_map in step["variable-mapping"]:
             if "from-step" in v_map:
@@ -137,10 +145,12 @@ def get_step_prior_step_variable_mapping(
                 # Tuple is "from" -> "to"
                 if step_name in variable_mapping:
                     variable_mapping[step_name].append(
-                        (step_variable, v_map["variable"])
+                        Translation(in_=step_variable, out=v_map["variable"])
                     )
                 else:
-                    variable_mapping[step_name] = [(step_variable, v_map["variable"])]
+                    variable_mapping[step_name] = [
+                        Translation(in_=step_variable, out=v_map["variable"])
+                    ]
     return variable_mapping
 
 

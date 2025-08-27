@@ -123,17 +123,17 @@ class WorkflowValidator:
                 .get("variable")
             ):
                 found: bool = False
-                for variable_map in get_step_workflow_variable_mapping(step=step):
-                    if replicate_using_input == variable_map[0]:
+                for translation in get_step_workflow_variable_mapping(step=step):
+                    if replicate_using_input == translation.out:
                         found = True
                         break
                 if not found:
                     for (
                         step_name,
-                        variable_map_list,
+                        translations,
                     ) in get_step_prior_step_variable_mapping(step=step).items():
-                        for variable_map in variable_map_list:
-                            if replicate_using_input == variable_map[0]:
+                        for translation in translations:
+                            if replicate_using_input == translation.out:
                                 found = True
                                 break
                         if found:
