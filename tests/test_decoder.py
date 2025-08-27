@@ -142,7 +142,7 @@ def test_validate_schema_for_step_specification_variable_names():
     assert error is None
 
 
-@pytest.mark.skip(reason="DO not support combination atm")
+@pytest.mark.skip(reason="We do not support combination atm")
 def test_validate_schema_for_simple_python_parallel():
     # Arrange
 

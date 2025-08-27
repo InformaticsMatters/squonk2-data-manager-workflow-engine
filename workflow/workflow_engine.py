@@ -24,7 +24,6 @@ is executed, and it uses thew InstanceLauncher to launch the Job (a Pod) for eac
 
 import logging
 import sys
-from pprint import pprint
 from typing import Any, Dict, Optional
 
 from decoder.decoder import TextEncoding, decode
@@ -317,11 +316,11 @@ class WorkflowEngine:
     def _validate_step_command(
         self,
         *,
+        running_workflow_id: str,
         running_workflow_step_id: str,
         step: dict[str, Any],
-        workflow_steps: list[dict[str, Any]],
         our_step_index: int,
-        running_workflow_variables: dict[str, Any] | None = None,
+        running_workflow_variables: dict[str, Any],
     ) -> str | dict[str, Any]:
         """Returns an error message if the command isn't valid.
         Without a message we return all the variables that were (successfully)
@@ -351,143 +350,42 @@ class WorkflowEngine:
             str(job),
         )
 
-        # The step's 'specification' is a string - pass it directly to the
-        # launcher along with any (optional) 'workflow variables'. The launcher
-        # will apply the variables to the step's Job command but we need to handle
-        # any launch problems. The validator should have checked to ensure that
-        # variable expansion will work, but we must prepare for the unexpected.
-        #
-        # What the engine has to do here is make sure that the Job
-        # that's about to be launched has all its configuration requirements
-        # satisfied (inputs, outputs and options). Basically we must ensure
-        # that the Job definition's 'command' can be compiled by applying
-        # the available variables.
-        #
-        # To prevent launcher errors relating to decoding we get the command ourselves
-        # and then apply the current set of variables. And we use the JobDecoder's
-        # 'decode()' method to do this. It returns a tuple (str and boolean).
-        # If the boolean is True then the command can be compiled
-        # (i.e. it has no missing variables) and the launcher should not complain
-        # about the command (as we'll pass the same variables to it.
-        # If the returned boolean is False then we can expect the returned str
-        # to contain an error message.
-        #
-        # The full set of step variables can be obtained
-        # (in ascending order of priority) from...
-        #
-        # 1. The Job Step Specification
-        # 2. The RunningWorkflow
-        #
-        # If variable 'x' is defined in all three then the RunningWorkflow's
-        # value must be used.
+        # Start with any variables provided in the step's specification.
+        # This will be ou t"all variables" map for this step,
+        # whcih we will add to (and maybe even over-write)...
+        all_variables: dict[str, Any] = step["specification"].get("variables", {})
 
-        # 1. Get any variables from the step specification.
-        all_variables = step_spec.pop("variables") if "variables" in step_spec else {}
-        # 2. Merge running workflow variables on top of these
-        if running_workflow_variables:
-            all_variables |= running_workflow_variables
+        # Next, we iterate through the step's "variable mapping" block.
+        # This tells us all the variables that are set from either the
+        # 'workflow' or 'a prior step'.
 
-        # We must always process the current step's variables
-        _LOGGER.debug("Validating step %s (%s)", step, running_workflow_step_id)
-        inputs = step.get("inputs", [])
-        outputs = step.get("outputs", [])
-        previous_step_outputs = []
-        _LOGGER.debug(
-            "We are at workflow step index %d (%s)",
-            our_step_index,
-            running_workflow_step_id,
+        # Start with any workflow variables in the step.
+        # This will be a list of tuples of "in" and "out" variable names.
+        # "in" variables are worklfow variables, and "out" variables
+        # are expected Job variables. We use this to add variables
+        # to the "all variables" map.
+        for from_to in get_step_workflow_variable_mapping(step=step):
+            all_variables[from_to[1]] = running_workflow_variables[from_to[0]]
+
+        # Now we apply variables from the "variable mapping" block
+        # related to values used in prior steps. The decoder gives
+        # us a map indexed by prior step name that's a list of "in" "out"
+        # tuples as above.
+        step_prior_v_map: dict[str, list[tuple[str, str]]] = (
+            get_step_prior_step_variable_mapping(step=step)
         )
-
-        # resolve all previous steps
-        previous_step_names = set()
-        if our_step_index > 0:
-            print("prev step inputs", inputs)
-            for inp in inputs:
-                if step_name := inp["from"].get("step", None):
-                    previous_step_names.add(step_name)
-
-            for step in workflow_steps:
-                if step["name"] in previous_step_names:
-                    previous_step_outputs.extend(step.get("outputs", []))
+        for prior_step_name, v_map in step_prior_v_map.items():
+            # Retrieve the prior "running" step
+            # in order to get the variables that were set there...
+            prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
+                name=prior_step_name, running_workflow_id=running_workflow_id
+            )
+            # Copy "in" value to "out"...
+            for from_to in v_map:
+                all_variables[from_to[1]] = prior_step["variables"][from_to[0]]
 
         _LOGGER.debug(
             "Index %s (%s) workflow_variables=%s",
-            our_step_index,
-            running_workflow_step_id,
-            all_variables,
-        )
-        _LOGGER.debug(
-            "Index %s (%s) inputs=%s", our_step_index, running_workflow_step_id, inputs
-        )
-        _LOGGER.debug(
-            "Index %s (%s) outputs=%s",
-            our_step_index,
-            running_workflow_step_id,
-            outputs,
-        )
-        _LOGGER.debug(
-            "Index %s (%s) previous_step_outputs=%s",
-            our_step_index,
-            running_workflow_step_id,
-            previous_step_outputs,
-        )
-
-        # there should probably be an easier way to access this
-        running_wf_step, _ = self._wapi_adapter.get_running_workflow_step(
-            running_workflow_step_id=running_workflow_step_id
-        )
-        running_wf_id = running_wf_step["running_workflow"]["id"]
-        running_wf, _ = self._wapi_adapter.get_running_workflow(
-            running_workflow_id=running_wf_id
-        )
-        print("running wf")
-        pprint(running_wf)
-        workflow_id = running_wf["workflow"]["id"]
-        workflow, _ = self._wapi_adapter.get_workflow(workflow_id=workflow_id)
-
-        print("workflow")
-        pprint(workflow)
-
-        # for step in workflow["steps"]:
-        #     if step["name"] in previous_step_names:
-
-        previous_step_id = None
-        for name in previous_step_names:
-            result, _ = self._wapi_adapter.get_running_workflow_step_by_name(
-                name=name, running_workflow_id=running_wf_id, replica=0
-            )
-            print("by name results", result)
-            print("by name results, vars", result["variables"])
-            print("by name results, od", result["id"])
-            previous_step_id = result["id"]
-            # if name == 'first-step':
-            #     previous_step_id = result["id"]
-
-        # don't understand how this is structured
-        print("prev steps", previous_step_names)
-        print("outputs", outputs)
-        print()
-        step_outputs: dict[str, Any] = {"output": []}
-        if previous_step_id:
-            for output in outputs:
-                for k, v in output.items():
-                    print("sending params to output mock", k, v)
-                    try:
-                        step_outputs, _ = (
-                            self._wapi_adapter.get_running_workflow_step_output_values_for_output(
-                                running_workflow_step_id=previous_step_id,
-                                output_variable=v,  # foraeach outputs key
-                            )
-                        )
-
-                        print("mockputs", running_workflow_step_id, step_outputs)
-                    except AssertionError:
-                        print("no output for step", running_workflow_step_id, k, v)
-
-        print("final prev step outputs", previous_step_outputs)
-
-        _LOGGER.debug(
-            "Index %s (%s) all_variables=%s",
             our_step_index,
             running_workflow_step_id,
             all_variables,
@@ -527,49 +425,19 @@ class WorkflowEngine:
         assert wf_step_data["caller_step_index"] >= 0
         our_step_index: int = wf_step_data["caller_step_index"]
 
-        print("step in _launch:", step_name)
-        pprint(step)
+        # A mojor pievce of work is to get ourselves into a position
+        # that allows us to check the step command can be executed.
+        # We do this by compiling a map of varibales we belive the step needs.
 
-        # Workflow variables set by the user...
+        # Get all the workflow variables that were provided
+        # by the user when they "ran" the workflow...
         rwf_variables: dict[str, Any] = rwf.get("variables", {})
-
-        # Now check the step command can be executed
-        # (by trying to decoding the Job command).
-        # Before we do this we have to construct the variable map
-        # for this step.
-        #
-        # We start with any variables provided in the step specification
-        all_variables: dict[str, Any] = step["specification"].get("variables", {})
-        # We now have to iterate through the step's variable mapping block.
-        # This will name any workflow variables (from)
-        # and their corresponding step variable (to).
-        step_wf_v_map: list[tuple[str, str]] = get_step_workflow_variable_mapping(
-            step=step
-        )
-        for from_to in step_wf_v_map:
-            all_variables[from_to[1]] = rwf_variables[from_to[0]]
-        # We must now apply variables from prior steps identified in the
-        # current step's mapping block. We're given a map indexed by
-        # prior step name that's a list of tuples name the prior step's
-        # variable (from) and the curent step variable (to).
-        step_prior_v_map: dict[str, list[tuple[str, str]]] = (
-            get_step_prior_step_variable_mapping(step=step)
-        )
-        for prior_step_name, v_map in step_prior_v_map.items():
-            # Load the prior step
-            prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
-                name=prior_step_name, running_workflow_id=rwf_id
-            )
-            # Get its variables and copy the value
-            for from_to in v_map:
-                all_variables[from_to[1]] = prior_step["variables"][from_to[0]]
-
         error_or_variables: str | dict[str, Any] = self._validate_step_command(
+            running_workflow_id=rwf_id,
             running_workflow_step_id=rwfs_id,
             step=step,
-            workflow_steps=wf_step_data["steps"],
             our_step_index=our_step_index,
-            running_workflow_variables=all_variables,
+            running_workflow_variables=rwf_variables,
         )
         if isinstance(error_or_variables, str):
             error_msg = error_or_variables
@@ -580,21 +448,21 @@ class WorkflowEngine:
 
         project_id = rwf["project"]["id"]
         variables: dict[str, Any] = error_or_variables
-        print("variables", variables)
-        # find out if and by which parameter this step should be replicated
-        replicator = get_step_replicator(step=step)
 
         _LOGGER.info(
             "Launching step: RunningWorkflow=%s RunningWorkflowStep=%s step=%s"
-            " variables=%s name=%s project=%s, (all_variables=%s)",
+            " variables=%s name=%s project=%s, (variables=%s)",
             rwf_id,
             rwfs_id,
             step_name,
             variables,
             rwf["name"],
             project_id,
-            all_variables,
+            variables,
         )
+
+        # Is this a replicating step?
+        replicator = get_step_replicator(step=step)
 
         # When we launch a step we need to identify all the prior steps in the workflow,
         # those we depend on. The DataManager will then link their outputs to
@@ -629,9 +497,6 @@ class WorkflowEngine:
         #   'running_workflow_step_inputs'
         #       A list of Job input variable names
 
-        print("variables")
-        pprint(variables)
-
         inputs: list[str] = []
         inputs.extend(iter(get_step_input_variable_names(wf, step_name)))
         if replicator:
@@ -642,9 +507,6 @@ class WorkflowEngine:
                 single_step_variables.append(ssv)
         else:
             single_step_variables = [variables]
-
-        print("single step variables")
-        pprint(single_step_variables)
 
         for params in single_step_variables:
             lp: LaunchParameters = LaunchParameters(

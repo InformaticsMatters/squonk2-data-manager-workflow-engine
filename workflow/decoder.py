@@ -137,10 +137,10 @@ def get_step_prior_step_variable_mapping(
                 # Tuple is "from" -> "to"
                 if step_name in variable_mapping:
                     variable_mapping[step_name].append(
-                        (v_map["variable"], step_variable)
+                        (step_variable, v_map["variable"])
                     )
                 else:
-                    variable_mapping[step_name] = [(v_map["variable"], step_variable)]
+                    variable_mapping[step_name] = [(step_variable, v_map["variable"])]
     return variable_mapping
 
 
