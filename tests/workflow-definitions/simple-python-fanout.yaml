@@ -7,7 +7,7 @@ description: >-
 
 steps:
 - name: first-step
-  description: Create inputs
+  description: Split an input file
   specification:
     collection: workflow-engine-unit-test-jobs
     job: splitsmiles
@@ -15,7 +15,7 @@ steps:
     variables:
       name: count
       value: "1"
-      outputFile: results.smi
+      outputBase: chunk
   variable-mapping:
   - variable: inputFile
     from-workflow:
@@ -38,6 +38,6 @@ steps:
   - variable: inputFile
     from-step:
       name: first-step
-      variable: outputFile
+      variable: outputBase
   out:
   - outputFile

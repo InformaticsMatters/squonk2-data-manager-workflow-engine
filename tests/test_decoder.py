@@ -142,17 +142,6 @@ def test_validate_schema_for_step_specification_variable_names():
     assert error is None
 
 
-@pytest.mark.skip(reason="We do not support combination atm")
-def test_validate_schema_for_simple_python_parallel():
-    # Arrange
-
-    # Act
-    error = decoder.validate_schema(_SIMPLE_PYTHON_PARALLEL_WORKFLOW)
-
-    # Assert
-    assert error is None
-
-
 def test_get_workflow_variables_for_smiple_python_molprops():
     # Arrange
 

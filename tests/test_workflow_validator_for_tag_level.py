@@ -109,28 +109,6 @@ def test_validate_shortcut_example_1():
     assert error.error_msg is None
 
 
-@pytest.mark.skip("Unsupported workflow")
-def test_validate_simple_python_parallel():
-    # Arrange
-    workflow_filename: str = os.path.join(
-        os.path.dirname(__file__),
-        "workflow-definitions",
-        "simple-python-parallel.yaml",
-    )
-    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
-        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
-    assert workflow
-
-    # Act
-    error = WorkflowValidator.validate(
-        level=ValidationLevel.TAG,
-        workflow_definition=workflow,
-    )
-
-    # Assert
-    assert error.error_num == 0
-
-
 def test_validate_simple_python_molprops():
     # Arrange
     workflow_filename: str = os.path.join(

@@ -39,8 +39,11 @@ from workflow.workflow_abc import (
 )
 
 from .decoder import (
+    ReplicationDriver,
+    ReplicationOrigin,
     Translation,
     get_step_prior_step_variable_mapping,
+    get_step_replication_driver,
     get_step_workflow_variable_mapping,
 )
 
@@ -340,8 +343,6 @@ class WorkflowEngine:
                 name=prior_step_name, running_workflow_id=running_workflow_id
             )
             # Copy "in" value to "out"...
-            print(v_map)
-            print(prior_step["variables"])
             for tr in v_map:
                 assert tr.in_ in prior_step["variables"]
                 all_variables[tr.out] = prior_step["variables"][tr.in_]
@@ -378,34 +379,63 @@ class WorkflowEngine:
             return
 
         variables: dict[str, Any] = error_or_variables
-        num_replicas: int = 0
-        # Is this a replicating step?
-        # The number of 'replicas' is zero if the step is only launched once
-        # (i.e. there are no replicas).
 
-        #        replicator = get_step_replicator(step=step)
-        #        if replicator:
-        #            single_step_variables = []
-        #            for replicating_param in variables[replicator]:
-        #                ssv = {**variables}
-        #                ssv[replicator] = replicating_param
-        #                single_step_variables.append(ssv)
-        #        else:
-        #            single_step_variables = [variables]
+        # A replication number,
+        # use only for steps expected to replicate (even if just once)
+        step_replication_number: int = 0
+        # Does this step have a replicating driver?
+        r_driver: ReplicationDriver | None = get_step_replication_driver(step=step)
+        replication_values: list[str] = []
+        if r_driver:
+            if r_driver.origin == ReplicationOrigin.STEP_VARIABLE:
+                # We need to get the variable values from a prior step
+                # We need the prior steps running-workflow-step-id
+                assert r_driver.source_step_name
+                response, _ = self._wapi_adapter.get_running_workflow_step_by_name(
+                    name=r_driver.source_step_name,
+                    running_workflow_id=rwf_id,
+                )
+                assert "id" in response
+                o_rwfs_id: str = response["id"]
+                response, _ = (
+                    self._wapi_adapter.get_running_workflow_step_output_values_for_output(
+                        running_workflow_step_id=o_rwfs_id,
+                        output_variable=r_driver.source_variable,
+                    )
+                )
+                assert "output" in response
+                replication_values = response["output"]
+            else:
+                assert False, "Unsupported origin"
 
-        assert num_replicas >= 0
-        step_replication_number: int = 1 if num_replicas else 0
-        for _ in range(1 + num_replicas):
+        num_step_instances: int = max(1, len(replication_values))
+        for iteration in range(num_step_instances):
+
+            # If we are replicating this step then we must replace the step's variable
+            # with a value expected for this iteration.
+            if r_driver:
+                iter_variable: str = r_driver.variable
+                iter_value: str = replication_values[iteration]
+                _LOGGER.info(
+                    "Replicating step: %s iteration=%s variable=%s value=%s",
+                    step_name,
+                    iteration,
+                    iter_variable,
+                    iter_value,
+                )
+                # Over-write the replicating variable
+                # and set the replication numebr to a unique +ve non-zero value...
+                variables[iter_variable] = iter_value
+                step_replication_number = iteration + 1
 
             _LOGGER.info(
                 "Launching step: %s RunningWorkflow=%s (name=%s)"
-                " variables=%s project=%s (step_replication_number=%s)",
+                " variables=%s project=%s",
                 step_name,
                 rwf_id,
                 rwf["name"],
                 variables,
                 project_id,
-                step_replication_number,
             )
 
             lp: LaunchParameters = LaunchParameters(
@@ -435,10 +465,6 @@ class WorkflowEngine:
                     rwfs_id,
                     lr.command,
                 )
-
-            # Do we need to increment the replication number?
-            if num_replicas:
-                step_replication_number += 1
 
     def _set_step_error(
         self,
