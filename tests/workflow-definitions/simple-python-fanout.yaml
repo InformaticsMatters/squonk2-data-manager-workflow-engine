@@ -13,8 +13,9 @@ steps:
     job: splitsmiles
     version: "1.0.0"
     variables:
-      name: "count"
+      name: count
       value: "1"
+      outputFile: results.smi
   variable-mapping:
   - variable: inputFile
     from-workflow:
@@ -27,8 +28,9 @@ steps:
     job: append-col
     version: "1.0.0"
     variables:
-      name: "desc1"
+      name: desc1
       value: "777"
+      outputFile: results.smi
   replicate:
     using:
       variable: inputFile

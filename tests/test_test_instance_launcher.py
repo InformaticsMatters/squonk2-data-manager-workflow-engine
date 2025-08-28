@@ -33,23 +33,18 @@ def test_launch_nop(basic_launcher):
         project_id=TEST_PROJECT_ID,
         variables={},
     )
-    response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
-    )
-    rwfsid = response["id"]
     lp: LaunchParameters = LaunchParameters(
         project_id=TEST_PROJECT_ID,
         name="Test Instance",
         launching_user_name="dlister",
         launching_user_api_token="1234567890",
         running_workflow_id=rwfid,
-        running_workflow_step_id=rwfsid,
+        step_name="step-1",
         specification={"collection": "workflow-engine-unit-test-jobs", "job": "nop"},
-        specification_variables={},
     )
 
     # Act
-    result = launcher.launch(lp)
+    result = launcher.launch(launch_parameters=lp)
 
     # Assert
     assert result.error_num == 0
@@ -69,26 +64,21 @@ def test_launch_nop_fail(basic_launcher):
         variables={},
     )
     rwfid = response["id"]
-    response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
-    )
-    rwfsid = response["id"]
     lp: LaunchParameters = LaunchParameters(
         project_id=TEST_PROJECT_ID,
         name="Test Instance",
         launching_user_name="dlister",
         launching_user_api_token="1234567890",
         running_workflow_id=rwfid,
-        running_workflow_step_id=rwfsid,
+        step_name="step-1",
         specification={
             "collection": "workflow-engine-unit-test-jobs",
             "job": "nop-fail",
         },
-        specification_variables={},
     )
 
     # Act
-    result = launcher.launch(lp)
+    result = launcher.launch(launch_parameters=lp)
 
     # Assert
     assert result.error_num == 0
@@ -108,26 +98,22 @@ def test_launch_smiles_to_file(basic_launcher):
         variables={},
     )
     rwfid = response["id"]
-    response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
-    )
-    rwfsid = response["id"]
     lp: LaunchParameters = LaunchParameters(
         project_id=TEST_PROJECT_ID,
         name="Test Instance",
         launching_user_name="dlister",
         launching_user_api_token="1234567890",
         running_workflow_id=rwfid,
-        running_workflow_step_id=rwfsid,
+        step_name="step-1",
         specification={
             "collection": "workflow-engine-unit-test-jobs",
             "job": "smiles-to-file",
         },
-        specification_variables={"smiles": "C1=CC=CC=C1", "outputFile": "output.smi"},
+        variables={"smiles": "C1=CC=CC=C1", "outputFile": "output.smi"},
     )
 
     # Act
-    result = launcher.launch(lp)
+    result = launcher.launch(launch_parameters=lp)
 
     # Assert
     assert result.error_num == 0
