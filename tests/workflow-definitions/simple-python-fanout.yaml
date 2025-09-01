@@ -31,9 +31,6 @@ steps:
       name: desc1
       value: "777"
       outputFile: results.smi
-  replicate:
-    using:
-      variable: inputFile
   variable-mapping:
   - variable: inputFile
     from-step:

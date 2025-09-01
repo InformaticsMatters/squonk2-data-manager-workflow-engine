@@ -39,11 +39,8 @@ from workflow.workflow_abc import (
 )
 
 from .decoder import (
-    ReplicationDriver,
-    ReplicationOrigin,
     Translation,
     get_step_prior_step_variable_mapping,
-    get_step_replication_driver,
     get_step_workflow_variable_mapping,
 )
 
@@ -380,41 +377,20 @@ class WorkflowEngine:
 
         variables: dict[str, Any] = error_or_variables
 
-        # A replication number,
-        # use only for steps expected to replicate (even if just once)
+        # A step replication number,
+        # used only for steps expected to run in parallel (even if just once)
         step_replication_number: int = 0
-        # Does this step have a replicating driver?
-        r_driver: ReplicationDriver | None = get_step_replication_driver(step=step)
         replication_values: list[str] = []
-        if r_driver:
-            if r_driver.origin == ReplicationOrigin.STEP_VARIABLE:
-                # We need to get the variable values from a prior step
-                # We need the prior steps running-workflow-step-id
-                assert r_driver.source_step_name
-                response, _ = self._wapi_adapter.get_running_workflow_step_by_name(
-                    name=r_driver.source_step_name,
-                    running_workflow_id=rwf_id,
-                )
-                assert "id" in response
-                o_rwfs_id: str = response["id"]
-                response, _ = (
-                    self._wapi_adapter.get_running_workflow_step_output_values_for_output(
-                        running_workflow_step_id=o_rwfs_id,
-                        output_variable=r_driver.source_variable,
-                    )
-                )
-                assert "output" in response
-                replication_values = response["output"]
-            else:
-                assert False, "Unsupported origin"
+        source_is_splitter: bool = False
+        iter_variable: str | None = None
 
         num_step_instances: int = max(1, len(replication_values))
         for iteration in range(num_step_instances):
 
             # If we are replicating this step then we must replace the step's variable
             # with a value expected for this iteration.
-            if r_driver:
-                iter_variable: str = r_driver.variable
+            if source_is_splitter:
+                assert iter_variable
                 iter_value: str = replication_values[iteration]
                 _LOGGER.info(
                     "Replicating step: %s iteration=%s variable=%s value=%s",
@@ -424,7 +400,7 @@ class WorkflowEngine:
                     iter_value,
                 )
                 # Over-write the replicating variable
-                # and set the replication numebr to a unique +ve non-zero value...
+                # and set the replication number to a unique +ve non-zero value...
                 variables[iter_variable] = iter_value
                 step_replication_number = iteration + 1
 

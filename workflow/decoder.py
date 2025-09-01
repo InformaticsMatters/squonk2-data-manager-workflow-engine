@@ -5,7 +5,6 @@ This is typically used by the Data Manager's Workflow Engine.
 
 import os
 from dataclasses import dataclass
-from enum import Enum
 from typing import Any
 
 import jsonschema
@@ -31,26 +30,6 @@ class Translation:
 
     in_: str
     out: str
-
-
-class ReplicationOrigin(Enum):
-    """Oirgin of a replication variable."""
-
-    STEP_VARIABLE = 1
-    WORKFLOW_VARIABLE = 2
-
-
-@dataclass
-class ReplicationDriver:
-    """A step's replication driver.
-    The 'variable' is the variable for the step-to-be-executed
-    whose value is 'driven' by the values of the 'source_variable'.
-    The source variable is either from a step (or a workflow)."""
-
-    origin: ReplicationOrigin
-    variable: str
-    source_variable: str
-    source_step_name: str | None = None
 
 
 def validate_schema(workflow: dict[str, Any]) -> str | None:
@@ -173,38 +152,3 @@ def get_step_prior_step_variable_mapping(
                         Translation(in_=step_variable, out=v_map["variable"])
                     ]
     return variable_mapping
-
-
-def get_step_replication_driver(*, step: dict[str, Any]) -> ReplicationDriver | None:
-    """If the step is expected to replicate we return its replication driver,
-    which consists of a (prior) step name and an (output) variable name.
-    Otherwise it returns nothing."""
-    if replicator := step.get("replicate"):
-        # We need the variable we replicate against,
-        # and the step that owns the variable.
-        #
-        # 'using' is a dict but there can be only single value for now
-        variable: str = replicator["using"]["variable"]
-        source_variable: str | None = None
-        # Is the variable from a prior step?
-        step_name: str | None = None
-        step_v_map = get_step_prior_step_variable_mapping(step=step)
-        for step_name_candidate, mappings in step_v_map.items():
-            for mapping in mappings:
-                if mapping.out == variable:
-                    step_name = step_name_candidate
-                    source_variable = mapping.in_
-                    break
-            if step_name:
-                break
-        assert step_name
-        assert source_variable
-
-        return ReplicationDriver(
-            origin=ReplicationOrigin.STEP_VARIABLE,
-            variable=variable,
-            source_step_name=step_name,
-            source_variable=source_variable,
-        )
-
-    return None

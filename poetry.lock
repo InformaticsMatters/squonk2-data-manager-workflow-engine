@@ -179,13 +179,13 @@ license = ["ukkonen"]
 
 [[package]]
 name = "im-data-manager-job-decoder"
-version = "2.4.0"
+version = "2.5.0"
 description = "Job decoding logic"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "im_data_manager_job_decoder-2.4.0-py3-none-any.whl", hash = "sha256:4a911e2a8760dd381247f2f740b2e280a817dbdad65c65164dad97dfcf9058bf"},
-    {file = "im_data_manager_job_decoder-2.4.0.tar.gz", hash = "sha256:34e7a8ac0421edc26760491ffd8b9183f0757ebc9e25dabf865235c936fad458"},
+    {file = "im_data_manager_job_decoder-2.5.0-py3-none-any.whl", hash = "sha256:d177a37083b73c82d71c137cd36ab3bf54de0a4ab5ab55e5aec49acb238b86f6"},
+    {file = "im_data_manager_job_decoder-2.5.0.tar.gz", hash = "sha256:1a0523ccead3ad851dcf6a450ec1792be1830d20a938d3ddfdf04ffcdf915a47"},
 ]
 
 [package.dependencies]
@@ -740,4 +740,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "fd2a28449c2fa3c9e20e3589fc27e0e773815be05e9e43a871d583a56a02dbb6"
+content-hash = "341541770454fac78492e8f33f1aca9418582886dfe2d24af99cc06dbd1b7137"
