@@ -14,7 +14,7 @@ steps:
     variables:
       name: "col1"
       value: 123
-  variable-mapping:
+  plumbing:
   - variable: inputFile
     from-workflow:
       variable: candidateMolecules
@@ -34,7 +34,7 @@ steps:
     variables:
       name: "col2"
       value: "999"
-  variable-mapping:
+  plumbing:
   - variable: inputFile
     from-step:
       name: step1

@@ -40,10 +40,10 @@ from workflow.workflow_abc import (
 )
 
 from .decoder import (
-    Translation,
+    Connector,
     get_step,
-    get_step_prior_step_variable_mapping,
-    get_step_workflow_variable_mapping,
+    get_step_prior_step_plumbing,
+    get_step_workflow_plumbing,
 )
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -330,27 +330,27 @@ class WorkflowEngine:
         # "in" variables are worklfow variables, and "out" variables
         # are expected Job variables. We use this to add variables
         # to the "all variables" map.
-        for tr in get_step_workflow_variable_mapping(step=step):
-            assert tr.in_ in running_workflow_variables
-            all_variables[tr.out] = running_workflow_variables[tr.in_]
+        for connector in get_step_workflow_plumbing(step=step):
+            assert connector.in_ in running_workflow_variables
+            all_variables[connector.out] = running_workflow_variables[connector.in_]
 
         # Now we apply variables from the "variable mapping" block
         # related to values used in prior steps. The decoder gives
         # us a map indexed by prior step name that's a list of "in" "out"
         # tuples as above.
-        step_prior_v_map: dict[str, list[Translation]] = (
-            get_step_prior_step_variable_mapping(step=step)
+        prior_step_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
+            step=step
         )
-        for prior_step_name, v_map in step_prior_v_map.items():
+        for prior_step_name, connections in prior_step_plumbing.items():
             # Retrieve the prior "running" step
             # in order to get the variables that were set there...
             prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
                 name=prior_step_name, running_workflow_id=running_workflow_id
             )
             # Copy "in" value to "out"...
-            for tr in v_map:
-                assert tr.in_ in prior_step["variables"]
-                all_variables[tr.out] = prior_step["variables"][tr.in_]
+            for connector in connections:
+                assert connector.in_ in prior_step["variables"]
+                all_variables[connector.out] = prior_step["variables"][connector.in_]
 
         # Now ... can the command be compiled!?
         job: dict[str, Any] = self._get_step_job(step=step)
@@ -401,10 +401,8 @@ class WorkflowEngine:
         # be more than one prior step variable that is 'files'!
         replication_values: list[str] = []
         iter_variable: str | None = None
-        tr_map: dict[str, list[Translation]] = get_step_prior_step_variable_mapping(
-            step=step
-        )
-        for p_step_name, tr_list in tr_map.items():
+        plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(step=step)
+        for p_step_name, connections in plumbing.items():
             # We need to get the Job definition for each step
             # and then check whether the (ouptu) variable is of type 'files'...
             wf_step: dict[str, Any] = get_step(wf, p_step_name)
@@ -413,9 +411,9 @@ class WorkflowEngine:
             jd_outputs: dict[str, Any] = job_defintion_decoder.get_outputs(
                 job_definition
             )
-            for tr in tr_list:
-                if jd_outputs.get(tr.in_, {}).get("type") == "files":
-                    iter_variable = tr.out
+            for connector in connections:
+                if jd_outputs.get(connector.in_, {}).get("type") == "files":
+                    iter_variable = connector.out
                     # Get the prior running step's output values
                     response, _ = self._wapi_adapter.get_running_workflow_step_by_name(
                         name=p_step_name,
@@ -426,7 +424,7 @@ class WorkflowEngine:
                     result, _ = (
                         self._wapi_adapter.get_running_workflow_step_output_values_for_output(
                             running_workflow_step_id=rwfs_id,
-                            output_variable=tr.in_,
+                            output_variable=connector.in_,
                         )
                     )
                     replication_values = result["output"].copy()

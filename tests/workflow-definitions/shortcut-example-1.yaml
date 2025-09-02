@@ -19,7 +19,7 @@ steps:
     collection: workflow-engine-unit-test-jobs
     job: shortcut-example-1-process-b
     version: "1.0.0"
-  variable-mapping:
+  plumbing:
   - variable: inputFile
     from-step:
       name: example-1-step-1

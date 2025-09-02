@@ -398,12 +398,12 @@ def test_workflow_engine_simple_python_molprops_with_options(basic_engine):
     assert project_file_exists(output_file_2)
 
 
-def test_workflow_engine_simple_python_fanout(basic_engine):
+def test_workflow_engine_simple_python_split_combine(basic_engine):
     # Arrange
     md, da = basic_engine
 
     da.mock_get_running_workflow_step_output_values_for_output(
-        step_name="first-step",
+        step_name="split",
         output_variable="outputBase",
         output=["chunk_1.smi", "chunk_2.smi"],
     )
@@ -427,7 +427,7 @@ def test_workflow_engine_simple_python_fanout(basic_engine):
     r_wfid = start_workflow(
         md,
         da,
-        "simple-python-fanout",
+        "simple-python-split-combine",
         {"candidateMolecules": input_file_1},
     )
 

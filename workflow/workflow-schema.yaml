@@ -156,11 +156,11 @@ definitions:
         # The format of this is essentially idenical to the specification
         # used when a Job is launched via the DM API.
         $ref: '#/definitions/step-specification'
-      variable-mapping:
+      plumbing:
         # The map of the source of the step's variables.
-        # all variables the step needs (that aren;t already in the specification)
+        # All variables the step needs (that aren't already in the specification)
         # need to be declared here. They either come "from" a prior step
-        # or are expected in th erunning workflow variables. Here we simply
+        # or are expected to be a workflow variable. Here we simply
         # associate every required variable to a source.
         type: array
         items:

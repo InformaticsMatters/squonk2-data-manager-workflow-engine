@@ -13,7 +13,7 @@ steps:
     collection: workflow-engine-unit-test-jobs
     job: smiles-to-file
     version: "1.0.0"
-  variable-mapping:
+  plumbing:
   - variable: outputFile
     from-workflow:
       variable: outputFile
