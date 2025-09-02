@@ -42,8 +42,12 @@ class LaunchParameters:
     # If only one instance of the step is expected to run
     # this value can be left at 0 (zero). If this step's launch
     # is expected to be executed more than once the value should be
-    # non-zero (and unique for this workflow run).
+    # 1..'N'.
     step_replication_number: int = 0
+    # The total number of replicas of this instance that are expected to be laucnhed.
+    # if step_replication_number is set, this has to be set. It is 'N'.
+    # If step_replication_number is zero this value is ignored.
+    total_number_of_replicas: int = 0
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'
@@ -144,7 +148,7 @@ class WorkflowAPIAdapter(ABC):
         #       "running_user": "alan",
         #       "running_user_api_token": "123456789",
         #       "done": False,
-        #       "success": false,
+        #       "success": False,
         #       "error_num": 0,
         #       "error_msg": "",
         #       "workflow": {
@@ -171,7 +175,29 @@ class WorkflowAPIAdapter(ABC):
         #    "count": 1,
         #    "steps": [
         #       {
-        #           "name:": "step-1234"
+        #           "name": "step-1234"
+        #       }
+        #    ]
+        # }
+
+    @abstractmethod
+    def get_status_of_all_step_instances_by_name(
+        self, *, running_workflow_id: str, step_name: str
+    ) -> tuple[dict[str, Any], int]:
+        """Get a list of step execution statuses for the named step."""
+        # Should return:
+        # {
+        #    "count": 2,
+        #    "status": [
+        #       {
+        #           "done": True,
+        #           "success": True,
+        #           "running_workflow_step_id": "step-0001"
+        #       },
+        #       {
+        #           "done": False,
+        #           "success": False,
+        #           "running_workflow_step_id": "step-0002"
         #       }
         #    ]
         # }
@@ -195,9 +221,9 @@ class WorkflowAPIAdapter(ABC):
         """Get a RunningWorkflowStep Record"""
         # Should return:
         # {
-        #       "name:": "step-1234",
+        #       "name": "step-1234",
         #       "done": False,
-        #       "success": false,
+        #       "success": False,
         #       "error_num": 0,
         #       "error_msg": "",
         #       "variables": {
@@ -234,9 +260,9 @@ class WorkflowAPIAdapter(ABC):
         # Should return:
         # {
         #       "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
-        #       "name:": "step-1234",
+        #       "name": "step-1234",
         #       "done": False,
-        #       "success": false,
+        #       "success": False,
         #       "error_num": 0,
         #       "error_msg": "",
         #       "variables": {
@@ -273,26 +299,6 @@ class WorkflowAPIAdapter(ABC):
     ) -> None:
         """Set the success value for a RunningWorkflowStep Record,
         If not successful an error code and message should be provided."""
-
-    @abstractmethod
-    def get_workflow_steps_driving_this_step(
-        self,
-        *,
-        running_workflow_step_id: str,
-    ) -> tuple[dict[str, Any], int]:
-        """Get all the step records that belong to the Workflow for the given
-        RunningWorkflowStep record ID. You are also given the caller's position
-        in the list, which will be -1 if the caller is not present."""
-        # It should return:
-        # {
-        #    "caller_step_index": 0,
-        #    "steps": [
-        #      {
-        #        "name": "step-name"
-        #        "specification": "{}",
-        #       }
-        #     ]
-        # }
 
     @abstractmethod
     def get_instance(self, *, instance_id: str) -> tuple[dict[str, Any], int]:

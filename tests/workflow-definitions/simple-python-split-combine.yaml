@@ -36,5 +36,19 @@ steps:
     from-step:
       name: split
       variable: outputBase
+
+#- name: combine
+#  description: Add some params
+#  specification:
+#    collection: workflow-engine-unit-test-jobs
+#    job: concatenate
+#    version: "1.0.0"
+#    variables:
+#      outputFile: results.smi
+#  plumbing:
+#  - variable: inputFile
+#    from-step:
+#      variable: outputFile
+#      name: parallel
   out:
   - outputFile

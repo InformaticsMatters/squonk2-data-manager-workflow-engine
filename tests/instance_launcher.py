@@ -76,6 +76,12 @@ class UnitTestInstanceLauncher(InstanceLauncher):
 
         os.makedirs(EXECUTION_DIRECTORY, exist_ok=True)
 
+        if launch_parameters.step_replication_number:
+            assert (
+                launch_parameters.step_replication_number
+                <= launch_parameters.total_number_of_replicas
+            )
+
         # Create a running workflow step
         assert launch_parameters.running_workflow_id
         assert launch_parameters.step_name

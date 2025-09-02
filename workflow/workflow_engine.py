@@ -58,12 +58,14 @@ class StepPreparationResponse:
     can be launched - it's value indicates how many times. If a step can be launched
     'variables' will not be None. If a parallel set of steps can take place
     (even just one) 'iteration_variable' will be set and 'iteration_values'
-    will be a list containing a value for eacdh step."""
+    will be a list containing a value for each step. If prparation failed
+    'error_msg' chould contain something useful."""
 
     iterations: int
     variables: dict[str, Any] | None = None
     iteration_variable: str | None = None
     iteration_values: list[str] | None = None
+    error_msg: str | None = None
 
 
 class WorkflowEngine:
@@ -145,6 +147,7 @@ class WorkflowEngine:
             wf=wf_response, step_definition=first_step, rwf=rwf_response
         )
         assert sp_resp.variables is not None
+        assert sp_resp.error_msg is None
         # Launch it.
         # If there's a launch problem the step (and running workflow) will have
         # and error, stopping it. There will be no Pod event as the launch has failed.
@@ -303,7 +306,7 @@ class WorkflowEngine:
                     sp_resp = self._prepare_step(
                         wf=wf_response, step_definition=next_step, rwf=rwf_response
                     )
-                    if sp_resp.iterations == 0:
+                    if sp_resp.iterations == 0 or sp_resp.error_msg:
                         # Cannot prepare variables for this step,
                         # we have to leave.
                         return
@@ -366,7 +369,59 @@ class WorkflowEngine:
         step_name: str = step_definition["name"]
         rwf_id: str = rwf["id"]
 
-        # Compile a set of variables for this step.
+        # Before we move on, are we combiner?
+        #
+        # We are if a variable in our step's plumbing refers to an input of ours
+        # that is of type 'files'. If we are a combiner then we use the name of the
+        # step we are combining (there can only be one) so that we can ensure
+        # all its step instances have finished (successfully). We cannot
+        # move on until all the files we depend on are ready.
+
+        our_job_definition: dict[str, Any] = self._get_step_job(step=step_definition)
+        our_inputs: dict[str, Any] = job_defintion_decoder.get_inputs(
+            our_job_definition
+        )
+        our_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
+            step_definition=step_definition
+        )
+        step_name_being_combined: str | None = None
+        for p_step_name, connections in our_plumbing.items():
+            for connector in connections:
+                if our_inputs.get(connector.out, {}).get("type") == "files":
+                    step_name_being_combined = p_step_name
+                    break
+            if step_name_being_combined:
+                break
+        if step_name_being_combined:
+            response, _ = self._wapi_adapter.get_status_of_all_step_instances_by_name(
+                running_workflow_id=rwf_id,
+                step_name=step_name_being_combined,
+            )
+            # Assume succes...
+            all_step_instances_done: bool = True
+            all_step_instances_successful: bool = True
+            assert "count" in response
+            assert response["count"] > 0
+            assert "status" in response
+            for status in response["status"]:
+                if not status["done"]:
+                    all_step_instances_done = False
+                    break
+                if not status["success"]:
+                    all_step_instances_successful = False
+                    break
+            if not all_step_instances_done:
+                # Can't move on - but other steps need to finish.
+                return StepPreparationResponse(iterations=0)
+            elif not all_step_instances_successful:
+                # Can't move on - all prior steps are done,
+                # but at least one was in error.
+                return StepPreparationResponse(
+                    iterations=0,
+                    error_msg="A prior step 'step_name_being_combined' iteration has failed",
+                )
+
+        # Now compile a set of variables for this step.
 
         # Start with any variables provided in the step's specification.
         # A map that we will add to (and maybe even over-write)...
@@ -416,30 +471,6 @@ class WorkflowEngine:
             _LOGGER.warning(msg)
             self._set_step_error(step_name, rwf_id, None, 1, msg)
             return StepPreparationResponse(iterations=0)
-
-        # Our inputs
-        our_job_definition: dict[str, Any] = self._get_step_job(step=step_definition)
-        our_inputs: dict[str, Any] = job_defintion_decoder.get_inputs(
-            our_job_definition
-        )
-
-        # Are we a combiner step?
-        #
-        # We are if a variable in our step's plumbing refers to an input that is
-        # of type 'files'. A combiner's input is required to accept a space-separated
-        # set of files.
-        we_are_a_combiner: bool = False
-        our_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
-            step_definition=step_definition
-        )
-        for p_step_name, connections in our_plumbing.items():
-            for connector in connections:
-                if our_inputs.get(connector.out, {}).get("type") == "files":
-                    we_are_a_combiner = True
-
-        assert not we_are_a_combiner
-
-        # We're not a combiner...
 
         # Do we replicate this step (run it more than once)?
         # We do if a variable in this step's plumbing
@@ -507,7 +538,7 @@ class WorkflowEngine:
         # A step replication number,
         # used only for steps expected to run in parallel (even if just once)
         step_replication_number: int = 0
-
+        total_replicas: int = step_preparation_response.iterations
         variables = step_preparation_response.variables
         assert variables is not None
         for iteration in range(step_preparation_response.iterations):
@@ -550,6 +581,7 @@ class WorkflowEngine:
                 running_workflow_id=rwf_id,
                 step_name=step_name,
                 step_replication_number=step_replication_number,
+                total_number_of_replicas=total_replicas,
             )
             lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
             rwfs_id = lr.running_workflow_step_id
