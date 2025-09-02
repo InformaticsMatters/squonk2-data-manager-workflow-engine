@@ -43,7 +43,7 @@ from .decoder import (
     Connector,
     get_step,
     get_step_prior_step_plumbing,
-    get_step_workflow_plumbing,
+    get_step_workflow_variable_connections,
 )
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ class WorkflowEngine:
         # Launch it.
         # If there's a launch problem the step (and running workflow) will have
         # and error, stopping it. There will be no Pod event as the launch has failed.
-        self._launch(wf=wf_response, rwf=rwf_response, step=first_step)
+        self._launch(wf=wf_response, rwf=rwf_response, step_definition=first_step)
 
     def _handle_workflow_stop_message(self, r_wfid: str) -> None:
         """Logic to handle a STOP message."""
@@ -265,7 +265,9 @@ class WorkflowEngine:
                     # There's another step!
                     # For this simple logic it is the next step.
                     next_step = wf_response["steps"][step_index + 1]
-                    self._launch(wf=wf_response, rwf=rwf_response, step=next_step)
+                    self._launch(
+                        wf=wf_response, rwf=rwf_response, step_definition=next_step
+                    )
 
                     # Something was started (or there was a launch error and the step
                     # and running workflow error will have been set).
@@ -330,7 +332,7 @@ class WorkflowEngine:
         # "in" variables are worklfow variables, and "out" variables
         # are expected Job variables. We use this to add variables
         # to the "all variables" map.
-        for connector in get_step_workflow_plumbing(step=step):
+        for connector in get_step_workflow_variable_connections(step_definition=step):
             assert connector.in_ in running_workflow_variables
             all_variables[connector.out] = running_workflow_variables[connector.in_]
 
@@ -339,7 +341,7 @@ class WorkflowEngine:
         # us a map indexed by prior step name that's a list of "in" "out"
         # tuples as above.
         prior_step_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
-            step=step
+            step_definition=step
         )
         for prior_step_name, connections in prior_step_plumbing.items():
             # Retrieve the prior "running" step
@@ -360,9 +362,13 @@ class WorkflowEngine:
         return all_variables if success else message
 
     def _launch(
-        self, *, wf: dict[str, Any], rwf: dict[str, Any], step: dict[str, Any]
+        self,
+        *,
+        wf: dict[str, Any],
+        rwf: dict[str, Any],
+        step_definition: dict[str, Any],
     ) -> None:
-        step_name: str = step["name"]
+        step_name: str = step_definition["name"]
         rwf_id: str = rwf["id"]
         project_id = rwf["project"]["id"]
 
@@ -376,7 +382,7 @@ class WorkflowEngine:
         rwf_variables: dict[str, Any] = rwf.get("variables", {})
         error_or_variables: str | dict[str, Any] = self._validate_step_command(
             running_workflow_id=rwf_id,
-            step=step,
+            step=step_definition,
             running_workflow_variables=rwf_variables,
         )
         if isinstance(error_or_variables, str):
@@ -401,7 +407,9 @@ class WorkflowEngine:
         # be more than one prior step variable that is 'files'!
         replication_values: list[str] = []
         iter_variable: str | None = None
-        plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(step=step)
+        plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
+            step_definition=step_definition
+        )
         for p_step_name, connections in plumbing.items():
             # We need to get the Job definition for each step
             # and then check whether the (ouptu) variable is of type 'files'...
@@ -468,7 +476,7 @@ class WorkflowEngine:
                 debug=rwf.get("debug"),
                 launching_user_name=rwf["running_user"],
                 launching_user_api_token=rwf["running_user_api_token"],
-                specification=step["specification"],
+                specification=step_definition["specification"],
                 variables=variables,
                 running_workflow_id=rwf_id,
                 step_name=step_name,

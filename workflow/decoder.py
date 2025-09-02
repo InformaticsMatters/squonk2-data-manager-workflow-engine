@@ -127,38 +127,42 @@ def get_step_input_variable_names(
     return variable_names
 
 
-def get_step_workflow_plumbing(*, step: dict[str, Any]) -> list[Connector]:
-    """Returns a list of workflow vaiable name to step variable name
-    Translation objects for the given step."""
-    variable_mapping: list[Connector] = []
-    if "plumbing" in step:
-        for v_map in step["plumbing"]:
+def get_step_workflow_variable_connections(
+    *, step_definition: dict[str, Any]
+) -> list[Connector]:
+    """Returns a list of connectors that connect a workflow variable name
+    to a step variable name for the given step definition."""
+    connections: list[Connector] = []
+    if "plumbing" in step_definition:
+        for v_map in step_definition["plumbing"]:
             if "from-workflow" in v_map:
-                variable_mapping.append(
+                connections.append(
                     Connector(
                         in_=v_map["from-workflow"]["variable"], out=v_map["variable"]
                     )
                 )
-    return variable_mapping
+    return connections
 
 
-def get_step_prior_step_plumbing(*, step: dict[str, Any]) -> dict[str, list[Connector]]:
-    """Returns list of Translation objects, indexed by prior step name,
-    that identify source step (output) variable name to this step's (input)
-    variable name."""
-    variable_mapping: dict[str, list[Connector]] = {}
-    if "plumbing" in step:
-        for v_map in step["plumbing"]:
+def get_step_prior_step_plumbing(
+    *, step_definition: dict[str, Any]
+) -> dict[str, list[Connector]]:
+    """Returns list of variable Connections, indexed by prior step name,
+    that identify a source step variable name (an output) to an input variable in this
+    step (an input)."""
+    plumbing: dict[str, list[Connector]] = {}
+    if "plumbing" in step_definition:
+        for v_map in step_definition["plumbing"]:
             if "from-step" in v_map:
                 step_name = v_map["from-step"]["name"]
                 step_variable = v_map["from-step"]["variable"]
                 # Tuple is "from" -> "to"
-                if step_name in variable_mapping:
-                    variable_mapping[step_name].append(
+                if step_name in plumbing:
+                    plumbing[step_name].append(
                         Connector(in_=step_variable, out=v_map["variable"])
                     )
                 else:
-                    variable_mapping[step_name] = [
+                    plumbing[step_name] = [
                         Connector(in_=step_variable, out=v_map["variable"])
                     ]
-    return variable_mapping
+    return plumbing
