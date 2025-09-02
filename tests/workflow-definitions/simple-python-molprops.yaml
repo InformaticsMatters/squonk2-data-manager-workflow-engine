@@ -37,5 +37,5 @@ steps:
   - variable: outputFile
     from-workflow:
       variable: clusteredMolecules
-  out:
-  - outputFile
+  - variable: outputFile
+    to-project:

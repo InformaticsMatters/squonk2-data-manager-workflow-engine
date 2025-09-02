@@ -38,5 +38,5 @@ steps:
     from-step:
       name: step-1
       variable: outputFile
-  out:
-  - outputFile
+  - variable: outputFile
+    to-project:

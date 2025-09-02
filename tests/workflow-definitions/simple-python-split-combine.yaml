@@ -38,7 +38,7 @@ steps:
       variable: outputBase
 
 #- name: combine
-#  description: Add some params
+#  description: Combine the parallel files
 #  specification:
 #    collection: workflow-engine-unit-test-jobs
 #    job: concatenate
@@ -47,8 +47,11 @@ steps:
 #      outputFile: results.smi
 #  plumbing:
 #  - variable: inputFile
-#    from-step:
 #      variable: outputFile
+#    from-step:
 #      name: parallel
-  out:
-  - outputFile
+#  - variable: outputFile
+#    from-workflow:
+#      variable: combination
+#  - variable: outputFile
+#    to-project:

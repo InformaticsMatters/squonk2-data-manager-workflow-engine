@@ -55,14 +55,14 @@ steps:
     collection: workflow-engine-unit-test-jobs
     job: concatenate
     version: "1.0.0"
-  inputs:
-  - input: inputFile
+  plumbing:
+  - variable: inputFile
     from:
       step: parallel-step-a
-      output: outputFile
-  - input: inputFile
+      variable: outputFile
+  - variable: inputFile
     from:
       step: parallel-step-b
-      output: outputFile
-  out:
-  - outputFile
+      variable: outputFile
+  - variable: outputFile
+    to-project:

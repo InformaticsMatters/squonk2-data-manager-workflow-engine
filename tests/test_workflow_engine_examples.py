@@ -428,7 +428,7 @@ def test_workflow_engine_simple_python_split_combine(basic_engine):
         md,
         da,
         "simple-python-split-combine",
-        {"candidateMolecules": input_file_1},
+        {"candidateMolecules": input_file_1, "combination": "combination.smi"},
     )
 
     # Assert
