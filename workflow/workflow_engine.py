@@ -24,6 +24,7 @@ is executed, and it uses thew InstanceLauncher to launch the Job (a Pod) for eac
 
 import logging
 import sys
+from dataclasses import dataclass
 from typing import Any, Optional
 
 import decoder.decoder as job_defintion_decoder
@@ -49,6 +50,20 @@ from .decoder import (
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.INFO)
 _LOGGER.addHandler(logging.StreamHandler(sys.stdout))
+
+
+@dataclass
+class StepPreparationResponse:
+    """Step preparation response object. Iterations is +ve (non-zero) if a step
+    can be launched - it's value indicates how many times. If a step can be launched
+    'variables' will not be None. If a parallel set of steps can take place
+    (even just one) 'iteration_variable' will be set and 'iteration_values'
+    will be a list containing a value for eacdh step."""
+
+    iterations: int
+    variables: dict[str, Any] | None = None
+    iteration_variable: str | None = None
+    iteration_values: list[str] | None = None
 
 
 class WorkflowEngine:
@@ -126,10 +141,18 @@ class WorkflowEngine:
         # Now find the first step (index 0)...
         first_step: dict[str, Any] = wf_response["steps"][0]
 
+        sp_resp = self._prepare_step_variables(
+            wf=wf_response, step_definition=first_step, rwf=rwf_response
+        )
+        assert sp_resp.variables is not None
         # Launch it.
         # If there's a launch problem the step (and running workflow) will have
         # and error, stopping it. There will be no Pod event as the launch has failed.
-        self._launch(wf=wf_response, rwf=rwf_response, step_definition=first_step)
+        self._launch(
+            rwf=rwf_response,
+            step_definition=first_step,
+            step_preparation_response=sp_resp,
+        )
 
     def _handle_workflow_stop_message(self, r_wfid: str) -> None:
         """Logic to handle a STOP message."""
@@ -265,8 +288,31 @@ class WorkflowEngine:
                     # There's another step!
                     # For this simple logic it is the next step.
                     next_step = wf_response["steps"][step_index + 1]
+
+                    # A mojor piece of work to accomplish is to get ourselves into a position
+                    # that allows us to check the step command can be executed.
+                    # We do this by compiling a map of variables we belive the step needs.
+
+                    # If the step about to be launched is based on a prior step
+                    # that generates multiple outputs (files) then we have to
+                    # exit unless all of the step instances have completed.
+                    #
+                    # Do we need a 'prepare variables' function?
+                    # One that returns a map of variables or nothing
+                    # (e.g. 'nothing' when a step launch cannot be attempted)
+                    sp_resp = self._prepare_step_variables(
+                        wf=wf_response, step_definition=next_step, rwf=rwf_response
+                    )
+                    if sp_resp.iterations == 0:
+                        # Cannot prepare variables for this step,
+                        # we have to leave.
+                        return
+                    assert sp_resp.variables is not None
+
                     self._launch(
-                        wf=wf_response, rwf=rwf_response, step_definition=next_step
+                        rwf=rwf_response,
+                        step_definition=next_step,
+                        step_preparation_response=sp_resp,
                     )
 
                     # Something was started (or there was a launch error and the step
@@ -361,20 +407,18 @@ class WorkflowEngine:
         )
         return all_variables if success else message
 
-    def _launch(
+    def _prepare_step_variables(
         self,
         *,
         wf: dict[str, Any],
-        rwf: dict[str, Any],
         step_definition: dict[str, Any],
-    ) -> None:
+        rwf: dict[str, Any],
+    ) -> StepPreparationResponse:
+        """Attempts to prepare a map of step variables. If variables cannot be
+        presented to the step we return an object with 'iterations' set to zero."""
+
         step_name: str = step_definition["name"]
         rwf_id: str = rwf["id"]
-        project_id = rwf["project"]["id"]
-
-        # A mojor piece of work to accomplish is to get ourselves into a position
-        # that allows us to check the step command can be executed.
-        # We do this by compiling a map of variables we belive the step needs.
 
         # We start with all the workflow variables that were provided
         # by the user when they "ran" the workflow. We're given a full set of
@@ -390,13 +434,10 @@ class WorkflowEngine:
             msg = f"Failed command validation error_msg={error_msg}"
             _LOGGER.warning(msg)
             self._set_step_error(step_name, rwf_id, None, 1, msg)
-            return
+            return StepPreparationResponse(iterations=0)
 
         variables: dict[str, Any] = error_or_variables
 
-        # A step replication number,
-        # used only for steps expected to run in parallel (even if just once)
-        step_replication_number: int = 0
         # Do we replicate this step (run it more than once)?
         # We do if a variable in this step's mapping block
         # refers to an output of a prior step whose type is 'files'.
@@ -405,7 +446,7 @@ class WorkflowEngine:
         #
         # In this engine we onlhy act on the _first_ match, i.e. there CANNOT
         # be more than one prior step variable that is 'files'!
-        replication_values: list[str] = []
+        iter_values: list[str] = []
         iter_variable: str | None = None
         plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
             step_definition=step_definition
@@ -435,34 +476,59 @@ class WorkflowEngine:
                             output_variable=connector.in_,
                         )
                     )
-                    replication_values = result["output"].copy()
+                    iter_values = result["output"].copy()
                     break
             # Stop if we've got an iteration variable
             if iter_variable:
                 break
 
-        num_step_instances: int = max(1, len(replication_values))
-        for iteration in range(num_step_instances):
+        num_step_instances: int = max(1, len(iter_values))
+        return StepPreparationResponse(
+            variables=variables,
+            iterations=num_step_instances,
+            iteration_variable=iter_variable,
+            iteration_values=iter_values,
+        )
+
+    def _launch(
+        self,
+        *,
+        rwf: dict[str, Any],
+        step_definition: dict[str, Any],
+        step_preparation_response: StepPreparationResponse,
+    ) -> None:
+        step_name: str = step_definition["name"]
+        rwf_id: str = rwf["id"]
+        project_id = rwf["project"]["id"]
+
+        # A step replication number,
+        # used only for steps expected to run in parallel (even if just once)
+        step_replication_number: int = 0
+
+        variables = step_preparation_response.variables
+        assert variables is not None
+        for iteration in range(step_preparation_response.iterations):
 
             # If we are replicating this step then we must replace the step's variable
             # with a value expected for this iteration.
-            if iter_variable:
-                iter_value: str = replication_values[iteration]
+            if step_preparation_response.iteration_variable:
+                assert step_preparation_response.iteration_values
+                iter_value: str = step_preparation_response.iteration_values[iteration]
                 _LOGGER.info(
                     "Replicating step: %s iteration=%s variable=%s value=%s",
                     step_name,
                     iteration,
-                    iter_variable,
+                    step_preparation_response.iteration_variable,
                     iter_value,
                 )
                 # Over-write the replicating variable
                 # and set the replication number to a unique +ve non-zero value...
-                variables[iter_variable] = iter_value
+                variables[step_preparation_response.iteration_variable] = iter_value
                 step_replication_number = iteration + 1
 
             _LOGGER.info(
                 "Launching step: %s RunningWorkflow=%s (name=%s)"
-                " variables=%s project=%s",
+                " step_variables=%s project=%s",
                 step_name,
                 rwf_id,
                 rwf["name"],
