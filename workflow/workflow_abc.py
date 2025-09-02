@@ -27,7 +27,7 @@ class LaunchParameters:
     specification: dict[str, Any]
     # An alternative way to pass variables to the specification.
     # If used it will replace any 'variables' already present in the specification.
-    specification_variables: dict[str, Any] | None = None
+    variables: dict[str, Any] | None = None
     # A string. In DM v4 converted to a boolean and set in the
     # instance Pod as a label. Setting this means the Instances
     # that are created will not be automatically removed by the Job operator.
@@ -35,28 +35,15 @@ class LaunchParameters:
     # The RunningWorkflow UUID.
     # Required if the Instance is part of a Workflow step.
     running_workflow_id: str | None = None
-    # The RunningWorkflowStep UUID.
+    # The RunningWorkflow's step name.
     # Required if the Instance is part of a Workflow step.
-    running_workflow_step_id: str | None = None
-    # A list of prior workflow steps that this step depends upon.
-    #
-    # This list gives the InstanceLauncher an opportunity to take the outputs
-    # of a prior instance and link them to the instance directory for the
-    # instance to be launched. We need to do this for Workflows because Instances
-    # run as apart of a Workflow do not automatically have their outputs copied (linked)
-    # to the Project directory when they complete. As an example, a step that relies
-    # on the output files from two prior steps will provide the following list: -
-    #
-    #   ["r-workflow-step-a04d", "r-workflow-step-d904"]
-    running_workflow_step_prior_steps: list[str] | None = None
-    # Workflow step Job inputs (for this step Instance). These Workflow Inputs (files)
-    # are a list of Job input variable names for file variables where the
-    # file is expected to be present in the Project directory. It is simply a list of
-    # Job variable names. The launcher is expected to find the 'value' of these
-    # variables and then move the file to the instance directory.
-    #
-    #   ["inputFile"]
-    running_workflow_step_inputs: list[str] | None = None
+    step_name: str | None = None
+    # The step replication number.
+    # If only one instance of the step is expected to run
+    # this value can be left at 0 (zero). If this step's launch
+    # is expected to be executed more than once the value should be
+    # non-zero (and unique for this workflow run).
+    step_replication_number: int = 0
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'
@@ -75,6 +62,9 @@ class LaunchResult:
     # The following optional properties
     # may not be present if there's a launch error.
     #
+    # A running workflow step UUID
+    # (if the step is part of a running workflow)
+    running_workflow_step_id: str | None = None
     # The Instance UUID that was created for you.
     instance_id: str | None = None
     # The Task UUID that is handling the Instance launch
@@ -94,7 +84,6 @@ class InstanceLauncher(ABC):
         self,
         *,
         launch_parameters: LaunchParameters,
-        **kwargs: str,
     ) -> LaunchResult:
         """Launch a (Job) Instance"""
 
@@ -200,25 +189,6 @@ class WorkflowAPIAdapter(ABC):
         If not successful an error code and message should be provided."""
 
     @abstractmethod
-    def create_running_workflow_step(
-        self,
-        *,
-        running_workflow_id: str,
-        step: str,
-        replica: int = 0,
-        prior_running_workflow_step_id: str | None = None,
-    ) -> tuple[dict[str, Any], int]:
-        """Create a RunningWorkflowStep Record (from a RunningWorkflow).
-        If this is a replica (concurrent execution) of a step the replica
-        value must be set to a value greater than 0. The replica is unique
-        for a given step and is used to distinguish between running workflow steps
-        generated from the same step name."""
-        # Should return:
-        # {
-        #    "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
-        # }
-
-    @abstractmethod
     def get_running_workflow_step(
         self, *, running_workflow_step_id: str
     ) -> tuple[dict[str, Any], int]:
@@ -293,17 +263,6 @@ class WorkflowAPIAdapter(ABC):
         #       },
 
     @abstractmethod
-    def set_running_workflow_step_variables(
-        self,
-        *,
-        running_workflow_step_id: str,
-        variables: dict[str, Any],
-    ) -> None:
-        """Set the variables used prior to decoding the step command for each step.
-        This can be used to understand step failures but will also be vital
-        when adding variables values to subsequent steps from prior step values."""
-
-    @abstractmethod
     def set_running_workflow_step_done(
         self,
         *,
@@ -371,16 +330,6 @@ class WorkflowAPIAdapter(ABC):
         # Should return a (possibly empty) list of paths and filenames:
         # {
         #   "output": ["dir/file1.sdf", "dir/file2.sdf"]
-        # }
-
-    @abstractmethod
-    def realise_outputs(
-        self, *, running_workflow_step_id: str
-    ) -> tuple[dict[str, Any], int]:
-        """Copy (link) the step's files as outputs into the Project directory."""
-        # Should return an empty map or:
-        # {
-        #   "error": "<error message>",
         # }
 
 

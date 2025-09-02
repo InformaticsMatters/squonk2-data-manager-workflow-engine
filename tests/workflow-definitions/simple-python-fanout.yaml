@@ -2,40 +2,39 @@
 kind: DataManagerWorkflow
 kind-version: "2025.2"
 name: python-workflow
-description: A simple python experimental workflow
+description: >-
+  A simple parallel workflow. Input is split into N chunks and N processes of the same job is started
 
 steps:
-- name: step1
-  description: Add column 1
+- name: first-step
+  description: Split an input file
   specification:
     collection: workflow-engine-unit-test-jobs
-    job: rdkit-molprops
+    job: splitsmiles
     version: "1.0.0"
     variables:
-      name: "col1"
-      value: 123
-      outputFile: "results.smi"
+      name: count
+      value: "1"
+      outputBase: chunk
   variable-mapping:
   - variable: inputFile
     from-workflow:
       variable: candidateMolecules
 
-- name: step2
-  description: Add column 2
+- name: parallel-step
+  description: Add some params
   specification:
     collection: workflow-engine-unit-test-jobs
-    job: cluster-butina
+    job: append-col
     version: "1.0.0"
     variables:
-      name: "col2"
-      value: "999"
+      name: desc1
+      value: "777"
+      outputFile: results.smi
   variable-mapping:
   - variable: inputFile
     from-step:
-      name: step1
-      variable: outputFile
-  - variable: outputFile
-    from-workflow:
-      variable: clusteredMolecules
+      name: first-step
+      variable: outputBase
   out:
   - outputFile

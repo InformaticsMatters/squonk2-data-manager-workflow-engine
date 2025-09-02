@@ -68,7 +68,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)
 
-    def launch(self, launch_parameters: LaunchParameters) -> LaunchResult:
+    def launch(self, *, launch_parameters: LaunchParameters) -> LaunchResult:
         assert launch_parameters
         assert launch_parameters.project_id == TEST_PROJECT_ID
         assert launch_parameters.specification
@@ -76,10 +76,24 @@ class UnitTestInstanceLauncher(InstanceLauncher):
 
         os.makedirs(EXECUTION_DIRECTORY, exist_ok=True)
 
-        # Create an Instance record (and dummy Task ID)
-        response = self._api_adapter.create_instance(
-            running_workflow_step_id=launch_parameters.running_workflow_step_id
+        # Create a running workflow step
+        assert launch_parameters.running_workflow_id
+        assert launch_parameters.step_name
+        response, _ = self._api_adapter.create_running_workflow_step(
+            running_workflow_id=launch_parameters.running_workflow_id,
+            step=launch_parameters.step_name,
+            replica=launch_parameters.step_replication_number,
         )
+        assert "id" in response
+        rwfs_id: str = response["id"]
+        # And add the variables we've been provided with
+        if launch_parameters.variables:
+            _ = self._api_adapter.set_running_workflow_step_variables(
+                running_workflow_step_id=rwfs_id, variables=launch_parameters.variables
+            )
+
+        # Create an Instance record (and dummy Task ID)
+        response = self._api_adapter.create_instance(running_workflow_step_id=rwfs_id)
         instance_id = response["id"]
         task_id = "task-00000000-0000-0000-0000-000000000001"
 
@@ -96,8 +110,8 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         # The command may not need any, but we do the decoding anyway.
         decoded_command, status = job_decoder.decode(
             job["command"],
-            launch_parameters.specification_variables,
-            launch_parameters.running_workflow_step_id,
+            launch_parameters.variables,
+            rwfs_id,
             TextEncoding.JINJA2_3_0,
         )
         print(f"Decoded command: {decoded_command}")
@@ -129,6 +143,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         self._msg_dispatcher.send(pod_message)
 
         return LaunchResult(
+            running_workflow_step_id=rwfs_id,
             instance_id=instance_id,
             task_id=task_id,
             command=" ".join(subprocess_cmd),

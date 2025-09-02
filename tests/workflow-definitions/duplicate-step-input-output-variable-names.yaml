@@ -3,17 +3,8 @@ kind: DataManagerWorkflow
 kind-version: "2025.2"
 name: duplicate-step-output-variable-names
 description: A workflow where step-1 has duplicate output variable names
-variable-mapping:
-  inputs:
-  - name: x
-  outputs:
-  - name: y
-    from:
-      step: step-2
-      output: outputFile
 
 steps:
-
 - name: step-1
   description: Add column 1
   specification:
@@ -23,18 +14,16 @@ steps:
     variables:
       name: "col1"
       value: 123
-  inputs:
-  - input: inputFile
-    from:
-      workflow-input: candidateMolecules
-  - input: inputFile
-    from:
-      workflow-input: candidateMolecules
-  outputs:
-  - output: outputFile
-    as: __step1__out.smi
-  - output: outputFile
-    as: __step1__out.smi
+  variable-mapping:
+  - variable: inputFile
+    from-workflow:
+      variable: candidateMolecules
+  - variable: inputFile
+    from-workflow:
+      variable: candidateMolecules
+  in:
+  - inputFile
+  - inputFile
 
 - name: step-2
   description: Add column 2
@@ -45,11 +34,11 @@ steps:
     variables:
       name: "col2"
       value: "999"
-  inputs:
-  - input: inputFile
-    from:
-      step: step1
-      output: outputFile
-  outputs:
-  - output: outputFile
-    as: __step2__out.smi
+  variable-mapping:
+  - variable: inputFile
+    from-step:
+      name: step1
+      variable: outputFile
+  out:
+  - outputFile
+  - outputFile

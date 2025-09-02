@@ -26,10 +26,10 @@ def test_validate_minimal():
 
 def test_validate_example_nop_file():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-nop-fail.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -46,10 +46,10 @@ def test_validate_example_nop_file():
 
 def test_validate_example_smiles_to_file():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-smiles-to-file.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -66,10 +66,10 @@ def test_validate_example_smiles_to_file():
 
 def test_validate_example_two_step_nop():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-two-step-nop.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -86,10 +86,10 @@ def test_validate_example_two_step_nop():
 
 def test_validate_shortcut_example_1():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "shortcut-example-1.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -106,10 +106,10 @@ def test_validate_shortcut_example_1():
 
 def test_validate_simple_python_molprops():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -126,12 +126,12 @@ def test_validate_simple_python_molprops():
 
 def test_validate_simple_python_molprops_with_options():
     # Arrange
-    workflow_file: str = os.path.join(
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__),
         "workflow-definitions",
         "simple-python-molprops-with-options.yaml",
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 

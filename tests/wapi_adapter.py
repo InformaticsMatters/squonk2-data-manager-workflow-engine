@@ -442,7 +442,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
     # Methods not declared in the ABC
 
     def mock_get_running_workflow_step_output_values_for_output(
-        self, *, step_name: str, output_variable: str, output: list[str]
+        self, *, step_name: str, output_variable: str, output: list[str] | str
     ) -> None:
         """Sets the output response for a step.
         Limitation is that there can only be one record for each step name
@@ -450,7 +450,6 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         to check the output variable name matches."""
         assert isinstance(step_name, str)
         assert isinstance(output_variable, str)
-        assert isinstance(output, list)
 
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_MOCK_STEP_OUTPUT_FILE, "rb") as pickle_file:

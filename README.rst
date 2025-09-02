@@ -38,7 +38,7 @@ The project's written in Python and uses `Poetry`_ for dependency and package
 management. We also use `pre-commit`_ to manage our pre-commit hooks, which
 rely on `black`_, `mypy`_, `pylint`_, amongst others.
 
-From within a VS Code `devcontainer`_] environment (recommended)::
+From within a VS Code `devcontainer`_ environment (recommended)::
 
     poetry install --with dev --sync
     pre-commit install -t commit-msg -t pre-commit

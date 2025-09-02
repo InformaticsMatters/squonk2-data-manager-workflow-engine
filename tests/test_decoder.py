@@ -43,19 +43,6 @@ with open(
     )
 assert _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW
 
-_DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
-    os.path.dirname(__file__),
-    "workflow-definitions",
-    "duplicate-workflow-variable-names.yaml",
-)
-with open(
-    _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW_FILE, "r", encoding="utf8"
-) as workflow_file:
-    _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW: Dict[str, Any] = yaml.safe_load(
-        workflow_file
-    )
-assert _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW
-
 _SIMPLE_PYTHON_PARALLEL_FILE: str = os.path.join(
     os.path.dirname(__file__),
     "workflow-definitions",
@@ -77,15 +64,6 @@ with open(
         workflow_file
     )
 assert _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW
-
-_WORKFLOW_OPTIONS_WORKFLOW_FILE: str = os.path.join(
-    os.path.dirname(__file__),
-    "workflow-definitions",
-    "workflow-options.yaml",
-)
-with open(_WORKFLOW_OPTIONS_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
-    _WORKFLOW_OPTIONS: Dict[str, Any] = yaml.safe_load(workflow_file)
-assert _WORKFLOW_OPTIONS
 
 
 def test_validate_schema_for_minimal():
@@ -144,7 +122,7 @@ def test_validate_schema_for_shortcut_example_1():
     assert error is None
 
 
-def test_validate_schema_for_python_simple_molprops():
+def test_validate_schema_for_simple_python_molprops():
     # Arrange
 
     # Act
@@ -164,31 +142,11 @@ def test_validate_schema_for_step_specification_variable_names():
     assert error is None
 
 
-def test_validate_schema_for_workflow_options():
-    # Arrange
-
-    # Act
-    error = decoder.validate_schema(_WORKFLOW_OPTIONS)
-
-    # Assert
-    assert error is None
-
-
-def test_validate_schema_for_simple_python_parallel():
-    # Arrange
-
-    # Act
-    error = decoder.validate_schema(_SIMPLE_PYTHON_PARALLEL_WORKFLOW)
-
-    # Assert
-    assert error is None
-
-
 def test_get_workflow_variables_for_smiple_python_molprops():
     # Arrange
 
     # Act
-    wf_variables = decoder.get_variable_names(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
+    wf_variables = decoder.get_workflow_variable_names(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
 
     # Assert
     assert len(wf_variables) == 2
@@ -228,134 +186,18 @@ def test_get_workflow_steps():
     assert steps[1]["name"] == "step2"
 
 
-def test_get_workflow_variables_for_duplicate_variables():
-    # Arrange
-
-    # Act
-    names = decoder.get_variable_names(_DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW)
-
-    # Assert
-    assert len(names) == 2
-    assert names[0] == "x"
-    assert names[1] == "x"
-
-
-def test_get_required_variable_names_for_simnple_python_molprops_with_options():
-    # Arrange
-
-    # Act
-    rqd_variables = decoder.get_required_variable_names(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW
-    )
-
-    # Assert
-    assert len(rqd_variables) == 2
-    assert "candidateMolecules" in rqd_variables
-    assert "rdkitPropertyValue" in rqd_variables
-
-
-def test_set_variables_from_options_for_step_for_simnple_python_molprops_with_options():
-    # Arrange
-    variables = {
-        "rdkitPropertyName": "propertyName",
-        "rdkitPropertyValue": "propertyValue",
-    }
-
-    # Act
-    new_variables = decoder.set_variables_from_options_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW,
-        variables,
-        "step1",
-    )
-
-    # Assert
-    assert len(new_variables) == 2
-    assert "name" in new_variables
-    assert "value" in new_variables
-    assert new_variables["name"] == "propertyName"
-    assert new_variables["value"] == "propertyValue"
-
-
-def test_get_workflow_inputs_for_step_with_name_step1():
-    # Arrange
-
-    # Act
-    inputs = decoder.get_workflow_job_input_names_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step1"
-    )
-
-    # Assert
-    assert len(inputs) == 1
-    assert "inputFile" in inputs
-
-
-def test_get_workflow_inputs_for_step_with_name_step2():
-    # Arrange
-
-    # Act
-    inputs = decoder.get_workflow_job_input_names_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step2"
-    )
-
-    # Assert
-    assert not inputs
-
-
-def test_get_workflow_inputs_for_step_with_unkown_step_name():
-    # Arrange
-
-    # Act
-    inputs = decoder.get_workflow_job_input_names_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "unknown"
-    )
-
-    # Assert
-    assert not inputs
-
-
-def test_get_workflow_outputs_for_step_with_name_step1():
-    # Arrange
-
-    # Act
-    has_outputs = decoder.workflow_step_has_outputs(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step1"
-    )
-
-    # Assert
-    assert not has_outputs
-
-
-def test_get_workflow_outputs_for_step_with_name_step2():
-    # Arrange
-
-    # Act
-    has_outputs = decoder.workflow_step_has_outputs(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step2"
-    )
-
-    # Assert
-    assert has_outputs
-
-
-def test_get_workflow_outputs_for_step_with_unkown_step_name():
-    # Arrange
-
-    # Act
-    has_outputs = decoder.workflow_step_has_outputs(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "unknown"
-    )
-
-    # Assert
-    assert not has_outputs
-
-
 def test_get_step_input_variable_names_when_duplicates():
     # Arrange
+    workflow_filename: str = os.path.join(
+        os.path.dirname(__file__),
+        "workflow-definitions",
+        "duplicate-step-input-output-variable-names.yaml",
+    )
+    with open(workflow_filename, "r", encoding="utf8") as wf_file:
+        definition: Dict[str, Any] = yaml.safe_load(wf_file)
 
     # Act
-    inputs = decoder.get_step_input_variable_names(
-        _SIMPLE_PYTHON_PARALLEL_WORKFLOW, "final-step"
-    )
+    inputs = decoder.get_step_input_variable_names(definition, "step-1")
 
     # Assert
     assert len(inputs) == 2
@@ -368,13 +210,13 @@ def test_get_step_output_variable_names_when_duplicates():
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__),
         "workflow-definitions",
-        "duplicate-step-output-variable-names.yaml",
+        "duplicate-step-input-output-variable-names.yaml",
     )
     with open(workflow_filename, "r", encoding="utf8") as wf_file:
         definition: Dict[str, Any] = yaml.safe_load(wf_file)
 
     # Act
-    outputs = decoder.get_step_output_variable_names(definition, "step-1")
+    outputs = decoder.get_step_output_variable_names(definition, "step-2")
 
     # Assert
     assert len(outputs) == 2
