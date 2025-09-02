@@ -141,7 +141,7 @@ class WorkflowEngine:
         # Now find the first step (index 0)...
         first_step: dict[str, Any] = wf_response["steps"][0]
 
-        sp_resp = self._prepare_step_variables(
+        sp_resp = self._prepare_step(
             wf=wf_response, step_definition=first_step, rwf=rwf_response
         )
         assert sp_resp.variables is not None
@@ -300,7 +300,7 @@ class WorkflowEngine:
                     # Do we need a 'prepare variables' function?
                     # One that returns a map of variables or nothing
                     # (e.g. 'nothing' when a step launch cannot be attempted)
-                    sp_resp = self._prepare_step_variables(
+                    sp_resp = self._prepare_step(
                         wf=wf_response, step_definition=next_step, rwf=rwf_response
                     )
                     if sp_resp.iterations == 0:
@@ -353,61 +353,7 @@ class WorkflowEngine:
 
         return job
 
-    def _validate_step_command(
-        self,
-        *,
-        running_workflow_id: str,
-        step: dict[str, Any],
-        running_workflow_variables: dict[str, Any],
-    ) -> str | dict[str, Any]:
-        """Returns an error message if the command isn't valid.
-        Without a message we return all the variables that were (successfully)
-        applied to the command."""
-
-        # Start with any variables provided in the step's specification.
-        # This will be ou t"all variables" map for this step,
-        # whcih we will add to (and maybe even over-write)...
-        all_variables: dict[str, Any] = step["specification"].get("variables", {})
-
-        # Next, we iterate through the step's "variable mapping" block.
-        # This tells us all the variables that are set from either the
-        # 'workflow' or 'a prior step'.
-
-        # Start with any workflow variables in the step.
-        # This will be a list of Translations of "in" and "out" variable names.
-        # "in" variables are worklfow variables, and "out" variables
-        # are expected Job variables. We use this to add variables
-        # to the "all variables" map.
-        for connector in get_step_workflow_variable_connections(step_definition=step):
-            assert connector.in_ in running_workflow_variables
-            all_variables[connector.out] = running_workflow_variables[connector.in_]
-
-        # Now we apply variables from the "variable mapping" block
-        # related to values used in prior steps. The decoder gives
-        # us a map indexed by prior step name that's a list of "in" "out"
-        # tuples as above.
-        prior_step_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
-            step_definition=step
-        )
-        for prior_step_name, connections in prior_step_plumbing.items():
-            # Retrieve the prior "running" step
-            # in order to get the variables that were set there...
-            prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
-                name=prior_step_name, running_workflow_id=running_workflow_id
-            )
-            # Copy "in" value to "out"...
-            for connector in connections:
-                assert connector.in_ in prior_step["variables"]
-                all_variables[connector.out] = prior_step["variables"][connector.in_]
-
-        # Now ... can the command be compiled!?
-        job: dict[str, Any] = self._get_step_job(step=step)
-        message, success = job_defintion_decoder.decode(
-            job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
-        )
-        return all_variables if success else message
-
-    def _prepare_step_variables(
+    def _prepare_step(
         self,
         *,
         wf: dict[str, Any],
@@ -420,26 +366,83 @@ class WorkflowEngine:
         step_name: str = step_definition["name"]
         rwf_id: str = rwf["id"]
 
-        # We start with all the workflow variables that were provided
-        # by the user when they "ran" the workflow. We're given a full set of
-        # variables in response (on success) or an error string (on failure)
-        rwf_variables: dict[str, Any] = rwf.get("variables", {})
-        error_or_variables: str | dict[str, Any] = self._validate_step_command(
-            running_workflow_id=rwf_id,
-            step=step_definition,
-            running_workflow_variables=rwf_variables,
+        # Compile a set of variables for this step.
+
+        # Start with any variables provided in the step's specification.
+        # A map that we will add to (and maybe even over-write)...
+        variables: dict[str, Any] = step_definition["specification"].get(
+            "variables", {}
         )
-        if isinstance(error_or_variables, str):
-            error_msg = error_or_variables
-            msg = f"Failed command validation error_msg={error_msg}"
+
+        # All the running workflow variables
+        rwf_variables: dict[str, Any] = rwf.get("variables", {})
+
+        # Process the step's plumbing realting to workflow variables.
+        # This will be a list of Connectors of "in" and "out" variable names.
+        # "in" variables are worklfow variables, and "out" variables
+        # are expected Job variables. We use this to add variables
+        # to the variables map.
+        for connector in get_step_workflow_variable_connections(
+            step_definition=step_definition
+        ):
+            assert connector.in_ in rwf_variables
+            variables[connector.out] = rwf_variables[connector.in_]
+
+        # Now we apply variables from the "plumbing" block
+        # related to values used in prior steps. The decoder gives
+        # us a map indexed by prior step name that's a list of "in" "out"
+        # tuples as above.
+        prior_step_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
+            step_definition=step_definition
+        )
+        for prior_step_name, connections in prior_step_plumbing.items():
+            # Retrieve the prior "running" step
+            # in order to get the variables that were set there...
+            prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
+                name=prior_step_name, running_workflow_id=rwf_id
+            )
+            # Copy "in" value to "out"...
+            for connector in connections:
+                assert connector.in_ in prior_step["variables"]
+                variables[connector.out] = prior_step["variables"][connector.in_]
+
+        # Now ... can the command be compiled!?
+        job: dict[str, Any] = self._get_step_job(step=step_definition)
+        message, success = job_defintion_decoder.decode(
+            job["command"], variables, "command", TextEncoding.JINJA2_3_0
+        )
+        if not success:
+            msg = f"Failed command validation error_msg={message}"
             _LOGGER.warning(msg)
             self._set_step_error(step_name, rwf_id, None, 1, msg)
             return StepPreparationResponse(iterations=0)
 
-        variables: dict[str, Any] = error_or_variables
+        # Our inputs
+        our_job_definition: dict[str, Any] = self._get_step_job(step=step_definition)
+        our_inputs: dict[str, Any] = job_defintion_decoder.get_inputs(
+            our_job_definition
+        )
+
+        # Are we a combiner step?
+        #
+        # We are if a variable in our step's plumbing refers to an input that is
+        # of type 'files'. A combiner's input is required to accept a space-separated
+        # set of files.
+        we_are_a_combiner: bool = False
+        our_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
+            step_definition=step_definition
+        )
+        for p_step_name, connections in our_plumbing.items():
+            for connector in connections:
+                if our_inputs.get(connector.out, {}).get("type") == "files":
+                    we_are_a_combiner = True
+
+        assert not we_are_a_combiner
+
+        # We're not a combiner...
 
         # Do we replicate this step (run it more than once)?
-        # We do if a variable in this step's mapping block
+        # We do if a variable in this step's plumbing
         # refers to an output of a prior step whose type is 'files'.
         # If the prior step is a 'splitter' we populate the 'replication_values' array
         # with the list of files the prior step genrated for its output.
@@ -448,12 +451,9 @@ class WorkflowEngine:
         # be more than one prior step variable that is 'files'!
         iter_values: list[str] = []
         iter_variable: str | None = None
-        plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
-            step_definition=step_definition
-        )
-        for p_step_name, connections in plumbing.items():
+        for p_step_name, connections in our_plumbing.items():
             # We need to get the Job definition for each step
-            # and then check whether the (ouptu) variable is of type 'files'...
+            # and then check whether the (output) variable is of type 'files'...
             wf_step: dict[str, Any] = get_step(wf, p_step_name)
             assert wf_step
             job_definition: dict[str, Any] = self._get_step_job(step=wf_step)
@@ -497,6 +497,9 @@ class WorkflowEngine:
         step_definition: dict[str, Any],
         step_preparation_response: StepPreparationResponse,
     ) -> None:
+        """Given a runningWorkflow record, a step defitnion (from the Workflow),
+        and the step's variables (in a preparation object) this method launches
+        one or more instances of the given step."""
         step_name: str = step_definition["name"]
         rwf_id: str = rwf["id"]
         project_id = rwf["project"]["id"]
