@@ -136,3 +136,10 @@ jobs:
   splitsmiles:
     command: >-
       copyf.py {{ inputFile }}
+    # Simulate multiple output files...
+    variables:
+      outputs:
+        properties:
+          outputBase:
+            creates: '{{ outputBase }}_*.smi'
+            type: files

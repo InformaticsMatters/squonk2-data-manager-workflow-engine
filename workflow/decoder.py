@@ -61,6 +61,16 @@ def get_steps(definition: dict[str, Any]) -> list[dict[str, Any]]:
     return response
 
 
+def get_step(definition: dict[str, Any], name: str) -> dict[str, Any]:
+    """Given a Workflow definition this function returns a named step
+    (if it exists)."""
+    steps: list[dict[str, Any]] = get_steps(definition)
+    for step in steps:
+        if step["name"] == name:
+            return step
+    return {}
+
+
 def get_name(definition: dict[str, Any]) -> str:
     """Given a Workflow definition this function returns its name."""
     return str(definition.get("name", ""))
@@ -117,8 +127,8 @@ def get_step_input_variable_names(
 
 
 def get_step_workflow_variable_mapping(*, step: dict[str, Any]) -> list[Translation]:
-    """Returns a list of workflow vaiable name to step variable name tuples
-    for the given step."""
+    """Returns a list of workflow vaiable name to step variable name
+    Translation objects for the given step."""
     variable_mapping: list[Translation] = []
     if "variable-mapping" in step:
         for v_map in step["variable-mapping"]:
@@ -134,8 +144,9 @@ def get_step_workflow_variable_mapping(*, step: dict[str, Any]) -> list[Translat
 def get_step_prior_step_variable_mapping(
     *, step: dict[str, Any]
 ) -> dict[str, list[Translation]]:
-    """Returns list of translate objects, indexed by prior step name,
-    that identify source step vaiable name to this step's variable name."""
+    """Returns list of Translation objects, indexed by prior step name,
+    that identify source step (output) variable name to this step's (input)
+    variable name."""
     variable_mapping: dict[str, list[Translation]] = {}
     if "variable-mapping" in step:
         for v_map in step["variable-mapping"]:

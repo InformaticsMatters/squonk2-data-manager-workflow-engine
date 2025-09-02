@@ -26,7 +26,8 @@ import logging
 import sys
 from typing import Any, Optional
 
-from decoder.decoder import TextEncoding, decode
+import decoder.decoder as job_defintion_decoder
+from decoder.decoder import TextEncoding
 from google.protobuf.message import Message
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
@@ -40,6 +41,7 @@ from workflow.workflow_abc import (
 
 from .decoder import (
     Translation,
+    get_step,
     get_step_prior_step_variable_mapping,
     get_step_workflow_variable_mapping,
 )
@@ -127,7 +129,7 @@ class WorkflowEngine:
         # Launch it.
         # If there's a launch problem the step (and running workflow) will have
         # and error, stopping it. There will be no Pod event as the launch has failed.
-        self._launch(rwf=rwf_response, step=first_step)
+        self._launch(wf=wf_response, rwf=rwf_response, step=first_step)
 
     def _handle_workflow_stop_message(self, r_wfid: str) -> None:
         """Logic to handle a STOP message."""
@@ -263,7 +265,7 @@ class WorkflowEngine:
                     # There's another step!
                     # For this simple logic it is the next step.
                     next_step = wf_response["steps"][step_index + 1]
-                    self._launch(rwf=rwf_response, step=next_step)
+                    self._launch(wf=wf_response, rwf=rwf_response, step=next_step)
 
                     # Something was started (or there was a launch error and the step
                     # and running workflow error will have been set).
@@ -278,6 +280,31 @@ class WorkflowEngine:
                 success=True,
             )
 
+    def _get_step_job(self, *, step: dict[str, Any]) -> dict[str, Any]:
+        """Gets the Job definition for a given Step."""
+        # We get the Job from the step specification, which must contain
+        # the keys "collection", "job", and "version". Here we assume that
+        # the workflow definition has passed the RUN-level validation
+        # which means we can get these values.
+        assert "specification" in step
+        step_spec: dict[str, Any] = step["specification"]
+        job_collection: str = step_spec["collection"]
+        job_job: str = step_spec["job"]
+        job_version: str = step_spec["version"]
+        job, _ = self._wapi_adapter.get_job(
+            collection=job_collection, job=job_job, version=job_version
+        )
+
+        _LOGGER.debug(
+            "API.get_job(%s, %s, %s) returned: -\n%s",
+            job_collection,
+            job_job,
+            job_version,
+            str(job),
+        )
+
+        return job
+
     def _validate_step_command(
         self,
         *,
@@ -288,25 +315,6 @@ class WorkflowEngine:
         """Returns an error message if the command isn't valid.
         Without a message we return all the variables that were (successfully)
         applied to the command."""
-
-        # We get the Job from the step specification, which must contain
-        # the keys "collection", "job", and "version". Here we assume that
-        # the workflow definition has passed the RUN-level validation
-        # which means we can get these values.
-        step_spec: dict[str, Any] = step["specification"]
-        job_collection: str = step_spec["collection"]
-        job_job: str = step_spec["job"]
-        job_version: str = step_spec["version"]
-        job, _ = self._wapi_adapter.get_job(
-            collection=job_collection, job=job_job, version=job_version
-        )
-        _LOGGER.debug(
-            "API.get_job(%s, %s, %s) returned: -\n%s",
-            job_collection,
-            job_job,
-            job_version,
-            str(job),
-        )
 
         # Start with any variables provided in the step's specification.
         # This will be ou t"all variables" map for this step,
@@ -345,12 +353,15 @@ class WorkflowEngine:
                 all_variables[tr.out] = prior_step["variables"][tr.in_]
 
         # Now ... can the command be compiled!?
-        message, success = decode(
+        job: dict[str, Any] = self._get_step_job(step=step)
+        message, success = job_defintion_decoder.decode(
             job["command"], all_variables, "command", TextEncoding.JINJA2_3_0
         )
         return all_variables if success else message
 
-    def _launch(self, *, rwf: dict[str, Any], step: dict[str, Any]) -> None:
+    def _launch(
+        self, *, wf: dict[str, Any], rwf: dict[str, Any], step: dict[str, Any]
+    ) -> None:
         step_name: str = step["name"]
         rwf_id: str = rwf["id"]
         project_id = rwf["project"]["id"]
@@ -380,17 +391,53 @@ class WorkflowEngine:
         # A step replication number,
         # used only for steps expected to run in parallel (even if just once)
         step_replication_number: int = 0
+        # Do we replicate this step (run it more than once)?
+        # We do if a variable in this step's mapping block
+        # refers to an output of a prior step whose type is 'files'.
+        # If the prior step is a 'splitter' we populate the 'replication_values' array
+        # with the list of files the prior step genrated for its output.
         replication_values: list[str] = []
-        source_is_splitter: bool = False
         iter_variable: str | None = None
+        tr_map: dict[str, list[Translation]] = get_step_prior_step_variable_mapping(
+            step=step
+        )
+        for p_step_name, tr_list in tr_map.items():
+            # We need to get the Job definition for each step
+            # and then check whether the (ouptu) variable is of type 'files'...
+            wf_step: dict[str, Any] = get_step(wf, p_step_name)
+            assert wf_step
+            job_definition: dict[str, Any] = self._get_step_job(step=wf_step)
+            jd_outputs: dict[str, Any] = job_defintion_decoder.get_outputs(
+                job_definition
+            )
+            for tr in tr_list:
+                if jd_outputs.get(tr.in_, {}).get("type") == "files":
+                    iter_variable = tr.out
+                    # Get the prior running step's output values
+                    response, _ = self._wapi_adapter.get_running_workflow_step_by_name(
+                        name=p_step_name,
+                        running_workflow_id=rwf_id,
+                    )
+                    rwfs_id = response["id"]
+                    assert rwfs_id
+                    result, _ = (
+                        self._wapi_adapter.get_running_workflow_step_output_values_for_output(
+                            running_workflow_step_id=rwfs_id,
+                            output_variable=tr.in_,
+                        )
+                    )
+                    replication_values = result["output"].copy()
+                    break
+            # Stop if we've got an iteration variable
+            if iter_variable:
+                break
 
         num_step_instances: int = max(1, len(replication_values))
         for iteration in range(num_step_instances):
 
             # If we are replicating this step then we must replace the step's variable
             # with a value expected for this iteration.
-            if source_is_splitter:
-                assert iter_variable
+            if iter_variable:
                 iter_value: str = replication_values[iteration]
                 _LOGGER.info(
                     "Replicating step: %s iteration=%s variable=%s value=%s",
@@ -427,7 +474,7 @@ class WorkflowEngine:
                 step_replication_number=step_replication_number,
             )
             lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
-            rwfs_id: str | None = lr.running_workflow_step_id
+            rwfs_id = lr.running_workflow_step_id
             assert rwfs_id
 
             if lr.error_num:
