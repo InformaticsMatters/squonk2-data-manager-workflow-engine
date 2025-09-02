@@ -396,6 +396,9 @@ class WorkflowEngine:
         # refers to an output of a prior step whose type is 'files'.
         # If the prior step is a 'splitter' we populate the 'replication_values' array
         # with the list of files the prior step genrated for its output.
+        #
+        # In this engine we onlhy act on the _first_ match, i.e. there CANNOT
+        # be more than one prior step variable that is 'files'!
         replication_values: list[str] = []
         iter_variable: str | None = None
         tr_map: dict[str, list[Translation]] = get_step_prior_step_variable_mapping(
