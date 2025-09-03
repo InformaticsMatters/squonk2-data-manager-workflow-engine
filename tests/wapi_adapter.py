@@ -113,10 +113,24 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         return {"count": 0, "steps": []}, 0
 
     def get_status_of_all_step_instances_by_name(
-        self, *, running_workflow_id: str, step_name: str
+        self, *, running_workflow_id: str, name: str
     ) -> tuple[dict[str, Any], int]:
-        # Need to implement!
-        return {"count": 0, "status": []}, 0
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
+            running_workflow_step = Unpickler(pickle_file).load()
+        UnitTestWorkflowAPIAdapter.lock.release()
+
+        steps: list[dict[str, Any]] = []
+        for rwfs_id, record in running_workflow_step.items():
+            if record["running_workflow"]["id"] != running_workflow_id:
+                continue
+            if record["name"] == name:
+                response = record
+                response["id"] = rwfs_id
+                if record["replica"] == 0:
+                    _ = response.pop("replica")
+                steps.append(response)
+        return {"count": len(steps), "status": steps}, 0
 
     def set_running_workflow_done(
         self,
@@ -146,6 +160,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         running_workflow_id: str,
         step: str,
         replica: int = 0,
+        replicas: int = 0,
         prior_running_workflow_step_id: str | None = None,
     ) -> tuple[dict[str, Any], int]:
         if replica:
@@ -164,6 +179,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             "done": False,
             "success": False,
             "replica": replica,
+            "replicas": replicas,
             "variables": {},
             "running_workflow": {"id": running_workflow_id},
         }

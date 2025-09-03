@@ -182,7 +182,7 @@ class WorkflowAPIAdapter(ABC):
 
     @abstractmethod
     def get_status_of_all_step_instances_by_name(
-        self, *, running_workflow_id: str, step_name: str
+        self, *, name: str, running_workflow_id: str
     ) -> tuple[dict[str, Any], int]:
         """Get a list of step execution statuses for the named step."""
         # Should return:
@@ -226,6 +226,8 @@ class WorkflowAPIAdapter(ABC):
         #       "success": False,
         #       "error_num": 0,
         #       "error_msg": "",
+        #       "replica": 0,
+        #       "replicas": 0,
         #       "variables": {
         #          "x": 1,
         #          "y": 2,
