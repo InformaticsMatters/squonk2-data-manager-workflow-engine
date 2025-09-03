@@ -54,17 +54,17 @@ _LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 
 @dataclass
 class StepPreparationResponse:
-    """Step preparation response object. Iterations is +ve (non-zero) if a step
+    """Step preparation response object. 'replicas' is +ve (non-zero) if a step
     can be launched - it's value indicates how many times. If a step can be launched
     'variables' will not be None. If a parallel set of steps can take place
-    (even just one) 'iteration_variable' will be set and 'iteration_values'
-    will be a list containing a value for each step. If prparation failed
-    'error_msg' chould contain something useful."""
+    (even just one) 'replica_variable' will be set and 'replica_values'
+    will be a list containing a value for each step instance. If preparation fails
+    'erro_num' wil be set, and 'error_msg' should contain something useful."""
 
-    iterations: int
+    replicas: int
     variables: dict[str, Any] | None = None
-    iteration_variable: str | None = None
-    iteration_values: list[str] | None = None
+    replica_variable: str | None = None
+    replica_values: list[str] | None = None
     error_num: int = 0
     error_msg: str | None = None
 
@@ -307,9 +307,10 @@ class WorkflowEngine:
                     sp_resp = self._prepare_step(
                         wf=wf_response, step_definition=next_step, rwf=rwf_response
                     )
-                    if sp_resp.iterations == 0:
+                    if sp_resp.replicas == 0:
                         # Cannot prepare variables for this step,
-                        # it might be a combiner step and some prior steps may still
+                        # it might be a step dependent on more than one prior step
+                        # (like a 'combiner') and some prior steps may still
                         # be running ... or something's gone wrong.
                         if sp_resp.error_num:
                             self._wapi_adapter.set_running_workflow_done(
@@ -443,7 +444,7 @@ class WorkflowEngine:
                     step_name,
                     step_name_being_combined,
                 )
-                return StepPreparationResponse(iterations=0)
+                return StepPreparationResponse(replicas=0)
             elif not all_step_instances_successful:
                 # Can't move on - all prior steps are done,
                 # but at least one was not successful.
@@ -454,7 +455,7 @@ class WorkflowEngine:
                     step_name_being_combined,
                 )
                 return StepPreparationResponse(
-                    iterations=0,
+                    replicas=0,
                     error_num=1,
                     error_msg=f"Prior instance of step '{step_name_being_combined}' has failed",
                 )
@@ -482,12 +483,12 @@ class WorkflowEngine:
             assert connector.in_ in rwf_variables
             variables[connector.out] = rwf_variables[connector.in_]
 
-        # Now process variables (from the "plumbing" block)
+        # Now process variables (in the "plumbing" block)
         # that relate to values used in prior steps.
         #
         # The decoder gives us a map indexed by prior step name that's a list of
         # "in" "out" connectors as above. If this is a combiner step remember
-        # that we need to inspect variables from all the prior steps.
+        # that the combiner_input_variable is a used as a list.
         prior_step_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
             step_definition=step_definition
         )
@@ -495,7 +496,7 @@ class WorkflowEngine:
             if step_is_combiner and prior_step_name == step_name_being_combined:
                 assert combiner_input_variable
                 input_source_list: list[str] = []
-                for replica in range(1, num_step_recplicas_being_combined + 1):
+                for replica in range(num_step_recplicas_being_combined):
                     prior_step, _ = (
                         self._wapi_adapter.get_running_workflow_step_by_name(
                             name=prior_step_name,
@@ -538,7 +539,7 @@ class WorkflowEngine:
         if not success:
             msg = f"Failed command validation for step {step_name} error_msg={message}"
             _LOGGER.warning(msg)
-            return StepPreparationResponse(iterations=0, error_num=2, error_msg=msg)
+            return StepPreparationResponse(replicas=0, error_num=2, error_msg=msg)
 
         # Do we replicate this step (run it more than once)?
         #
@@ -588,9 +589,9 @@ class WorkflowEngine:
         num_step_instances: int = max(1, len(iter_values))
         return StepPreparationResponse(
             variables=variables,
-            iterations=num_step_instances,
-            iteration_variable=iter_variable,
-            iteration_values=iter_values,
+            replicas=num_step_instances,
+            replica_variable=iter_variable,
+            replica_values=iter_values,
         )
 
     def _launch(
@@ -607,30 +608,31 @@ class WorkflowEngine:
         rwf_id: str = rwf["id"]
         project_id = rwf["project"]["id"]
 
-        # A step replication number,
-        # used only for steps expected to run in parallel (even if just once)
-        step_replication_number: int = 0
-        total_replicas: int = step_preparation_response.iterations
+        # Total replicas must be 1 or more
+        total_replicas: int = step_preparation_response.replicas
+        assert total_replicas >= 1
+
         variables = step_preparation_response.variables
         assert variables is not None
-        for iteration in range(step_preparation_response.iterations):
+        for replica in range(step_preparation_response.replicas):
 
-            # If we are replicating this step then we must replace the step's variable
+            # If we are replicating this step more than once
+            # the 'replica_variable' will be set.
+            # We must replace the step's variable
             # with a value expected for this iteration.
-            if step_preparation_response.iteration_variable:
-                assert step_preparation_response.iteration_values
-                iter_value: str = step_preparation_response.iteration_values[iteration]
+            if step_preparation_response.replica_variable:
+                assert step_preparation_response.replica_values
+                iter_value: str = step_preparation_response.replica_values[replica]
                 _LOGGER.info(
-                    "Replicating step: %s iteration=%s variable=%s value=%s",
+                    "Replicating step: %s replica=%s variable=%s value=%s",
                     step_name,
-                    iteration,
-                    step_preparation_response.iteration_variable,
+                    replica,
+                    step_preparation_response.replica_variable,
                     iter_value,
                 )
                 # Over-write the replicating variable
                 # and set the replication number to a unique +ve non-zero value...
-                variables[step_preparation_response.iteration_variable] = iter_value
-                step_replication_number = iteration + 1
+                variables[step_preparation_response.replica_variable] = iter_value
 
             _LOGGER.info(
                 "Launching step: %s RunningWorkflow=%s (name=%s)"
@@ -652,7 +654,7 @@ class WorkflowEngine:
                 variables=variables,
                 running_workflow_id=rwf_id,
                 step_name=step_name,
-                step_replication_number=step_replication_number,
+                step_replication_number=replica,
                 total_number_of_replicas=total_replicas,
             )
             lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)

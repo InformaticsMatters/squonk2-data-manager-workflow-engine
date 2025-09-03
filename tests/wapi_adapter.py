@@ -160,11 +160,11 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         running_workflow_id: str,
         step: str,
         replica: int = 0,
-        replicas: int = 0,
+        replicas: int = 1,
         prior_running_workflow_step_id: str | None = None,
     ) -> tuple[dict[str, Any], int]:
-        if replica:
-            assert replica > 0
+        assert replica >= 0
+        assert replicas > replica
 
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:

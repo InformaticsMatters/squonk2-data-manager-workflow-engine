@@ -45,9 +45,9 @@ class LaunchParameters:
     # 1..'N'.
     step_replication_number: int = 0
     # The total number of replicas of this instance that are expected to be laucnhed.
-    # if step_replication_number is set, this has to be set. It is 'N'.
-    # If step_replication_number is zero this value is ignored.
-    total_number_of_replicas: int = 0
+    # This cannot be less than 1 and must be grater than any value of
+    # 'step_replication_number' that will be used fo rthe same step.
+    total_number_of_replicas: int = 1
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'
