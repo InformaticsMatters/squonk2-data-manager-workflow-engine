@@ -103,7 +103,7 @@ definitions:
     - from-workflow
 
   # A Step variable
-  # (whose value is to be copied to the project directory)
+  # (whose value (a file) is to be copied to the project directory)
   step-variable-to-project:
     type: object
     additionalProperties: false
