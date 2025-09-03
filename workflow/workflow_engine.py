@@ -393,16 +393,19 @@ class WorkflowEngine:
             if step_name_being_combined:
                 break
         if step_name_being_combined:
+            print("*** COMBINER")
             response, _ = self._wapi_adapter.get_status_of_all_step_instances_by_name(
+                name=step_name_being_combined,
                 running_workflow_id=rwf_id,
-                step_name=step_name_being_combined,
             )
             # Assume succes...
+            assert "count" in response
+            num_being_combined: int = response["count"]
+            assert num_being_combined > 0
+            assert "status" in response
+
             all_step_instances_done: bool = True
             all_step_instances_successful: bool = True
-            assert "count" in response
-            assert response["count"] > 0
-            assert "status" in response
             for status in response["status"]:
                 if not status["done"]:
                     all_step_instances_done = False
@@ -412,14 +415,29 @@ class WorkflowEngine:
                     break
             if not all_step_instances_done:
                 # Can't move on - but other steps need to finish.
+                _LOGGER.debug(
+                    "Assessing start of combiner step (%s)"
+                    " but not all steps (%s) to be combined are done",
+                    step_name,
+                    step_name_being_combined,
+                )
                 return StepPreparationResponse(iterations=0)
             elif not all_step_instances_successful:
                 # Can't move on - all prior steps are done,
                 # but at least one was in error.
+                _LOGGER.debug(
+                    "Assessing start of combiner step (%s)"
+                    " but at least one step (%s) to be combined failed",
+                    step_name,
+                    step_name_being_combined,
+                )
                 return StepPreparationResponse(
                     iterations=0,
-                    error_msg="A prior step 'step_name_being_combined' iteration has failed",
+                    error_msg=f"Prior instance of step '{step_name_being_combined}' has failed",
                 )
+
+        if step_name_being_combined:
+            print("*** COMBINER : Able to start")
 
         # Now compile a set of variables for this step.
 
@@ -447,6 +465,9 @@ class WorkflowEngine:
         # related to values used in prior steps. The decoder gives
         # us a map indexed by prior step name that's a list of "in" "out"
         # tuples as above.
+        #
+        # If this is a combiner step remember that we need to inspect
+        # variables from all the prior steps.
         prior_step_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
             step_definition=step_definition
         )
