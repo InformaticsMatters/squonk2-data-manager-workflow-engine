@@ -47,9 +47,9 @@ steps:
 #      outputFile: results.smi
 #  plumbing:
 #  - variable: inputFile
-#      variable: outputFile
 #    from-step:
 #      name: parallel
+#      variable: outputFile
 #  - variable: outputFile
 #    from-workflow:
 #      variable: combination
