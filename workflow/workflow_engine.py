@@ -510,15 +510,24 @@ class WorkflowEngine:
                     for connector in connections:
                         assert connector.in_ in prior_step["variables"]
                         if connector.out == combiner_input_variable:
+                            # Each instance may have a different value
                             input_source_list.append(
                                 prior_step["variables"][connector.in_]
                             )
-                        else:
+                        elif replica == 0:
+                            # Only the first instance value are of interest,
+                            # the rest wil be the same - only one variable
+                            # is a list of different values.
                             variables[connector.out] = prior_step["variables"][
                                 connector.in_
                             ]
+                # Now we have accumulated the prior steps values (files)
+                # set the combiner's corresponding input variable...
                 variables[combiner_input_variable] = input_source_list
             else:
+                # Not a preior step for a combiner,
+                # or not a step being combined in a combiner.
+                #
                 # Retrieve the prior "running" step
                 # in order to get the variables that were set there...
                 prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
