@@ -439,10 +439,8 @@ def test_workflow_engine_simple_python_split_combine(basic_engine):
     print("response")
     pprint(response)
 
-    assert response["count"] == 3
-    assert response["running_workflow_steps"][0]["done"]
-    assert response["running_workflow_steps"][0]["success"]
-    assert response["running_workflow_steps"][1]["done"]
-    assert response["running_workflow_steps"][1]["success"]
-    assert response["running_workflow_steps"][2]["done"]
-    assert response["running_workflow_steps"][2]["success"]
+    assert response["count"] == 4
+    rwf_steps = response["running_workflow_steps"]
+    for rwf_step in rwf_steps:
+        assert rwf_step["done"]
+        assert rwf_step["success"]

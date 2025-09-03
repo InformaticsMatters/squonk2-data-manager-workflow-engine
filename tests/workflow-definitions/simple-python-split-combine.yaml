@@ -37,21 +37,21 @@ steps:
       name: split
       variable: outputBase
 
-#- name: combine
-#  description: Combine the parallel files
-#  specification:
-#    collection: workflow-engine-unit-test-jobs
-#    job: concatenate
-#    version: "1.0.0"
-#    variables:
-#      outputFile: results.smi
-#  plumbing:
-#  - variable: inputFile
-#    from-step:
-#      name: parallel
-#      variable: outputFile
-#  - variable: outputFile
-#    from-workflow:
-#      variable: combination
-#  - variable: outputFile
-#    to-project:
+- name: combine
+  description: Combine the parallel files
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: concatenate
+    version: "1.0.0"
+    variables:
+      outputFile: results.smi
+  plumbing:
+  - variable: inputFile
+    from-step:
+      name: parallel
+      variable: outputFile
+  - variable: outputFile
+    from-workflow:
+      variable: combination
+  - variable: outputFile
+    to-project:

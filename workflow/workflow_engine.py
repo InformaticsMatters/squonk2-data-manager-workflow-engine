@@ -384,24 +384,28 @@ class WorkflowEngine:
         our_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
             step_definition=step_definition
         )
+        step_is_combiner: bool = False
         step_name_being_combined: str | None = None
+        combiner_input_variable: str | None = None
+        num_step_recplicas_being_combined: int = 0
         for p_step_name, connections in our_plumbing.items():
             for connector in connections:
                 if our_inputs.get(connector.out, {}).get("type") == "files":
                     step_name_being_combined = p_step_name
+                    combiner_input_variable = connector.out
+                    step_is_combiner = True
                     break
             if step_name_being_combined:
                 break
         if step_name_being_combined:
-            print("*** COMBINER")
             response, _ = self._wapi_adapter.get_status_of_all_step_instances_by_name(
                 name=step_name_being_combined,
                 running_workflow_id=rwf_id,
             )
             # Assume succes...
             assert "count" in response
-            num_being_combined: int = response["count"]
-            assert num_being_combined > 0
+            num_step_recplicas_being_combined = response["count"]
+            assert num_step_recplicas_being_combined > 0
             assert "status" in response
 
             all_step_instances_done: bool = True
@@ -436,10 +440,8 @@ class WorkflowEngine:
                     error_msg=f"Prior instance of step '{step_name_being_combined}' has failed",
                 )
 
-        if step_name_being_combined:
-            print("*** COMBINER : Able to start")
-
-        # Now compile a set of variables for this step.
+        # I think we can start this step,
+        # so compile a set of variables for it.
 
         # Start with any variables provided in the step's specification.
         # A map that we will add to (and maybe even over-write)...
@@ -472,15 +474,39 @@ class WorkflowEngine:
             step_definition=step_definition
         )
         for prior_step_name, connections in prior_step_plumbing.items():
-            # Retrieve the prior "running" step
-            # in order to get the variables that were set there...
-            prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
-                name=prior_step_name, running_workflow_id=rwf_id
-            )
-            # Copy "in" value to "out"...
-            for connector in connections:
-                assert connector.in_ in prior_step["variables"]
-                variables[connector.out] = prior_step["variables"][connector.in_]
+            if step_is_combiner and prior_step_name == step_name_being_combined:
+                assert combiner_input_variable
+                input_source_list: list[str] = []
+                for replica in range(1, num_step_recplicas_being_combined + 1):
+                    prior_step, _ = (
+                        self._wapi_adapter.get_running_workflow_step_by_name(
+                            name=prior_step_name,
+                            replica=replica,
+                            running_workflow_id=rwf_id,
+                        )
+                    )
+                    # Copy "in" value to "out"...
+                    for connector in connections:
+                        assert connector.in_ in prior_step["variables"]
+                        if connector.out == combiner_input_variable:
+                            input_source_list.append(
+                                prior_step["variables"][connector.in_]
+                            )
+                        else:
+                            variables[connector.out] = prior_step["variables"][
+                                connector.in_
+                            ]
+                variables[combiner_input_variable] = input_source_list
+            else:
+                # Retrieve the prior "running" step
+                # in order to get the variables that were set there...
+                prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
+                    name=prior_step_name, running_workflow_id=rwf_id
+                )
+                # Copy "in" value to "out"...
+                for connector in connections:
+                    assert connector.in_ in prior_step["variables"]
+                    variables[connector.out] = prior_step["variables"][connector.in_]
 
         # Now ... can the command be compiled!?
         job: dict[str, Any] = self._get_step_job(step=step_definition)
@@ -494,7 +520,8 @@ class WorkflowEngine:
             return StepPreparationResponse(iterations=0)
 
         # Do we replicate this step (run it more than once)?
-        # We do if a variable in this step's plumbing
+        #
+        # We do if this is not a combiner step and a variable in this step's plumbing
         # refers to an output of a prior step whose type is 'files'.
         # If the prior step is a 'splitter' we populate the 'replication_values' array
         # with the list of files the prior step genrated for its output.
@@ -503,36 +530,39 @@ class WorkflowEngine:
         # be more than one prior step variable that is 'files'!
         iter_values: list[str] = []
         iter_variable: str | None = None
-        for p_step_name, connections in our_plumbing.items():
-            # We need to get the Job definition for each step
-            # and then check whether the (output) variable is of type 'files'...
-            wf_step: dict[str, Any] = get_step(wf, p_step_name)
-            assert wf_step
-            job_definition: dict[str, Any] = self._get_step_job(step=wf_step)
-            jd_outputs: dict[str, Any] = job_defintion_decoder.get_outputs(
-                job_definition
-            )
-            for connector in connections:
-                if jd_outputs.get(connector.in_, {}).get("type") == "files":
-                    iter_variable = connector.out
-                    # Get the prior running step's output values
-                    response, _ = self._wapi_adapter.get_running_workflow_step_by_name(
-                        name=p_step_name,
-                        running_workflow_id=rwf_id,
-                    )
-                    rwfs_id = response["id"]
-                    assert rwfs_id
-                    result, _ = (
-                        self._wapi_adapter.get_running_workflow_step_output_values_for_output(
-                            running_workflow_step_id=rwfs_id,
-                            output_variable=connector.in_,
+        if not step_is_combiner:
+            for p_step_name, connections in our_plumbing.items():
+                # We need to get the Job definition for each step
+                # and then check whether the (output) variable is of type 'files'...
+                wf_step: dict[str, Any] = get_step(wf, p_step_name)
+                assert wf_step
+                job_definition: dict[str, Any] = self._get_step_job(step=wf_step)
+                jd_outputs: dict[str, Any] = job_defintion_decoder.get_outputs(
+                    job_definition
+                )
+                for connector in connections:
+                    if jd_outputs.get(connector.in_, {}).get("type") == "files":
+                        iter_variable = connector.out
+                        # Get the prior running step's output values
+                        response, _ = (
+                            self._wapi_adapter.get_running_workflow_step_by_name(
+                                name=p_step_name,
+                                running_workflow_id=rwf_id,
+                            )
                         )
-                    )
-                    iter_values = result["output"].copy()
+                        rwfs_id = response["id"]
+                        assert rwfs_id
+                        result, _ = (
+                            self._wapi_adapter.get_running_workflow_step_output_values_for_output(
+                                running_workflow_step_id=rwfs_id,
+                                output_variable=connector.in_,
+                            )
+                        )
+                        iter_values = result["output"].copy()
+                        break
+                # Stop if we've got an iteration variable
+                if iter_variable:
                     break
-            # Stop if we've got an iteration variable
-            if iter_variable:
-                break
 
         num_step_instances: int = max(1, len(iter_values))
         return StepPreparationResponse(
