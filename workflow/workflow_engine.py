@@ -65,6 +65,7 @@ class StepPreparationResponse:
     variables: dict[str, Any] | None = None
     iteration_variable: str | None = None
     iteration_values: list[str] | None = None
+    error_num: int = 0
     error_msg: str | None = None
 
 
@@ -306,12 +307,20 @@ class WorkflowEngine:
                     sp_resp = self._prepare_step(
                         wf=wf_response, step_definition=next_step, rwf=rwf_response
                     )
-                    if sp_resp.iterations == 0 or sp_resp.error_msg:
+                    if sp_resp.iterations == 0:
                         # Cannot prepare variables for this step,
-                        # we have to leave.
+                        # it might be a combiner step and some prior steps may still
+                        # be running ... or something's gone wrong.
+                        if sp_resp.error_num:
+                            self._wapi_adapter.set_running_workflow_done(
+                                running_workflow_id=r_wfid,
+                                success=False,
+                                error_num=sp_resp.error_num,
+                                error_msg=sp_resp.error_msg,
+                            )
                         return
-                    assert sp_resp.variables is not None
 
+                    assert sp_resp.variables is not None
                     self._launch(
                         rwf=rwf_response,
                         step_definition=next_step,
@@ -359,17 +368,19 @@ class WorkflowEngine:
     def _prepare_step(
         self,
         *,
-        wf: dict[str, Any],
         step_definition: dict[str, Any],
+        wf: dict[str, Any],
         rwf: dict[str, Any],
     ) -> StepPreparationResponse:
         """Attempts to prepare a map of step variables. If variables cannot be
-        presented to the step we return an object with 'iterations' set to zero."""
+        presented to the step we return an object with 'iterations' set to zero.
+        If there's a problem that means we should be able to proceed but cannot,
+        we set 'error_num' and 'error_msg'."""
 
         step_name: str = step_definition["name"]
         rwf_id: str = rwf["id"]
 
-        # Before we move on, are we combiner?
+        # Before we move on, are we a combiner?
         #
         # We are if a variable in our step's plumbing refers to an input of ours
         # that is of type 'files'. If we are a combiner then we use the name of the
@@ -397,17 +408,24 @@ class WorkflowEngine:
                     break
             if step_name_being_combined:
                 break
-        if step_name_being_combined:
+
+        if step_is_combiner:
+            assert step_name_being_combined
+            assert combiner_input_variable
+
+            # Are all the step instances we're combining done?
+
             response, _ = self._wapi_adapter.get_status_of_all_step_instances_by_name(
                 name=step_name_being_combined,
                 running_workflow_id=rwf_id,
             )
-            # Assume succes...
             assert "count" in response
             num_step_recplicas_being_combined = response["count"]
             assert num_step_recplicas_being_combined > 0
             assert "status" in response
 
+            # Assume they're all done
+            # and undo our assumption if not...
             all_step_instances_done: bool = True
             all_step_instances_successful: bool = True
             for status in response["status"]:
@@ -418,7 +436,7 @@ class WorkflowEngine:
                     all_step_instances_successful = False
                     break
             if not all_step_instances_done:
-                # Can't move on - but other steps need to finish.
+                # Can't move on - other steps need to finish.
                 _LOGGER.debug(
                     "Assessing start of combiner step (%s)"
                     " but not all steps (%s) to be combined are done",
@@ -428,8 +446,8 @@ class WorkflowEngine:
                 return StepPreparationResponse(iterations=0)
             elif not all_step_instances_successful:
                 # Can't move on - all prior steps are done,
-                # but at least one was in error.
-                _LOGGER.debug(
+                # but at least one was not successful.
+                _LOGGER.warning(
                     "Assessing start of combiner step (%s)"
                     " but at least one step (%s) to be combined failed",
                     step_name,
@@ -437,6 +455,7 @@ class WorkflowEngine:
                 )
                 return StepPreparationResponse(
                     iterations=0,
+                    error_num=1,
                     error_msg=f"Prior instance of step '{step_name_being_combined}' has failed",
                 )
 
@@ -448,11 +467,11 @@ class WorkflowEngine:
         variables: dict[str, Any] = step_definition["specification"].get(
             "variables", {}
         )
-
-        # All the running workflow variables
+        # ...and the running workflow variables
         rwf_variables: dict[str, Any] = rwf.get("variables", {})
 
-        # Process the step's plumbing realting to workflow variables.
+        # Process the step's "plumbing" relating to workflow variables.
+        #
         # This will be a list of Connectors of "in" and "out" variable names.
         # "in" variables are worklfow variables, and "out" variables
         # are expected Job variables. We use this to add variables
@@ -463,13 +482,12 @@ class WorkflowEngine:
             assert connector.in_ in rwf_variables
             variables[connector.out] = rwf_variables[connector.in_]
 
-        # Now we apply variables from the "plumbing" block
-        # related to values used in prior steps. The decoder gives
-        # us a map indexed by prior step name that's a list of "in" "out"
-        # tuples as above.
+        # Now process variables (from the "plumbing" block)
+        # that relate to values used in prior steps.
         #
-        # If this is a combiner step remember that we need to inspect
-        # variables from all the prior steps.
+        # The decoder gives us a map indexed by prior step name that's a list of
+        # "in" "out" connectors as above. If this is a combiner step remember
+        # that we need to inspect variables from all the prior steps.
         prior_step_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
             step_definition=step_definition
         )
@@ -486,6 +504,8 @@ class WorkflowEngine:
                         )
                     )
                     # Copy "in" value to "out"...
+                    # accumulating thiose for the 'combining' variable,
+                    # which will be set as a list when we're done.
                     for connector in connections:
                         assert connector.in_ in prior_step["variables"]
                         if connector.out == combiner_input_variable:
@@ -508,16 +528,17 @@ class WorkflowEngine:
                     assert connector.in_ in prior_step["variables"]
                     variables[connector.out] = prior_step["variables"][connector.in_]
 
-        # Now ... can the command be compiled!?
+        # All variables are set ...
+        # is this enough to satisfy the setp's Job command?
+
         job: dict[str, Any] = self._get_step_job(step=step_definition)
         message, success = job_defintion_decoder.decode(
             job["command"], variables, "command", TextEncoding.JINJA2_3_0
         )
         if not success:
-            msg = f"Failed command validation error_msg={message}"
+            msg = f"Failed command validation for step {step_name} error_msg={message}"
             _LOGGER.warning(msg)
-            self._set_step_error(step_name, rwf_id, None, 1, msg)
-            return StepPreparationResponse(iterations=0)
+            return StepPreparationResponse(iterations=0, error_num=2, error_msg=msg)
 
         # Do we replicate this step (run it more than once)?
         #
