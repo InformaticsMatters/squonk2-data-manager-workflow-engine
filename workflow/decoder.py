@@ -107,8 +107,10 @@ def get_step_output_variable_names(
     variable_names: list[str] = []
     steps: list[dict[str, Any]] = get_steps(definition)
     for step in steps:
-        if step["name"] == step_name:
-            variable_names.extend(step.get("out", []))
+        if step["name"] == step_name and "plumbing" in step:
+            for v_map in step["plumbing"]:
+                if "to-project" in v_map:
+                    variable_names.append(v_map["variable"])
     return variable_names
 
 
@@ -122,8 +124,10 @@ def get_step_input_variable_names(
     variable_names: list[str] = []
     steps: list[dict[str, Any]] = get_steps(definition)
     for step in steps:
-        if step["name"] == step_name:
-            variable_names.extend(step.get("in", []))
+        if step["name"] == step_name and "plumbing" in step:
+            for v_map in step["plumbing"]:
+                if "from-project" in v_map:
+                    variable_names.append(v_map["variable"])
     return variable_names
 
 
