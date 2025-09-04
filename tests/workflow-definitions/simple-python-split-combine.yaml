@@ -54,6 +54,7 @@ steps:
       name: parallel
       variable: outputFile
   - variable: inputDirPrefix
-    from-link-prefix:
+    from-predefined:
+      variable: link-prefix
   - variable: outputFile
     to-project:

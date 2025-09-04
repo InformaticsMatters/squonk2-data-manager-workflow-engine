@@ -144,6 +144,23 @@ def get_step_workflow_variable_connections(
     return connections
 
 
+def get_step_predefined_variable_connections(
+    *, step_definition: dict[str, Any]
+) -> list[Connector]:
+    """Returns the set of connections of pre-defined variables (in) to
+    step variables (out)."""
+    connections: list[Connector] = []
+    if "plumbing" in step_definition:
+        for v_map in step_definition["plumbing"]:
+            if "from-predefined" in v_map:
+                connections.append(
+                    Connector(
+                        in_=v_map["from-predefined"]["variable"], out=v_map["variable"]
+                    )
+                )
+    return connections
+
+
 def get_step_prior_step_connections(
     *, step_definition: dict[str, Any]
 ) -> dict[str, list[Connector]]:
@@ -166,14 +183,3 @@ def get_step_prior_step_connections(
                         Connector(in_=step_variable, out=v_map["variable"])
                     ]
     return plumbing
-
-
-def get_step_link_prefix_variables(*, step_definition: dict[str, Any]) -> set[str]:
-    """Returns the set of variables expected to be set to the value
-    of the instance directory prefix."""
-    variables: set[str] = set()
-    if "plumbing" in step_definition:
-        for v_map in step_definition["plumbing"]:
-            if "from-link-prefix" in v_map:
-                variables.add(v_map["variable"])
-    return variables

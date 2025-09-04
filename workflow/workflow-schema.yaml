@@ -57,7 +57,7 @@ definitions:
   # Stuff like 'candidateMolecules' or 'clustered_molecules'
   variable-name:
     type: string
-    pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
+    pattern: ^[a-zA-Z_][a-zA-Z0-9_-]*$
 
   # A Step variable
   # (whose value is derived from a variable used in a prior step)
@@ -103,27 +103,24 @@ definitions:
     - from-workflow
 
   # A Step variable
-  # (whose value is set to the value of a directory prefix used when the DM
-  # links the instance directories of prior step instances into this
-  # step's instance directory)
-  #
-  # This _must_ be treated by the step's job as a directory prefix,
-  # typiclaly '.instance-', that can be used to identify directories in this step's
-  # execution directory where the execution directory of prior steps
-  # are hard-linked by the DM. A job can find all the prior step directory names
-  # using the selected variable (e.g. inspect any directory name
-  # that starts with "{variable}").
-  step-variable-from-link-prefix:
+  # (whose value is set to the value of a pre-defined engine variable)
+  step-variable-from-predefined:
     type: object
     additionalProperties: false
     properties:
       variable:
         $ref: '#/definitions/variable-name'
-      from-link-prefix:
-        type: 'null'
+      from-predefined:
+        type: object
+        additionalProperties: false
+        properties:
+          variable:
+            $ref: '#/definitions/variable-name'
+        required:
+        - variable
     required:
     - variable
-    - from-link-prefix
+    - from-predefined
 
   # A Step variable
   # (whose value (a file) is to be copied to the project directory)
@@ -204,7 +201,7 @@ definitions:
           anyOf:
           - $ref: "#/definitions/step-variable-from-step"
           - $ref: "#/definitions/step-variable-from-workflow"
-          - $ref: "#/definitions/step-variable-from-link-prefix"
+          - $ref: "#/definitions/step-variable-from-predefined"
           - $ref: "#/definitions/step-variable-to-project"
         minItems: 1
     required:

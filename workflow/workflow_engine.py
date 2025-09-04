@@ -43,7 +43,7 @@ from workflow.workflow_abc import (
 from .decoder import (
     Connector,
     get_step,
-    get_step_link_prefix_variables,
+    get_step_predefined_variable_connections,
     get_step_prior_step_connections,
     get_step_workflow_variable_connections,
 )
@@ -84,9 +84,11 @@ class WorkflowEngine:
         and a step (directory) link prefix (the directory prefix the DM uses to hard-link
         prior step instanes into the next step, typically '.instance-')"""
         # Keep the dependent objects
-        self._wapi_adapter = wapi_adapter
-        self._instance_launcher = instance_launcher
-        self._step_link_prefix = step_link_prefix
+        self._wapi_adapter: WorkflowAPIAdapter = wapi_adapter
+        self._instance_launcher: InstanceLauncher = instance_launcher
+        self._step_link_prefix: str = step_link_prefix
+
+        self._predefined_variables: dict[str, Any] = {"link-prefix": step_link_prefix}
 
     def handle_message(self, msg: Message) -> None:
         """Expect Workflow and Pod messages.
@@ -489,14 +491,12 @@ class WorkflowEngine:
             assert connector.in_ in rwf_variables
             variables[connector.out] = rwf_variables[connector.in_]
 
-        # Process the step's "plumbing" relating to link-prefix variables.
-        #
-        # This will be a set of variable names. We just set each one
-        # to the built-in step link prefix.
-        for link_variable in get_step_link_prefix_variables(
+        # Process the step's "plumbing" relating to pre-defined variables.
+        for connector in get_step_predefined_variable_connections(
             step_definition=step_definition
         ):
-            variables[link_variable] = self._step_link_prefix
+            assert connector.in_ in self._predefined_variables
+            variables[connector.out] = self._predefined_variables[connector.in_]
 
         # Now process variables (in the "plumbing" block)
         # that relate to values used in prior steps.
