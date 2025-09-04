@@ -20,6 +20,8 @@ steps:
   - variable: inputFile
     from-workflow:
       variable: candidateMolecules
+  - variable: inputFile
+    from-project:
 
 - name: parallel
   description: Add some params

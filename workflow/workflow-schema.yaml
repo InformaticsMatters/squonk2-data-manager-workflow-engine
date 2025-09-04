@@ -136,6 +136,20 @@ definitions:
     - variable
     - to-project
 
+  # A Step variable
+  # (whose value (a file) is to be copied from project directory)
+  step-variable-from-project:
+    type: object
+    additionalProperties: false
+    properties:
+      variable:
+        $ref: '#/definitions/variable-name'
+      from-project:
+        type: 'null'
+    required:
+    - variable
+    - from-project
+
   # A step specification variable
   # (there must be at least one if a variables block is defined).
   # Typical variable syntax based on Python's definition of a variable
@@ -202,6 +216,7 @@ definitions:
           - $ref: "#/definitions/step-variable-from-step"
           - $ref: "#/definitions/step-variable-from-workflow"
           - $ref: "#/definitions/step-variable-from-predefined"
+          - $ref: "#/definitions/step-variable-from-project"
           - $ref: "#/definitions/step-variable-to-project"
         minItems: 1
     required:
