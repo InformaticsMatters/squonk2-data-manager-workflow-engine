@@ -46,12 +46,14 @@ steps:
     variables:
       outputFile: results.smi
   plumbing:
+  - variable: outputFile
+    from-workflow:
+      variable: combination
   - variable: inputFile
     from-step:
       name: parallel
       variable: outputFile
-  - variable: outputFile
-    from-workflow:
-      variable: combination
+  - variable: inputDirPrefix
+    from-link-prefix:
   - variable: outputFile
     to-project:

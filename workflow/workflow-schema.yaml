@@ -103,6 +103,29 @@ definitions:
     - from-workflow
 
   # A Step variable
+  # (whose value is set to the value of a directory prefix used when the DM
+  # links the instance directories of prior step instances into this
+  # step's instance directory)
+  #
+  # This _must_ be treated by the step's job as a directory prefix,
+  # typiclaly '.instance-', that can be used to identify directories in this step's
+  # execution directory where the execution directory of prior steps
+  # are hard-linked by the DM. A job can find all the prior step directory names
+  # using the selected variable (e.g. inspect any directory name
+  # that starts with "{variable}").
+  step-variable-from-link-prefix:
+    type: object
+    additionalProperties: false
+    properties:
+      variable:
+        $ref: '#/definitions/variable-name'
+      from-link-prefix:
+        type: 'null'
+    required:
+    - variable
+    - from-link-prefix
+
+  # A Step variable
   # (whose value (a file) is to be copied to the project directory)
   step-variable-to-project:
     type: object
@@ -181,6 +204,7 @@ definitions:
           anyOf:
           - $ref: "#/definitions/step-variable-from-step"
           - $ref: "#/definitions/step-variable-from-workflow"
+          - $ref: "#/definitions/step-variable-from-link-prefix"
           - $ref: "#/definitions/step-variable-to-project"
         minItems: 1
     required:

@@ -43,7 +43,8 @@ from workflow.workflow_abc import (
 from .decoder import (
     Connector,
     get_step,
-    get_step_prior_step_plumbing,
+    get_step_link_prefix_variables,
+    get_step_prior_step_connections,
     get_step_workflow_variable_connections,
 )
 
@@ -77,10 +78,15 @@ class WorkflowEngine:
         *,
         wapi_adapter: WorkflowAPIAdapter,
         instance_launcher: InstanceLauncher,
+        step_link_prefix: str = ".instance-",
     ):
+        """Initialiser, given a Workflow API adapter, Instance laucnher,
+        and a step (directory) link prefix (the directory prefix the DM uses to hard-link
+        prior step instanes into the next step, typically '.instance-')"""
         # Keep the dependent objects
         self._wapi_adapter = wapi_adapter
         self._instance_launcher = instance_launcher
+        self._step_link_prefix = step_link_prefix
 
     def handle_message(self, msg: Message) -> None:
         """Expect Workflow and Pod messages.
@@ -393,7 +399,7 @@ class WorkflowEngine:
         our_inputs: dict[str, Any] = job_defintion_decoder.get_inputs(
             our_job_definition
         )
-        our_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
+        our_plumbing: dict[str, list[Connector]] = get_step_prior_step_connections(
             step_definition=step_definition
         )
         step_is_combiner: bool = False
@@ -483,60 +489,40 @@ class WorkflowEngine:
             assert connector.in_ in rwf_variables
             variables[connector.out] = rwf_variables[connector.in_]
 
+        # Process the step's "plumbing" relating to link-prefix variables.
+        #
+        # This will be a set of variable names. We just set each one
+        # to the built-in step link prefix.
+        for link_variable in get_step_link_prefix_variables(
+            step_definition=step_definition
+        ):
+            variables[link_variable] = self._step_link_prefix
+
         # Now process variables (in the "plumbing" block)
         # that relate to values used in prior steps.
         #
         # The decoder gives us a map indexed by prior step name that's a list of
-        # "in" "out" connectors as above. If this is a combiner step remember
+        # "in"/"out" connectors as above. If this is a combiner step remember
         # that the combiner_input_variable is a used as a list.
-        prior_step_plumbing: dict[str, list[Connector]] = get_step_prior_step_plumbing(
-            step_definition=step_definition
+        prior_step_plumbing: dict[str, list[Connector]] = (
+            get_step_prior_step_connections(step_definition=step_definition)
         )
         for prior_step_name, connections in prior_step_plumbing.items():
-            if step_is_combiner and prior_step_name == step_name_being_combined:
-                assert combiner_input_variable
-                input_source_list: list[str] = []
-                for replica in range(num_step_recplicas_being_combined):
-                    prior_step, _ = (
-                        self._wapi_adapter.get_running_workflow_step_by_name(
-                            name=prior_step_name,
-                            replica=replica,
-                            running_workflow_id=rwf_id,
-                        )
-                    )
-                    # Copy "in" value to "out"...
-                    # accumulating thiose for the 'combining' variable,
-                    # which will be set as a list when we're done.
-                    for connector in connections:
-                        assert connector.in_ in prior_step["variables"]
-                        if connector.out == combiner_input_variable:
-                            # Each instance may have a different value
-                            input_source_list.append(
-                                prior_step["variables"][connector.in_]
-                            )
-                        elif replica == 0:
-                            # Only the first instance value are of interest,
-                            # the rest wil be the same - only one variable
-                            # is a list of different values.
-                            variables[connector.out] = prior_step["variables"][
-                                connector.in_
-                            ]
-                # Now we have accumulated the prior steps values (files)
-                # set the combiner's corresponding input variable...
-                variables[combiner_input_variable] = input_source_list
-            else:
-                # Not a preior step for a combiner,
-                # or not a step being combined in a combiner.
-                #
-                # Retrieve the prior "running" step
-                # in order to get the variables that were set there...
-                prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
-                    name=prior_step_name, running_workflow_id=rwf_id
-                )
-                # Copy "in" value to "out"...
-                for connector in connections:
-                    assert connector.in_ in prior_step["variables"]
-                    variables[connector.out] = prior_step["variables"][connector.in_]
+            # Retrieve the first prior "running" step in order to get the variables
+            # that were used for it.
+            #
+            # For a combiner step we only need to inspect the first instance of
+            # the prior step (the default replica value is '0').
+            # We assume all the combiner's prior (parallel) instances
+            # have the same variables and values.
+            prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
+                name=prior_step_name,
+                running_workflow_id=rwf_id,
+            )
+            # Copy "in" value to "out"...
+            for connector in connections:
+                assert connector.in_ in prior_step["variables"]
+                variables[connector.out] = prior_step["variables"][connector.in_]
 
         # All variables are set ...
         # is this enough to satisfy the setp's Job command?
