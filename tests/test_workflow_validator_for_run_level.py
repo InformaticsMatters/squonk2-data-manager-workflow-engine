@@ -215,27 +215,3 @@ def test_validate_simple_python_molprops_with_missing_input():
     assert error.error_msg == [
         "Missing workflow variable values for: candidateMolecules"
     ]
-
-
-def test_validate_duplicate_step_output_variable_names():
-    # Arrange
-    workflow_filename: str = os.path.join(
-        os.path.dirname(__file__),
-        "workflow-definitions",
-        "duplicate-step-input-output-variable-names.yaml",
-    )
-    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
-        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
-    assert workflow
-
-    # Act
-    error = WorkflowValidator.validate(
-        level=ValidationLevel.TAG,
-        workflow_definition=workflow,
-    )
-
-    # Assert
-    assert error.error_num == 3
-    assert error.error_msg == [
-        "Duplicate step output variable: outputFile (step=step-2)"
-    ]

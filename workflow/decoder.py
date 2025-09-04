@@ -25,8 +25,9 @@ assert _WORKFLOW_SCHEMA
 
 
 @dataclass
-class Translation:
-    """A source ("in_") to destination ("out") variable map."""
+class Connector:
+    """A connection - connexts a plumbing source variable ("in_")
+    to destination variable ("out")."""
 
     in_: str
     out: str
@@ -83,13 +84,13 @@ def get_description(definition: dict[str, Any]) -> str | None:
 
 def get_workflow_variable_names(definition: dict[str, Any]) -> set[str]:
     """Given a Workflow definition this function returns all the names of the
-    variables that need to be defined at the workflow level. These are the 'variables'
-    used in every steps' variabale-mapping block.
+    variables defined in steps that need to be defined at the workflow level.
+    These are the 'variables' used in every step's 'plumbing' block.
     """
     wf_variable_names: set[str] = set()
     steps: list[dict[str, Any]] = get_steps(definition)
     for step in steps:
-        if v_map := step.get("variable-mapping"):
+        if v_map := step.get("plumbing"):
             for v in v_map:
                 if "from-workflow" in v:
                     wf_variable_names.add(v["from-workflow"]["variable"])
@@ -126,40 +127,53 @@ def get_step_input_variable_names(
     return variable_names
 
 
-def get_step_workflow_variable_mapping(*, step: dict[str, Any]) -> list[Translation]:
-    """Returns a list of workflow vaiable name to step variable name
-    Translation objects for the given step."""
-    variable_mapping: list[Translation] = []
-    if "variable-mapping" in step:
-        for v_map in step["variable-mapping"]:
+def get_step_workflow_variable_connections(
+    *, step_definition: dict[str, Any]
+) -> list[Connector]:
+    """Returns a list of connectors that connect a workflow variable name
+    to a step variable name for the given step definition."""
+    connections: list[Connector] = []
+    if "plumbing" in step_definition:
+        for v_map in step_definition["plumbing"]:
             if "from-workflow" in v_map:
-                variable_mapping.append(
-                    Translation(
+                connections.append(
+                    Connector(
                         in_=v_map["from-workflow"]["variable"], out=v_map["variable"]
                     )
                 )
-    return variable_mapping
+    return connections
 
 
-def get_step_prior_step_variable_mapping(
-    *, step: dict[str, Any]
-) -> dict[str, list[Translation]]:
-    """Returns list of Translation objects, indexed by prior step name,
-    that identify source step (output) variable name to this step's (input)
-    variable name."""
-    variable_mapping: dict[str, list[Translation]] = {}
-    if "variable-mapping" in step:
-        for v_map in step["variable-mapping"]:
+def get_step_prior_step_connections(
+    *, step_definition: dict[str, Any]
+) -> dict[str, list[Connector]]:
+    """Returns list of variable Connections, indexed by prior step name,
+    that identify a source step variable name (an output) to an input variable in this
+    step (an input)."""
+    plumbing: dict[str, list[Connector]] = {}
+    if "plumbing" in step_definition:
+        for v_map in step_definition["plumbing"]:
             if "from-step" in v_map:
                 step_name = v_map["from-step"]["name"]
                 step_variable = v_map["from-step"]["variable"]
                 # Tuple is "from" -> "to"
-                if step_name in variable_mapping:
-                    variable_mapping[step_name].append(
-                        Translation(in_=step_variable, out=v_map["variable"])
+                if step_name in plumbing:
+                    plumbing[step_name].append(
+                        Connector(in_=step_variable, out=v_map["variable"])
                     )
                 else:
-                    variable_mapping[step_name] = [
-                        Translation(in_=step_variable, out=v_map["variable"])
+                    plumbing[step_name] = [
+                        Connector(in_=step_variable, out=v_map["variable"])
                     ]
-    return variable_mapping
+    return plumbing
+
+
+def get_step_link_prefix_variables(*, step_definition: dict[str, Any]) -> set[str]:
+    """Returns the set of variables expected to be set to the value
+    of the instance directory prefix."""
+    variables: set[str] = set()
+    if "plumbing" in step_definition:
+        for v_map in step_definition["plumbing"]:
+            if "from-link-prefix" in v_map:
+                variables.add(v_map["variable"])
+    return variables
