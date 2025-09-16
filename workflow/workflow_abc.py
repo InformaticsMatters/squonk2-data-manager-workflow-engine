@@ -88,6 +88,7 @@ class InstanceLauncher(ABC):
         self,
         *,
         launch_parameters: LaunchParameters,
+        **kwargs: Any,
     ) -> LaunchResult:
         """Launch a (Job) Instance"""
 
