@@ -57,6 +57,6 @@ steps:
       variable: outputFile
   - variable: inputDirPrefix
     from-predefined:
-      variable: link-prefix
+      variable: link-glob
   - variable: outputFile
     to-project:

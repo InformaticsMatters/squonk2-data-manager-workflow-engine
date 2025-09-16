@@ -124,6 +124,9 @@ definitions:
 
   # A Step variable
   # (whose value (a file) is to be copied to the project directory)
+  #
+  # This will eventually be removed,
+  # instead coming from 'ouput' variables in workflow 'variables' block.
   step-variable-to-project:
     type: object
     additionalProperties: false
@@ -138,6 +141,9 @@ definitions:
 
   # A Step variable
   # (whose value (a file) is to be copied from project directory)
+  #
+  # This will eventually be removed,
+  # instead coming from 'input' variables in workflow 'variables' block.
   step-variable-from-project:
     type: object
     additionalProperties: false

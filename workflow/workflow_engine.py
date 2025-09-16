@@ -78,17 +78,18 @@ class WorkflowEngine:
         *,
         wapi_adapter: WorkflowAPIAdapter,
         instance_launcher: InstanceLauncher,
-        step_link_prefix: str = ".instance-",
+        link_glob: str = ".instance-*",
     ):
         """Initialiser, given a Workflow API adapter, Instance laucnher,
-        and a step (directory) link prefix (the directory prefix the DM uses to hard-link
-        prior step instanes into the next step, typically '.instance-')"""
+        and a step (directory) link 'glob' (a convenient directory glob to
+        locate the DM hard-link directories of prior instances inserted into a
+        step's instance directory, typically '.instance-*')"""
         # Keep the dependent objects
         self._wapi_adapter: WorkflowAPIAdapter = wapi_adapter
         self._instance_launcher: InstanceLauncher = instance_launcher
-        self._step_link_prefix: str = step_link_prefix
+        self._link_glob: str = link_glob
 
-        self._predefined_variables: dict[str, Any] = {"link-prefix": step_link_prefix}
+        self._predefined_variables: dict[str, Any] = {"link-glob": link_glob}
 
     def handle_message(self, msg: Message) -> None:
         """Expect Workflow and Pod messages.
