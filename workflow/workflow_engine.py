@@ -59,13 +59,18 @@ class StepPreparationResponse:
     can be launched - it's value indicates how many times. If a step can be launched
     'variables' will not be None. If a parallel set of steps can take place
     (even just one) 'replica_variable' will be set and 'replica_values'
-    will be a list containing a value for each step instance. If preparation fails
-    'erro_num' wil be set, and 'error_msg' should contain something useful."""
+    will be a list containing a value for each step instance. If the step
+    depends on a prior step the instance UUIDs of the steps will be listed
+    in the 'dependent_instances' string list.
+
+    If preparation fails 'error_num' wil be set, and 'error_msg'
+    should contain something useful."""
 
     replicas: int
     variables: dict[str, Any] | None = None
     replica_variable: str | None = None
     replica_values: list[str] | None = None
+    dependent_instances: set[str] | None = None
     error_num: int = 0
     error_msg: str | None = None
 
@@ -402,14 +407,14 @@ class WorkflowEngine:
         our_inputs: dict[str, Any] = job_defintion_decoder.get_inputs(
             our_job_definition
         )
-        our_plumbing: dict[str, list[Connector]] = get_step_prior_step_connections(
-            step_definition=step_definition
+        plumbing_of_prior_steps: dict[str, list[Connector]] = (
+            get_step_prior_step_connections(step_definition=step_definition)
         )
         step_is_combiner: bool = False
         step_name_being_combined: str | None = None
         combiner_input_variable: str | None = None
         num_step_recplicas_being_combined: int = 0
-        for p_step_name, connections in our_plumbing.items():
+        for p_step_name, connections in plumbing_of_prior_steps.items():
             for connector in connections:
                 if our_inputs.get(connector.out, {}).get("type") == "files":
                     step_name_being_combined = p_step_name
@@ -549,7 +554,7 @@ class WorkflowEngine:
         iter_values: list[str] = []
         iter_variable: str | None = None
         if not step_is_combiner:
-            for p_step_name, connections in our_plumbing.items():
+            for p_step_name, connections in plumbing_of_prior_steps.items():
                 # We need to get the Job definition for each step
                 # and then check whether the (output) variable is of type 'files'...
                 wf_step: dict[str, Any] = get_step(wf, p_step_name)
@@ -582,12 +587,24 @@ class WorkflowEngine:
                 if iter_variable:
                     break
 
+        # Get the list of instances we depend upon.
+        dependent_instances: set[str] = set()
+        for p_step_name in plumbing_of_prior_steps:
+            # Assume any step can have multiple instances
+            response, _ = self._wapi_adapter.get_status_of_all_step_instances_by_name(
+                name=p_step_name,
+                running_workflow_id=rwf_id,
+            )
+            for step in response["steps"]:
+                dependent_instances.add(step["instance_id"])
+
         num_step_instances: int = max(1, len(iter_values))
         return StepPreparationResponse(
             variables=variables,
             replicas=num_step_instances,
             replica_variable=iter_variable,
             replica_values=iter_values,
+            dependent_instances=dependent_instances,
         )
 
     def _launch(
@@ -652,6 +669,7 @@ class WorkflowEngine:
                 step_name=step_name,
                 step_replication_number=replica,
                 total_number_of_replicas=total_replicas,
+                dependent_instances=step_preparation_response.dependent_instances,
             )
             lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
             rwfs_id = lr.running_workflow_step_id
