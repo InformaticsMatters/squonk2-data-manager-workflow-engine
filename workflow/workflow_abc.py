@@ -48,6 +48,10 @@ class LaunchParameters:
     # This cannot be less than 1 and must be grater than any value of
     # 'step_replication_number' that will be used fo rthe same step.
     total_number_of_replicas: int = 1
+    # A set of dependent (prior step) instances that are expected to be hard-linked
+    # into the instance directory the launcher will create. These are required
+    # so that the step can access the dependent step's files.
+    dependent_instances: set[str] | None = None
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'
@@ -185,7 +189,9 @@ class WorkflowAPIAdapter(ABC):
     def get_status_of_all_step_instances_by_name(
         self, *, name: str, running_workflow_id: str
     ) -> tuple[dict[str, Any], int]:
-        """Get a list of step execution statuses for the named step."""
+        """Get a list of step execution statuses for the named step.
+        This includes their step UUID (and instance UUID if available).
+        """
         # Should return:
         # {
         #    "count": 2,
@@ -193,12 +199,14 @@ class WorkflowAPIAdapter(ABC):
         #       {
         #           "done": True,
         #           "success": True,
-        #           "running_workflow_step_id": "step-0001"
+        #           "running_workflow_step_id": "step-0001",
+        #           "instance_id": "instance-0001"
         #       },
         #       {
         #           "done": False,
         #           "success": False,
-        #           "running_workflow_step_id": "step-0002"
+        #           "running_workflow_step_id": "step-0002",
+        #           "instance_id": "instance-0002"
         #       }
         #    ]
         # }
