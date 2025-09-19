@@ -19,16 +19,17 @@ class LaunchParameters:
     project_id: str
     # A symbolic name of the Instance
     name: str
-    # The user name of the person launching the Instance (Workflow step)
+    # The user name of the person launching the Instance
     launching_user_name: str
     # The API Access token provided by the User
     launching_user_api_token: str
     # The specification, which can contain 'variables'
     specification: dict[str, Any]
-    # An alternative way to pass variables to the specification.
-    # If used it will replace any 'variables' already present in the specification.
+    # The 'preferred' way to provide variables for the Job's specification.
+    # If used it will replace any 'variables' already present in the specification
+    # (values are no merged).
     variables: dict[str, Any] | None = None
-    # A string. In DM v4 converted to a boolean and set in the
+    # A string. In DM v4, if any value is set a corresponding boolean is set in the
     # instance Pod as a label. Setting this means the Instances
     # that are created will not be automatically removed by the Job operator.
     debug: str | None = None
@@ -39,19 +40,24 @@ class LaunchParameters:
     # Required if the Instance is part of a Workflow step.
     step_name: str | None = None
     # The step replication number.
-    # If only one instance of the step is expected to run
-    # this value can be left at 0 (zero). If this step's launch
-    # is expected to be executed more than once the value should be
-    # 1..'N'.
+    # A numeric vale expected to be in the range 0 to total_number_of_replicas - 1.
+    # If a step is laucnhed 5 times the values used when laucnhing each instance
+    # must be 0, 1, 2, 3, and 4.
     step_replication_number: int = 0
     # The total number of replicas of this instance that are expected to be laucnhed.
     # This cannot be less than 1 and must be grater than any value of
-    # 'step_replication_number' that will be used fo rthe same step.
+    # 'step_replication_number' that will be used for the same step.
     total_number_of_replicas: int = 1
-    # A set of dependent (prior step) instances that are expected to be hard-linked
-    # into the instance directory the launcher will create. These are required
-    # so that the step can access the dependent step's files.
-    dependent_instances: set[str] | None = None
+    # A set of dependent (prior step) instance directroies that are expected to be
+    # hard-linked into the instance directory the launcher will create.
+    # These are required so that the step can access the dependent step's files.
+    # It is a set of instance UUIDs.
+    step_dependent_instances: set[str] | None = None
+    # A set of dependent project files that are expected to be hard-linked
+    # into the instance directory the launcher will create.
+    # These are required so that the step can access project files.
+    # It is a set project-relative filenames (or directroies).
+    step_project_inputs: set[str] | None = None
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'

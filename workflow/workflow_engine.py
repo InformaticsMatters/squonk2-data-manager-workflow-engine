@@ -671,7 +671,7 @@ class WorkflowEngine:
                 step_name=step_name,
                 step_replication_number=replica,
                 total_number_of_replicas=total_replicas,
-                dependent_instances=step_preparation_response.dependent_instances,
+                step_dependent_instances=step_preparation_response.dependent_instances,
             )
             lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
             rwfs_id = lr.running_workflow_step_id

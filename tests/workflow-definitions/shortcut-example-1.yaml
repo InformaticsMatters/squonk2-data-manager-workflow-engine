@@ -24,5 +24,3 @@ steps:
     from-step:
       name: example-1-step-1
       variable: outputFile
-  - variable: outputFile
-    to-project:

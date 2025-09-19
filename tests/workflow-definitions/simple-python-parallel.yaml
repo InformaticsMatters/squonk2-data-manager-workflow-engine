@@ -64,5 +64,3 @@ steps:
     from:
       step: parallel-step-b
       variable: outputFile
-  - variable: outputFile
-    to-project:

@@ -20,5 +20,3 @@ steps:
   - variable: smiles
     from-workflow:
       variable: smiles
-  - variable: outputFile
-    to-project:
