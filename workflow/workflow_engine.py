@@ -83,7 +83,7 @@ class WorkflowEngine:
         *,
         wapi_adapter: WorkflowAPIAdapter,
         instance_launcher: InstanceLauncher,
-        link_glob: str = ".instance-*",
+        instance_link_glob: str = ".instance-*",
     ):
         """Initialiser, given a Workflow API adapter, Instance laucnher,
         and a step (directory) link 'glob' (a convenient directory glob to
@@ -92,9 +92,11 @@ class WorkflowEngine:
         # Keep the dependent objects
         self._wapi_adapter: WorkflowAPIAdapter = wapi_adapter
         self._instance_launcher: InstanceLauncher = instance_launcher
-        self._link_glob: str = link_glob
+        self._instance_link_glob: str = instance_link_glob
 
-        self._predefined_variables: dict[str, Any] = {"link-glob": link_glob}
+        self._predefined_variables: dict[str, Any] = {
+            "instance-link-glob": instance_link_glob
+        }
 
     def handle_message(self, msg: Message) -> None:
         """Expect Workflow and Pod messages.
