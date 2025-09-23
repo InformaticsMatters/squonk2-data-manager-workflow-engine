@@ -1,4 +1,40 @@
-"""The WorkflowEngine validation logic."""
+"""The WorkflowEngine validation logic.
+
+A module that provides workflow validation at levels beyond the schema. A workflow
+definition is a complex structure, and not all of its content can be checked using
+a JSON/YAML schema alone. This module provides various 'levels' of workflow
+inspection of the workflow in increasing levels of validation: -
+
+- CREATE
+- RUN
+- TAG
+
+CREATE level validation simply checks that the workflow complies with the schema.
+Workflows are permitted in the DM that do not comply with the schema. This is becuase
+the DM is also used as a persistent store for Wwrfklows while editing - this
+allows a user to 'save' a workflow that is incomplete with the intention of adjusting
+it at a later date prior to execution.
+
+TAG level validation takes things a little further. In 'production' mode
+tagging is required prior to exeution. TAG level validatioin ensures that a workflow
+_should_ run if it is run - for examplke variable names are all correctly defined
+and there are no duplicates.
+
+RUN level extends TAG level validation by ensuring, for example, all the
+workflow variables are defined.
+
+Validation is designed to allow a more relaxed engine implementation, negating the
+need for the engine to 'check', for example, that variables exist - the validator
+ensures they do.
+
+Module philosophy
+-----------------
+Here we define the 'ValidationLevel' enumeration and 'ValidationResult' dataclass
+used as a return object by the validation function. The module defines the
+'WorkflowValidator' class with one (class-level) function ... 'validate()'.
+The 'validate()' function ensures that the checks based on the validation level
+are executed and any breach is returned via a 'ValidationResult' instance.
+"""
 
 from dataclasses import dataclass
 from enum import Enum

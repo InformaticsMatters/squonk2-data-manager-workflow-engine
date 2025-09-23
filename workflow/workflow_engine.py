@@ -1,8 +1,12 @@
 """The WorkflowEngine execution logic.
 
-It responds to Pod and Workflow protocol buffer messages received by its
-'handle_message()' function, messages delivered by the message handler in the PBC Pod.
-There are no other methods in this class.
+Module philosophy
+-----------------
+The module implements the workflow execution logic, which is driven by
+Pod and Workflow protocol buffer messages received by its 'handle_message()' function.
+Messages are delivered by the message handler in the PBC Pod.
+There are no other publci methods in this class - it's _entry point_ is
+'handle_message()'.
 
 Its role is to translate a pre-validated workflow definition into the ordered execution
 of step "Jobs" that manifest as Pod "Instances" that run in a project directory in the

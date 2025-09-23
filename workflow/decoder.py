@@ -1,6 +1,19 @@
-"""A module to validate and decode workflow definitions.
+"""A module to validate and decode workflow (and step) definitions.
 
-This is typically used by the Data Manager's Workflow Engine.
+Module philosophy
+-----------------
+The _main_ purpose of this module is to provide a 'validate_schema()' function
+to check that a workflow definition (a dictionary) that is expected to comply with
+the 'workflow-schema,yaml' schema. This function returns a string (an error) if there's
+a problem with the defintion.
+
+The decoder module also provides a number of additional functions based on the needs
+of the engine. As a developer you are 'encouraged' to place any logic that is expected
+to navigate the scheme content in a function in this module. Any code that
+is supposed to know _where_ to get content should be encoded as a function here.
+For example, rather than external code navigating the 'plumbing' blocks
+we have a function 'get_workflow_variable_names()' that returns the names of workflow
+variables.
 """
 
 import os

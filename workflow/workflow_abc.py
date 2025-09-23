@@ -1,12 +1,60 @@
 """Workflow abstract base classes.
-Interface definitions of class instances that must be made available to the Engine.
+
+A module that provides interface definitions for classes that must be made available
+to the engine.
+
+Before go any further it is important to understand that a Workflow 'Step' is realised
+by the execution of a Data Manager 'Job'. A 'Step' is simnply the definition of
+a Job's execution withion the context of a 'Workflow'. We also talk about 'Instances'.
+Instances are a Data Manger concept. They are an object (and database Table)
+represening the running state of a Job.
+
+When steps 'Steps' are run the are represented by 'Jobs' that run as an 'Instance'.
+
+To this end the workflow engine relies on a two broad external services, encapsulated
+by abstract class definitions we define here: -
+
+- An 'Instance Laucncher' to facilitate the execution of Jobs
+- An API 'wrapper' providing access to an underling database that stores
+  Workflows, RunningWorkflows, RunningWorkflowSteps, and Instances.
+
+Module philosophy
+-----------------
+The engine is responsible for orchestrating Step exection (executing Jobs) but does not
+contain the logic that is able to run them. This is because a) job execution
+(in Kubernetes) is a complex affair and b) the Data Manager already provides this
+logic. Instead the engine defines an ABC for an 'InstanceLaucnher' and the
+DM provides the implementation. The engine simply has to create a 'LaunchParameter'
+object describign the Job to be laucnhed (including variables etc.) and then
+relies on the Instance Launcher to effect the execution.
+
+The engine also does not consist of any persistence capability and instead relies on the
+Data Manager's database to host suitable 'Workflow', 'RunningWorkflow',
+and 'RunningWorkflowStep' tables. The 'WorkflowAPIAdapter' defined here provides an
+interface that a concrete implementation uses to allow access to and modification
+of records withing these tables.
+
+The engine does not create or remove records directly, they are created either by the
+Data Manager via its API or the Instance laucnher when as it starts Jobs (Steps).
+The DM API creates a Workflow record when the user creates a Workflow.
+It also creates RunnignWorkflow records (while also validating them) when the
+user 'runs' a workflow. It also creates RunningWorkflowStep records to track the
+execution state of each step when the Instance lancher is called upon
+to start a Step.
+
+The instance launcher is controlled by a complex set of 'parameters' (a
+'LaunchPrameters' dataclass object) that comprehensively descibe the Job -
+it's variables, and inputs and outputs. The instance launcher provies just one method:
+'launch()'. It takes a paramters object, and in return the yields a 'LaunchResult'
+dataclass object that contains the record IDs of the instance created, and the
+corresponding RunningWorkflowStep. The result also describes any launch error.
+If there is a laucnh error the tep can assume to have not started. if there is
+no error the step will (probably) start.
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
-
-from google.protobuf.message import Message
 
 
 @dataclass
@@ -358,11 +406,3 @@ class WorkflowAPIAdapter(ABC):
         # {
         #   "output": ["dir/file1.sdf", "dir/file2.sdf"]
         # }
-
-
-class MessageDispatcher(ABC):
-    """The class handling the sending of messages (on the Data Manager message bus)."""
-
-    @abstractmethod
-    def send(self, message: Message) -> None:
-        """Send a message"""
