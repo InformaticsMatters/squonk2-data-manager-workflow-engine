@@ -609,7 +609,7 @@ class WorkflowEngine:
                 name=p_step_name,
                 running_workflow_id=rwf_id,
             )
-            for step in response["steps"]:
+            for step in response["status"]:
                 dependent_instances.add(step["instance_id"])
 
         num_step_instances: int = max(1, len(iter_values))
