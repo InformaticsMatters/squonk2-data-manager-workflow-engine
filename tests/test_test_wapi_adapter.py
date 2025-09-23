@@ -5,6 +5,8 @@ pytestmark = pytest.mark.unit
 from tests.config import TEST_PROJECT_ID
 from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 
+_I_ID: str = "instance-00000000-0000-0000-0000-000000000000"
+
 
 def test_get_nop_job():
     # Arrange
@@ -177,7 +179,7 @@ def test_create_running_workflow_step():
 
     # Act
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
+        running_workflow_id=response["id"], step="step-1", instance_id=_I_ID
     )
 
     # Assert
@@ -195,7 +197,7 @@ def test_set_running_workflow_step_variables():
         variables={},
     )
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
+        running_workflow_id=response["id"], step="step-1", instance_id=_I_ID
     )
     rwfsid = response["id"]
 
@@ -220,7 +222,7 @@ def test_set_running_workflow_step_done_when_success():
         variables={},
     )
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
+        running_workflow_id=response["id"], step="step-1", instance_id=_I_ID
     )
     rwfsid = response["id"]
 
@@ -247,7 +249,7 @@ def test_set_running_workflow_step_done_when_failed():
         variables={},
     )
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
+        running_workflow_id=response["id"], step="step-1", instance_id=_I_ID
     )
     rwfsid = response["id"]
 
@@ -277,7 +279,7 @@ def test_get_running_workflow_step():
     )
     rwfid = response["id"]
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=rwfid, step="step-1"
+        running_workflow_id=rwfid, step="step-1", instance_id=_I_ID
     )
     rwfsid = response["id"]
 
@@ -306,7 +308,7 @@ def test_get_running_workflow_step_with_prior_step():
     response, _ = utaa.create_running_workflow_step(
         running_workflow_id=rwfid,
         step="step-1",
-        prior_running_workflow_step_id="r-workflow-step-111",
+        instance_id=_I_ID,
     )
     rwfsid = response["id"]
 
@@ -317,8 +319,6 @@ def test_get_running_workflow_step_with_prior_step():
     assert response["name"] == "step-1"
     assert not response["done"]
     assert response["running_workflow"]["id"] == rwfid
-    assert "prior_running_workflow_step" in response
-    assert response["prior_running_workflow_step"]["id"] == "r-workflow-step-111"
 
 
 def test_create_instance():
@@ -332,7 +332,7 @@ def test_create_instance():
         variables={},
     )
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
+        running_workflow_id=response["id"], step="step-1", instance_id=_I_ID
     )
     rwfs_id = response["id"]
 
@@ -354,7 +354,7 @@ def test_create_and_get_instance():
         variables={},
     )
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
+        running_workflow_id=response["id"], step="step-1", instance_id=_I_ID
     )
     rwfs_id = response["id"]
     response = utaa.create_instance(running_workflow_step_id=rwfs_id)
@@ -378,7 +378,7 @@ def test_create_instance_and_get_step_instance_directory():
         variables={},
     )
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
+        running_workflow_id=response["id"], step="step-1", instance_id=_I_ID
     )
     rwfs_id = response["id"]
     response = utaa.create_instance(running_workflow_step_id=rwfs_id)
@@ -405,7 +405,7 @@ def test_create_instance_and_get_step_instance_directory_by_name():
     )
     rwf_id = response["id"]
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=rwf_id, step="step-1"
+        running_workflow_id=rwf_id, step="step-1", instance_id=_I_ID
     )
     rwfs_id = response["id"]
     response = utaa.create_instance(running_workflow_step_id=rwfs_id)
@@ -438,7 +438,7 @@ def test_get_running_workflow_step_by_name():
     )
     rwf_id = response["id"]
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=rwf_id, step="step-2"
+        running_workflow_id=rwf_id, step="step-2", instance_id=_I_ID
     )
     rwfs_id = response["id"]
 
@@ -464,7 +464,7 @@ def test_mock_get_running_workflow_step_output_values_for_output():
         variables={},
     )
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
+        running_workflow_id=response["id"], step="step-1", instance_id=_I_ID
     )
 
     # Act
@@ -494,7 +494,7 @@ def test_basic_get_running_workflow_step_output_values_for_output_when_step_vari
         variables={},
     )
     response, _ = utaa.create_running_workflow_step(
-        running_workflow_id=response["id"], step="step-1"
+        running_workflow_id=response["id"], step="step-1", instance_id=_I_ID
     )
 
     # Act

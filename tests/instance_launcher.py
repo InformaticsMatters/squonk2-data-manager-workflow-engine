@@ -82,12 +82,18 @@ class UnitTestInstanceLauncher(InstanceLauncher):
                 <= launch_parameters.total_number_of_replicas
             )
 
+        # Create an Instance record (and dummy Task ID)
+        response = self._api_adapter.create_instance()
+        instance_id = response["id"]
+        task_id = "task-00000000-0000-0000-0000-000000000001"
+
         # Create a running workflow step
         assert launch_parameters.running_workflow_id
         assert launch_parameters.step_name
         response, _ = self._api_adapter.create_running_workflow_step(
             running_workflow_id=launch_parameters.running_workflow_id,
             step=launch_parameters.step_name,
+            instance_id=instance_id,
             replica=launch_parameters.step_replication_number,
             replicas=launch_parameters.total_number_of_replicas,
         )
@@ -99,10 +105,11 @@ class UnitTestInstanceLauncher(InstanceLauncher):
                 running_workflow_step_id=rwfs_id, variables=launch_parameters.variables
             )
 
-        # Create an Instance record (and dummy Task ID)
-        response = self._api_adapter.create_instance(running_workflow_step_id=rwfs_id)
-        instance_id = response["id"]
-        task_id = "task-00000000-0000-0000-0000-000000000001"
+        # Now add the running workflow ID ot the instance record.
+        self._api_adapter.set_instance_running_workflow_id(
+            instance_id=instance_id,
+            running_workflow_step_id=rwfs_id,
+        )
 
         # Get the job defitnion.
         # This is expected to exist in the tests/job-definitions directory.
