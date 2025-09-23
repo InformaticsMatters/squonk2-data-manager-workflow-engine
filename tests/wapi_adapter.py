@@ -352,6 +352,13 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         next_id: int = len(instances) + 1
         instance_id: str = _INSTANCE_ID_FORMAT.format(id=next_id)
 
+        record = {
+            "id": "instance_id",
+            "running_workflow_step_id": "",
+            "instance_directory": f".{instance_id}",
+        }
+        instances[instance_id] = record
+
         with open(_INSTANCE_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(instances)
 
@@ -359,7 +366,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         return {"id": instance_id}
 
-    def set_instance_running_workflow_id(
+    def set_instance_running_workflow_step_id(
         self, *, instance_id: str, running_workflow_step_id: str
     ) -> None:
         UnitTestWorkflowAPIAdapter.lock.acquire()
@@ -367,7 +374,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             instances = Unpickler(pickle_file).load()
 
         assert instance_id in instances
-        instances["running_workflow_step_id"] = running_workflow_step_id
+        instances[instance_id]["running_workflow_step_id"] = running_workflow_step_id
 
         with open(_INSTANCE_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(instances)

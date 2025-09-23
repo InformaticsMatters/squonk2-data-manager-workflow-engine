@@ -106,7 +106,7 @@ class UnitTestInstanceLauncher(InstanceLauncher):
             )
 
         # Now add the running workflow ID ot the instance record.
-        self._api_adapter.set_instance_running_workflow_id(
+        self._api_adapter.set_instance_running_workflow_step_id(
             instance_id=instance_id,
             running_workflow_step_id=rwfs_id,
         )
