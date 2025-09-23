@@ -7,6 +7,7 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
+import decoder.decoder as job_defintion_decoder
 import jsonschema
 import yaml
 
@@ -82,6 +83,13 @@ def get_description(definition: dict[str, Any]) -> str | None:
     return definition.get("description")
 
 
+def is_workflow_output_variable(definition: dict[str, Any], variable_name: str) -> bool:
+    """True if the variable name is in the workflow variables outputs list."""
+    # We can safely pass on the workflow defitnion as its
+    # root-level 'variables' block complies with job-defintion variables.
+    return variable_name in job_defintion_decoder.get_outputs(definition)
+
+
 def get_workflow_variable_names(definition: dict[str, Any]) -> set[str]:
     """Given a Workflow definition this function returns all the names of the
     variables defined in steps that need to be defined at the workflow level.
@@ -95,40 +103,6 @@ def get_workflow_variable_names(definition: dict[str, Any]) -> set[str]:
                 if "from-workflow" in v:
                     wf_variable_names.add(v["from-workflow"]["variable"])
     return wf_variable_names
-
-
-def get_step_output_variable_names(
-    definition: dict[str, Any], step_name: str
-) -> list[str]:
-    """Given a Workflow definition and a Step name this function returns all the names
-    of the output variables defined at the Step level. These are the names
-    of variables that have files assocaited with them that need copying to
-    the Project directory (from the Instance)."""
-    variable_names: list[str] = []
-    steps: list[dict[str, Any]] = get_steps(definition)
-    for step in steps:
-        if step["name"] == step_name and "plumbing" in step:
-            for v_map in step["plumbing"]:
-                if "to-project" in v_map:
-                    variable_names.append(v_map["variable"])
-    return variable_names
-
-
-def get_step_input_variable_names(
-    definition: dict[str, Any], step_name: str
-) -> list[str]:
-    """Given a Workflow definition and a Step name this function returns all the names
-    of the input variables defined at the Step level. These are the names
-    of variables that have files assocaited with them that need copying to
-    the Instance directory (from the Project)."""
-    variable_names: list[str] = []
-    steps: list[dict[str, Any]] = get_steps(definition)
-    for step in steps:
-        if step["name"] == step_name and "plumbing" in step:
-            for v_map in step["plumbing"]:
-                if "from-project" in v_map:
-                    variable_names.append(v_map["variable"])
-    return variable_names
 
 
 def get_step_workflow_variable_connections(

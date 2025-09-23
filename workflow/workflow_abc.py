@@ -58,6 +58,10 @@ class LaunchParameters:
     # These are required so that the step can access project files.
     # It is a set project-relative filenames (or directroies).
     step_project_inputs: set[str] | None = None
+    # A set of step instance files that are expected to be hard-linked
+    # into the surrounding Project directory.
+    # It is a set instance-relative filenames (or directroies).
+    step_project_outputs: set[str] | None = None
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'

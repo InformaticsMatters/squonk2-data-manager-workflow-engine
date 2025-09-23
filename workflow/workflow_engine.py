@@ -46,6 +46,7 @@ from .decoder import (
     get_step_predefined_variable_connections,
     get_step_prior_step_connections,
     get_step_workflow_variable_connections,
+    is_workflow_output_variable,
 )
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -56,12 +57,13 @@ _LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 @dataclass
 class StepPreparationResponse:
     """Step preparation response object. 'replicas' is +ve (non-zero) if a step
-    can be launched - it's value indicates how many times. If a step can be launched
+    can be launched - its value indicates how many times. If a step can be launched
     'variables' will not be None. If a parallel set of steps can take place
     (even just one) 'replica_variable' will be set and 'replica_values'
     will be a list containing a value for each step instance. If the step
     depends on a prior step the instance UUIDs of the steps will be listed
-    in the 'dependent_instances' string list.
+    in the 'dependent_instances' string list. If a step's outputs (files) are expected
+    in the project directory they will be listed in 'outputs'.
 
     If preparation fails 'error_num' wil be set, and 'error_msg'
     should contain something useful."""
@@ -71,6 +73,7 @@ class StepPreparationResponse:
     replica_variable: str | None = None
     replica_values: list[str] | None = None
     dependent_instances: set[str] | None = None
+    outputs: set[str] | None = None
     error_num: int = 0
     error_msg: str | None = None
 
@@ -479,6 +482,13 @@ class WorkflowEngine:
         # I think we can start this step,
         # so compile a set of variables for it.
 
+        # Outputs - a list of step files that are outputs,
+        # and also designated as workflow outputs.
+        # Any step can write files to the Projetc directory
+        # but only job outputs that are also workflow outputs
+        # are put in this list.
+        outputs: set[str] = set()
+
         # Start with any variables provided in the step's specification.
         # A map that we will add to (and maybe even over-write)...
         variables: dict[str, Any] = step_definition["specification"].get(
@@ -498,6 +508,8 @@ class WorkflowEngine:
         ):
             assert connector.in_ in rwf_variables
             variables[connector.out] = rwf_variables[connector.in_]
+            if is_workflow_output_variable(wf, connector.in_):
+                outputs.add(rwf_variables[connector.in_])
 
         # Process the step's "plumbing" relating to pre-defined variables.
         for connector in get_step_predefined_variable_connections(
@@ -607,6 +619,7 @@ class WorkflowEngine:
             replica_variable=iter_variable,
             replica_values=iter_values,
             dependent_instances=dependent_instances,
+            outputs=outputs,
         )
 
     def _launch(
@@ -622,6 +635,16 @@ class WorkflowEngine:
         step_name: str = step_definition["name"]
         rwf_id: str = rwf["id"]
         project_id = rwf["project"]["id"]
+
+        _LOGGER.info("SPR.variable=%s", step_preparation_response.variables)
+        _LOGGER.info(
+            "SPR.replica_variable=%s", step_preparation_response.replica_variable
+        )
+        _LOGGER.info("SPR.replica_values=%s", step_preparation_response.replica_values)
+        _LOGGER.info(
+            "SPR.dependent_instances=%s", step_preparation_response.dependent_instances
+        )
+        _LOGGER.info("SPR.outputs=%s", step_preparation_response.outputs)
 
         # Total replicas must be 1 or more
         total_replicas: int = step_preparation_response.replicas

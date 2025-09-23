@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Any
 
 from .decoder import (
-    get_step_output_variable_names,
     get_steps,
     get_workflow_variable_names,
     validate_schema,
@@ -86,26 +85,11 @@ class WorkflowValidator:
         # and all the output variable names in the step are unique.
         duplicate_names: set[str] = set()
         all_step_names: set[str] = set()
-        variable_names: set[str] = set()
         for step in get_steps(workflow_definition):
             step_name: str = step["name"]
             if step_name not in duplicate_names and step_name in all_step_names:
                 duplicate_names.add(step_name)
             all_step_names.add(step_name)
-            # Are output variable names unique?
-            variable_names.clear()
-            step_variables: list[str] = get_step_output_variable_names(
-                workflow_definition, step_name
-            )
-            for step_variable in step_variables:
-                if step_variable in variable_names:
-                    return ValidationResult(
-                        error_num=3,
-                        error_msg=[
-                            f"Duplicate step output variable: {step_variable} (step={step_name})"
-                        ],
-                    )
-                variable_names.add(step_variable)
         if duplicate_names:
             return ValidationResult(
                 error_num=2,
