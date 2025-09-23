@@ -406,38 +406,50 @@ class WorkflowEngine:
 
         # Before we move on, are we a combiner?
         #
-        # We are if a variable in our step's plumbing refers to an input of ours
-        # that is of type 'files'. If we are a combiner then we use the name of the
+        # Why?
+        #
+        # A combiner's execution is based on the possible concurrent execution
+        # of one (or more) prior steps. If we are a combiner then we use the name of the
         # step we are combining (there can only be one) so that we can ensure
-        # all its step instances have finished (successfully). We cannot
-        # move on until all the files we depend on are ready.
+        # all its step instances have finished (successfully) before continuing.
+        #
+        # We are a combiner if a variable in our step's plumbing refers to an input
+        # whose origin is of type 'files'.
 
         our_job_definition: dict[str, Any] = self._get_step_job(step=step_definition)
         our_inputs: dict[str, Any] = job_defintion_decoder.get_inputs(
             our_job_definition
         )
+        # get all our step connections that relate to prior steps.
+        # If we're a combiner we will have variables based on prior steps.
         plumbing_of_prior_steps: dict[str, list[Connector]] = (
             get_step_prior_step_connections(step_definition=step_definition)
         )
-        step_is_combiner: bool = False
+
+        we_are_a_combiner: bool = False
+
+        # What step might we be comnining?
+        # It'll remain None afdter the next block if we're not combining.
         step_name_being_combined: str | None = None
+        # If we are a combiner, what is the varaible (identifying a set of files)
+        # that is bing combined? There can only be one.
         combiner_input_variable: str | None = None
-        num_step_recplicas_being_combined: int = 0
         for p_step_name, connections in plumbing_of_prior_steps.items():
             for connector in connections:
                 if our_inputs.get(connector.out, {}).get("type") == "files":
                     step_name_being_combined = p_step_name
                     combiner_input_variable = connector.out
-                    step_is_combiner = True
+                    we_are_a_combiner = True
                     break
             if step_name_being_combined:
                 break
 
-        if step_is_combiner:
+        # If we are a combiner
+        # we must make suer that all the step instances we're combining are done.
+        # If not, we must leave.
+        if we_are_a_combiner:
             assert step_name_being_combined
             assert combiner_input_variable
-
-            # Are all the step instances we're combining done?
 
             response, _ = self._wapi_adapter.get_status_of_all_step_instances_by_name(
                 name=step_name_being_combined,
@@ -448,9 +460,12 @@ class WorkflowEngine:
             assert num_step_recplicas_being_combined > 0
             assert "status" in response
 
-            # Assume they're all done
+            # Assume all the dependent prior step instnaces are done
             # and undo our assumption if not...
             all_step_instances_done: bool = True
+
+            # If anything' still running we must leave.
+            # If anything's failed we must 'fail' the running workflow.
             all_step_instances_successful: bool = True
             for status in response["status"]:
                 if not status["done"]:
@@ -460,7 +475,7 @@ class WorkflowEngine:
                     all_step_instances_successful = False
                     break
             if not all_step_instances_done:
-                # Can't move on - other steps need to finish.
+                # Can't move on - instances still need to finish
                 _LOGGER.debug(
                     "Assessing start of combiner step (%s)"
                     " but not all steps (%s) to be combined are done",
@@ -469,8 +484,7 @@ class WorkflowEngine:
                 )
                 return StepPreparationResponse(replicas=0)
             elif not all_step_instances_successful:
-                # Can't move on - all prior steps are done,
-                # but at least one was not successful.
+                # Can't move on - at least one instance was not successful
                 _LOGGER.warning(
                     "Assessing start of combiner step (%s)"
                     " but at least one step (%s) to be combined failed",
@@ -483,51 +497,52 @@ class WorkflowEngine:
                     error_msg=f"Prior instance of step '{step_name_being_combined}' has failed",
                 )
 
-        # I think we can start this step,
-        # so compile a set of variables for it.
+        # We're not a cmbiner or we are
+        # (and all the dependent instances have completed successfully).
+        # We can now compile a set of variables for it.
 
-        # Outputs - a list of step files that are outputs,
-        # and also designated as workflow outputs.
-        # Any step can write files to the Projetc directory
-        # but only job outputs that are also workflow outputs
-        # are put in this list.
+        # Outputs - a list of step files that are workflow outputs.
+        # Any step can write files to the Project directory
+        # but this only consists of job outputs that are also workflow outputs.
         outputs: set[str] = set()
 
-        # Start with any variables provided in the step's specification.
-        # A map that we will add to (and maybe even over-write)...
-        variables: dict[str, Any] = step_definition["specification"].get(
+        # Our initial set of variables begins with the variables provided in the step's
+        # specification. It is a map that we will add to and then (eventually)
+        # pass to the instance launcher. Here we refer to them as 'prime_variables'.
+        prime_variables: dict[str, Any] = step_definition["specification"].get(
             "variables", {}
         )
-        # ...and the running workflow variables
+        # The variables provided by the user when running the workflow
+        # (the running workflow variables)...
         rwf_variables: dict[str, Any] = rwf.get("variables", {})
 
-        # Process the step's "plumbing" relating to workflow variables.
+        # Adjust our prime variables by adding any values
+        # from workflow variables that are mentioned in the step's "plumbing".
         #
-        # This will be a list of Connectors of "in" and "out" variable names.
+        # The decoder gives us a list of 'Connectors' that are a par of variable
+        # names representing "in" (workflow) and "out" (step) variable names.
         # "in" variables are worklfow variables, and "out" variables
-        # are expected Job variables. We use this to add variables
-        # to the variables map.
+        # are expected Stewp (Job) variables. We use these connections to
+        # take workflow variables and puth them in our variables map.
         for connector in get_step_workflow_variable_connections(
             step_definition=step_definition
         ):
             assert connector.in_ in rwf_variables
-            variables[connector.out] = rwf_variables[connector.in_]
+            prime_variables[connector.out] = rwf_variables[connector.in_]
             if is_workflow_output_variable(wf, connector.in_):
                 outputs.add(rwf_variables[connector.in_])
 
-        # Process the step's "plumbing" relating to pre-defined variables.
+        # Add any pre-defined variables used in the step's "plumbing"
         for connector in get_step_predefined_variable_connections(
             step_definition=step_definition
         ):
             assert connector.in_ in self._predefined_variables
-            variables[connector.out] = self._predefined_variables[connector.in_]
+            prime_variables[connector.out] = self._predefined_variables[connector.in_]
 
-        # Now process variables (in the "plumbing" block)
-        # that relate to values used in prior steps.
+        # Using the "plumbing" again add any that relate to values used in prior steps.
         #
         # The decoder gives us a map indexed by prior step name that's a list of
-        # "in"/"out" connectors as above. If this is a combiner step remember
-        # that the combiner_input_variable is a used as a list.
+        # "in"/"out" connectors as before.
         prior_step_plumbing: dict[str, list[Connector]] = (
             get_step_prior_step_connections(step_definition=step_definition)
         )
@@ -546,35 +561,50 @@ class WorkflowEngine:
             # Copy "in" value to "out"...
             for connector in connections:
                 assert connector.in_ in prior_step["variables"]
-                variables[connector.out] = prior_step["variables"][connector.in_]
+                prime_variables[connector.out] = prior_step["variables"][connector.in_]
 
-        # All variables are set ...
-        # is this enough to satisfy the setp's Job command?
+        # The step's prime variables are now set.
 
+        # Before we return these to the claler do we have enough
+        # to satisfy the step Job's command? It's a simple check -
+        # we give the step's Job command and our prime variables
+        # to the Job decoder - it wil tell us if an inportnat
+        # variable is missing....
         job: dict[str, Any] = self._get_step_job(step=step_definition)
         message, success = job_defintion_decoder.decode(
-            job["command"], variables, "command", TextEncoding.JINJA2_3_0
+            job["command"], prime_variables, "command", TextEncoding.JINJA2_3_0
         )
         if not success:
             msg = f"Failed command validation for step {step_name} error_msg={message}"
             _LOGGER.warning(msg)
             return StepPreparationResponse(replicas=0, error_num=2, error_msg=msg)
 
-        # Do we replicate this step (run it more than once)?
+        # Do we replicate this step (run it more than once in parallel)?
         #
-        # We do if this is not a combiner step and a variable in this step's plumbing
-        # refers to an output of a prior step whose type is 'files'.
-        # If the prior step is a 'splitter' we populate the 'replication_values' array
-        # with the list of files the prior step genrated for its output.
+        # Why?
         #
-        # In this engine we onlhy act on the _first_ match, i.e. there CANNOT
-        # be more than one prior step variable that is 'files'!
+        # We need to set the number of step replicas to run.
+        #
+        # If we're not a combiner and a variable in our "plumbing" refers to a variable
+        # of type "files" in a prior step then we are expected to run multipe times
+        # (even if just once). The number of times we're expected to run is dictated
+        # by the number of values (files) in the "files" variable.
+        #
+        # In this engine we only act on the _first_ variable match, i.e. we do not
+        # expect and wil not act on more than one prior step variable that is of type
+        # "files".
+        #
+        # If we do run more than once we'll set 'iter_variable' to the name of our
+        # variable (that is to be given multiple values) and 'iter_values' will
+        # be the list of files produced by the dependent step forming out inputs.
+        # If the dependent step produces file1, file2, and file3 we'll run out step
+        # 3 times, with each being given a different file as its input.
         iter_values: list[str] = []
         iter_variable: str | None = None
-        if not step_is_combiner:
+        if not we_are_a_combiner:
             for p_step_name, connections in plumbing_of_prior_steps.items():
                 # We need to get the Job definition for each step
-                # and then check whether the (output) variable is of type 'files'...
+                # and then check whether the (output) variable is of type "files"...
                 wf_step: dict[str, Any] = get_step(wf, p_step_name)
                 assert wf_step
                 job_definition: dict[str, Any] = self._get_step_job(step=wf_step)
@@ -606,9 +636,12 @@ class WorkflowEngine:
                     break
 
         # Get the list of instances we depend upon.
+        #
+        # We need to do this so that the launcher can hard-link
+        # their instance directories into ours.
         dependent_instances: set[str] = set()
         for p_step_name in plumbing_of_prior_steps:
-            # Assume any step can have multiple instances
+            # Any step can depend on multiple instances
             response, _ = self._wapi_adapter.get_status_of_all_step_instances_by_name(
                 name=p_step_name,
                 running_workflow_id=rwf_id,
@@ -616,9 +649,13 @@ class WorkflowEngine:
             for step in response["status"]:
                 dependent_instances.add(step["instance_id"])
 
+        # We're done.
+        # We have a set of prime variables,
+        # a list of dependent step instances,
+        # and we know how many steps replicas to run.
         num_step_instances: int = max(1, len(iter_values))
         return StepPreparationResponse(
-            variables=variables,
+            variables=prime_variables,
             replicas=num_step_instances,
             replica_variable=iter_variable,
             replica_values=iter_values,
