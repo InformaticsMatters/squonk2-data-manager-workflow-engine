@@ -737,6 +737,7 @@ class WorkflowEngine:
         _LOGGER.info(
             "SPR.dependent_instances=%s", step_preparation_response.dependent_instances
         )
+        _LOGGER.info("SPR.inputs=%s", step_preparation_response.inputs)
         _LOGGER.info("SPR.outputs=%s", step_preparation_response.outputs)
 
         # Total replicas must be 1 or more
