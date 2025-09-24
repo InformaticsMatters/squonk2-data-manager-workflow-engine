@@ -170,10 +170,10 @@ definitions:
         type: string
         description: A description of the step
       specification:
-        # The step Job specififcation.
+        # The step Job specification.
         # This MUST define `collection`, a 'job', and a 'version'.
         # 'variables' (a map of name and value)can also be provided.
-        # The format of this is essentially idenical to the specification
+        # The format of this is essentially identical to the specification
         # used when a Job is launched via the DM API.
         $ref: '#/definitions/step-specification'
       plumbing:

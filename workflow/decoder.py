@@ -20,7 +20,7 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
-import decoder.decoder as job_defintion_decoder
+import decoder.decoder as job_definition_decoder
 import jsonschema
 import yaml
 
@@ -40,7 +40,7 @@ assert _WORKFLOW_SCHEMA
 
 @dataclass
 class Connector:
-    """A connection - connexts a plumbing source variable ("in_")
+    """A connection - connects a plumbing source variable ("in_")
     to destination variable ("out")."""
 
     in_: str
@@ -98,9 +98,9 @@ def get_description(definition: dict[str, Any]) -> str | None:
 
 def is_workflow_output_variable(definition: dict[str, Any], variable_name: str) -> bool:
     """True if the variable name is in the workflow variables outputs list."""
-    # We can safely pass on the workflow defitnion as its
-    # root-level 'variables' block complies with job-defintion variables.
-    return variable_name in job_defintion_decoder.get_outputs(definition)
+    # We can safely pass on the workflow definition as its
+    # root-level 'variables' block complies with job-definition variables.
+    return variable_name in job_definition_decoder.get_outputs(definition)
 
 
 def get_workflow_variable_names(definition: dict[str, Any]) -> set[str]:

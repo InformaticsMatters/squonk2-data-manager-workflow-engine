@@ -93,14 +93,14 @@ class LaunchParameters:
     step_name: str | None = None
     # The step replication number.
     # A numeric vale expected to be in the range 0 to total_number_of_replicas - 1.
-    # If a step is laucnhed 5 times the values used when laucnhing each instance
+    # If a step is launched 5 times the values used when launching each instance
     # must be 0, 1, 2, 3, and 4.
     step_replication_number: int = 0
-    # The total number of replicas of this instance that are expected to be laucnhed.
+    # The total number of replicas of this instance that are expected to be launched.
     # This cannot be less than 1 and must be grater than any value of
     # 'step_replication_number' that will be used for the same step.
     total_number_of_replicas: int = 1
-    # A set of dependent (prior step) instance directroies that are expected to be
+    # A set of dependent (prior step) instance directories that are expected to be
     # hard-linked into the instance directory the launcher will create.
     # These are required so that the step can access the dependent step's files.
     # It is a set of instance UUIDs.
@@ -108,11 +108,11 @@ class LaunchParameters:
     # A set of dependent project files that are expected to be hard-linked
     # into the instance directory the launcher will create.
     # These are required so that the step can access project files.
-    # It is a set project-relative filenames (or directroies).
+    # It is a set project-relative filenames (or directories).
     step_project_inputs: set[str] | None = None
     # A set of step instance files that are expected to be hard-linked
     # into the surrounding Project directory.
-    # It is a set instance-relative filenames (or directroies).
+    # It is a set instance-relative filenames (or directories).
     step_project_outputs: set[str] | None = None
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.

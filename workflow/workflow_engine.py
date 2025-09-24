@@ -73,7 +73,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any, Optional
 
-import decoder.decoder as job_defintion_decoder
+import decoder.decoder as job_definition_decoder
 from decoder.decoder import TextEncoding
 from google.protobuf.message import Message
 from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
@@ -134,7 +134,7 @@ class WorkflowEngine:
         instance_launcher: InstanceLauncher,
         instance_link_glob: str = ".instance-*",
     ):
-        """Initialiser, given a Workflow API adapter, Instance laucnher,
+        """Initialiser, given a Workflow API adapter, Instance launcher,
         and a step (directory) link 'glob' (a convenient directory glob to
         locate the DM hard-link directories of prior instances inserted into a
         step's instance directory, typically '.instance-*')"""
@@ -326,8 +326,8 @@ class WorkflowEngine:
             self._set_step_error(step_name, r_wfid, r_wfsid, exit_code, "Job failed")
             return
 
-        # If we get here the prior step completed successfullyso we
-        # mark the Step as DONE (successfully).
+        # If we get here the prior step completed successfully
+        # so we mark the Step as DONE (successfully).
         wfid = rwf_response["workflow"]["id"]
         assert wfid
         wf_response, _ = self._wapi_adapter.get_workflow(workflow_id=wfid)
@@ -358,9 +358,9 @@ class WorkflowEngine:
                     # For this simple logic it is the next step.
                     next_step = wf_response["steps"][step_index + 1]
 
-                    # A mojor piece of work to accomplish is to get ourselves into a position
+                    # A major piece of work to accomplish is to get ourselves into a position
                     # that allows us to check the step command can be executed.
-                    # We do this by compiling a map of variables we belive the step needs.
+                    # We do this by compiling a map of variables we believe the step needs.
 
                     # If the step about to be launched is based on a prior step
                     # that generates multiple outputs (files) then we have to
@@ -459,7 +459,7 @@ class WorkflowEngine:
         # whose origin is of type 'files'.
 
         our_job_definition: dict[str, Any] = self._get_step_job(step=step_definition)
-        our_inputs: dict[str, Any] = job_defintion_decoder.get_inputs(
+        our_inputs: dict[str, Any] = job_definition_decoder.get_inputs(
             our_job_definition
         )
         # get all our step connections that relate to prior steps.
@@ -470,10 +470,10 @@ class WorkflowEngine:
 
         we_are_a_combiner: bool = False
 
-        # What step might we be comnining?
-        # It'll remain None afdter the next block if we're not combining.
+        # What step might we be combining?
+        # It'll remain None after the next block if we're not combining.
         step_name_being_combined: str | None = None
-        # If we are a combiner, what is the varaible (identifying a set of files)
+        # If we are a combiner, what is the variable (identifying a set of files)
         # that is bing combined? There can only be one.
         combiner_input_variable: str | None = None
         for p_step_name, connections in plumbing_of_prior_steps.items():
@@ -502,7 +502,7 @@ class WorkflowEngine:
             assert num_step_recplicas_being_combined > 0
             assert "status" in response
 
-            # Assume all the dependent prior step instnaces are done
+            # Assume all the dependent prior step instances are done
             # and undo our assumption if not...
             all_step_instances_done: bool = True
 
@@ -539,7 +539,7 @@ class WorkflowEngine:
                     error_msg=f"Prior instance of step '{step_name_being_combined}' has failed",
                 )
 
-        # We're not a cmbiner or we are
+        # We're not a combiner or we are
         # (and all the dependent instances have completed successfully).
         # We can now compile a set of variables for it.
 
@@ -563,9 +563,9 @@ class WorkflowEngine:
         #
         # The decoder gives us a list of 'Connectors' that are a par of variable
         # names representing "in" (workflow) and "out" (step) variable names.
-        # "in" variables are worklfow variables, and "out" variables
-        # are expected Stewp (Job) variables. We use these connections to
-        # take workflow variables and puth them in our variables map.
+        # "in" variables are workflow variables, and "out" variables
+        # are expected Step (Job) variables. We use these connections to
+        # take workflow variables and put them in our variables map.
         for connector in get_step_workflow_variable_connections(
             step_definition=step_definition
         ):
@@ -607,13 +607,13 @@ class WorkflowEngine:
 
         # The step's prime variables are now set.
 
-        # Before we return these to the claler do we have enough
+        # Before we return these to the caller do we have enough
         # to satisfy the step Job's command? It's a simple check -
         # we give the step's Job command and our prime variables
-        # to the Job decoder - it wil tell us if an inportnat
+        # to the Job decoder - it wil tell us if an important
         # variable is missing....
         job: dict[str, Any] = self._get_step_job(step=step_definition)
-        message, success = job_defintion_decoder.decode(
+        message, success = job_definition_decoder.decode(
             job["command"], prime_variables, "command", TextEncoding.JINJA2_3_0
         )
         if not success:
@@ -628,7 +628,7 @@ class WorkflowEngine:
         # We need to set the number of step replicas to run.
         #
         # If we're not a combiner and a variable in our "plumbing" refers to a variable
-        # of type "files" in a prior step then we are expected to run multipe times
+        # of type "files" in a prior step then we are expected to run multiple times
         # (even if just once). The number of times we're expected to run is dictated
         # by the number of values (files) in the "files" variable.
         #
@@ -650,7 +650,7 @@ class WorkflowEngine:
                 wf_step: dict[str, Any] = get_step(wf, p_step_name)
                 assert wf_step
                 job_definition: dict[str, Any] = self._get_step_job(step=wf_step)
-                jd_outputs: dict[str, Any] = job_defintion_decoder.get_outputs(
+                jd_outputs: dict[str, Any] = job_definition_decoder.get_outputs(
                     job_definition
                 )
                 for connector in connections:
@@ -712,7 +712,7 @@ class WorkflowEngine:
         step_definition: dict[str, Any],
         step_preparation_response: StepPreparationResponse,
     ) -> None:
-        """Given a runningWorkflow record, a step defitnion (from the Workflow),
+        """Given a runningWorkflow record, a step definition (from the Workflow),
         and the step's variables (in a preparation object) this method launches
         one or more instances of the given step."""
         step_name: str = step_definition["name"]
