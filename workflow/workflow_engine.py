@@ -793,18 +793,22 @@ class WorkflowEngine:
                 step_project_outputs=step_preparation_response.outputs,
             )
             lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
-            rwfs_id = lr.running_workflow_step_id
-            assert rwfs_id
 
             if lr.error_num:
                 self._set_step_error(
-                    step_name, rwf_id, rwfs_id, lr.error_num, lr.error_msg
+                    step_name,
+                    rwf_id,
+                    lr.running_workflow_step_id,
+                    lr.error_num,
+                    lr.error_msg,
                 )
             else:
+                # No error - there must be a RunningWorkflowStep ID
+                assert lr.running_workflow_step_id
                 _LOGGER.info(
                     "Launched step '%s' step_id=%s (command=%s)",
                     step_name,
-                    rwfs_id,
+                    lr.running_workflow_step_id,
                     lr.command,
                 )
 
