@@ -1,29 +1,71 @@
 """The WorkflowEngine execution logic.
 
-Module philosophy
------------------
-The module implements the workflow execution logic, which is driven by
-Pod and Workflow protocol buffer messages received by its 'handle_message()' function.
-Messages are delivered by the message handler in the PBC Pod.
-There are no other publci methods in this class - it's _entry point_ is
-'handle_message()'.
-
-Its role is to translate a pre-validated workflow definition into the ordered execution
-of step "Jobs" that manifest as Pod "Instances" that run in a project directory in the
+This module realises workflow definitions, turning a definition into a controlled sequence
+of Job executions. The Data Manager is responsible for storing and validating Workflows,
+and this module is responsible for running them and reporting their state back to the
 DM.
 
-Workflow messages initiate (START) and terminate (STOP) workflows. Pod messages signal
-the end of individual workflow steps and carry the exit code of the executed Job.
-The engine used START messages to launch the first "step" in a workflow and the Pod
-messages to signal the success (or failure) of a prior step. A step's success is used,
-along with it's original workflow definition to determine the next action
-(run the next step or signal the end of the workflow).
+The engine is event-driven, responding to two types of message
+(in the form of Protocol Buffers) - Workflow messages and a Pod messages.
+These messages, sent from the DM Protocol Buffer Consumer (PBC), are delivered to the
+engine via its 'handle_message()' method. The engine must react to these messages
+appropriately by: -
 
-Before a START message is transmitted the author (typically the Workflow Validator)
-will have created a RunningWorkflow record in the DM. The ID of this record is passed
-in the START message that is sent. The engine uses this ID to find the running workflow
-and the workflow. The engine creates RunningWorkflowStep records for each step that
-is executed, and it uses thew InstanceLauncher to launch the Job (a Pod) for each step.
+-   Starting the execution of a new Workflow
+    (when it receives a Workflow 'START' message)
+-   Stopping the execution of an exiting Workflow
+    (when it receives a Workflow 'STOP' message)
+-   Progressing an exiting running workflow to its next Step
+    (when it receives a Pod message)
+
+When running a workflow, once the engine determines the action (the Step to run)
+its most complex logic lies in the preparation of a set variables for the Step (Job).
+This logic is confined to '_prepare_step()', which returns a 'StepPreparationResponse'
+dataclass object. This object is used by the second key method in this module,
+'_launch()'. The launch methods used the prepared variables and launches (using
+a DM-provided 'InstanceLauncher' implementation) one or more Instances of a Step Job,
+providing each with an appropriate set of command variables.
+
+Module philosophy
+-----------------
+The module's role is to translate a pre-validated workflow definition into the ordered
+execution of Step "Jobs" that manifest as Pod "Instances" running in a project directory
+under the control of the DM.
+
+Workflow messages are used to initiate (START) and terminate (STOP) workflows.
+Pod messages signal the end of a previously launched step and carry the exit code
+of the executed Job.
+
+The engine uses START messages to launch the first "step" in a workflow, while Pod
+messages signal the success (or failure) of a prior step. A step's success is used,
+along with it's original workflow definition to determine the next action - either
+the execution of a new step or the conclusion of the Workflow.
+
+The engine does has no persistence and not create database records. Instead it relies
+on an API 'wrapper' to retrieve records and alter them.
+
+Objects that provide API and InstanceLauncher implementations are made available
+to the engine when the DM creates it. passing them through the class initialiser.
+
+The engine is designed not to retain any state persistence, it reacts to messages,
+reconstructing its state based on Workflow, RunningWorkflow, and RunningWorkflowStep
+records maintained by the DM. There's no real 'pattern' here - it's simply complex
+custom sequential logic that is executed from the context of 'handle_message()'
+that has to translate a workflow definition into running Job Instances.
+
+If there is a pattern its closest approximation is probably a State pattern, closely
+related to a Finite State Machine with the function 'handle_message()' used to alter
+the engine's 'state'. The engine is in fact a complex running workflow 'state machine',
+hence the term 'Engine' (another term for machine) used in its class name.
+
+Only one instance of the engine is created by the DM so it also essentially exists as a
+Singleton.
+
+There are no sub-classes or other modules. Today all the state logic is captured
+in this single module. There is no need to introduce level of redirection that simply
+reduce the size of the file. There is a level of complexity that cannot be avoided -
+the need to understand how to move a workflow forward and how to prepare a set of
+variables for the next 'Step'.
 """
 
 import logging

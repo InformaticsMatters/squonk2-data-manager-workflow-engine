@@ -4,51 +4,55 @@ A module that provides interface definitions for classes that must be made avail
 to the engine.
 
 Before go any further it is important to understand that a Workflow 'Step' is realised
-by the execution of a Data Manager 'Job'. A 'Step' is simnply the definition of
-a Job's execution withion the context of a 'Workflow'. We also talk about 'Instances'.
+by the execution of a Data Manager 'Job'. A 'Step' is simply the definition of
+a Job's execution within the context of a 'Workflow'. We also talk about 'Instances'.
 Instances are a Data Manger concept. They are an object (and database Table)
-represening the running state of a Job.
+representing the running state of a Job.
 
 When steps 'Steps' are run the are represented by 'Jobs' that run as an 'Instance'.
 
 To this end the workflow engine relies on a two broad external services, encapsulated
 by abstract class definitions we define here: -
 
-- An 'Instance Laucncher' to facilitate the execution of Jobs
-- An API 'wrapper' providing access to an underling database that stores
-  Workflows, RunningWorkflows, RunningWorkflowSteps, and Instances.
+-   An 'Instance Launcher' to facilitate the execution of Jobs and dataclass objects
+    encapsulating launch parameters and results
+-   An API 'wrapper' providing access to an underling database that stores
+    Workflows, RunningWorkflows, RunningWorkflowSteps, and Instances. API responses
+    are Python dictionaries, emulating the payload of a REST response body.
+    The engine _could_ use the DM REST API but we provide an _internal_ service
+    to avoid issues with authentication and user tokens needed by the REST API.
 
 Module philosophy
 -----------------
-The engine is responsible for orchestrating Step exection (executing Jobs) but does not
+The engine is responsible for orchestrating Step execution (executing Jobs) but does not
 contain the logic that is able to run them. This is because a) job execution
 (in Kubernetes) is a complex affair and b) the Data Manager already provides this
-logic. Instead the engine defines an ABC for an 'InstanceLaucnher' and the
+logic. Instead the engine defines an ABC for an 'InstanceLauncher' and the
 DM provides the implementation. The engine simply has to create a 'LaunchParameter'
-object describign the Job to be laucnhed (including variables etc.) and then
+object describing the Job to be launched (including variables etc.) and then
 relies on the Instance Launcher to effect the execution.
 
 The engine also does not consist of any persistence capability and instead relies on the
 Data Manager's database to host suitable 'Workflow', 'RunningWorkflow',
 and 'RunningWorkflowStep' tables. The 'WorkflowAPIAdapter' defined here provides an
 interface that a concrete implementation uses to allow access to and modification
-of records withing these tables.
+of records within these tables.
 
 The engine does not create or remove records directly, they are created either by the
-Data Manager via its API or the Instance laucnher when as it starts Jobs (Steps).
+Data Manager via its API or the Instance launcher when as it starts Jobs (Steps).
 The DM API creates a Workflow record when the user creates a Workflow.
-It also creates RunnignWorkflow records (while also validating them) when the
+It also creates RunningWorkflow records (while also validating them) when the
 user 'runs' a workflow. It also creates RunningWorkflowStep records to track the
-execution state of each step when the Instance lancher is called upon
+execution state of each step when the Instance launcher is called upon
 to start a Step.
 
 The instance launcher is controlled by a complex set of 'parameters' (a
-'LaunchPrameters' dataclass object) that comprehensively descibe the Job -
-it's variables, and inputs and outputs. The instance launcher provies just one method:
-'launch()'. It takes a paramters object, and in return the yields a 'LaunchResult'
+'LaunchParameters' dataclass object) that comprehensively describe the Job -
+it's variables, and inputs and outputs. The instance launcher provides just one method:
+'launch()'. It takes a parameters object, and in return the yields a 'LaunchResult'
 dataclass object that contains the record IDs of the instance created, and the
 corresponding RunningWorkflowStep. The result also describes any launch error.
-If there is a laucnh error the tep can assume to have not started. if there is
+If there is a launch error the step can assume to have not started. if there is
 no error the step will (probably) start.
 """
 

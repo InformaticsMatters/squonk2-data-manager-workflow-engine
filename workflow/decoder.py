@@ -5,7 +5,7 @@ Module philosophy
 The _main_ purpose of this module is to provide a 'validate_schema()' function
 to check that a workflow definition (a dictionary) that is expected to comply with
 the 'workflow-schema,yaml' schema. This function returns a string (an error) if there's
-a problem with the defintion.
+a problem with the definition.
 
 The decoder module also provides a number of additional functions based on the needs
 of the engine. As a developer you are 'encouraged' to place any logic that is expected

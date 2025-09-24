@@ -8,13 +8,13 @@ TAG.
 
     CREATE level validation simply checks that the workflow complies with the schema.
     Workflows are permitted in the DM that do not comply with the schema. This is
-    becuase the DM is also used as a persistent store for Wwrfklows while editing - this
+    because the DM is also used as a persistent store for Workflows while editing - this
     allows a user to 'save' a workflow that is incomplete with the intention of
     adjusting it at a later date prior to execution.
 
     TAG level validation takes things a little further. In 'production' mode
-    tagging is required prior to exeution. TAG level validatioin ensures that a workflow
-    _should_ run if it is run - for examplke variable names are all correctly defined
+    tagging is required prior to execution. TAG level validation ensures that a workflow
+    _should_ run if it is run - for example variable names are all correctly defined
     and there are no duplicates.
 
     RUN level extends TAG level validation by ensuring, for example, all the
@@ -22,8 +22,8 @@ TAG.
 
 Validation is designed to allow a more relaxed engine implementation, negating the
 need for the engine to 'check', for example, that variables exist - the validator
-ensures they do so that the engine can concentrate on laucnhing steps rather than
-implementing swatchs of lines of logic to protect against mal-use.
+ensures they do so that the engine can concentrate on launching steps rather than
+implementing swathes of lines of logic to protect against improper use.
 
 It is the Data Manager that is responsible for invoking the validator. It does this
 prior to allowing a user to run a workflow. When the engine receives a 'Workflow Start'
