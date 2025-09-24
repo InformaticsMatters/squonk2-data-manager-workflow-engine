@@ -92,6 +92,7 @@ from .decoder import (
     get_step_predefined_variable_connections,
     get_step_prior_step_connections,
     get_step_workflow_variable_connections,
+    is_workflow_input_variable,
     is_workflow_output_variable,
 )
 
@@ -120,6 +121,7 @@ class StepPreparationResponse:
     replica_values: list[str] | None = None
     dependent_instances: set[str] | None = None
     outputs: set[str] | None = None
+    inputs: set[str] | None = None
     error_num: int = 0
     error_msg: str | None = None
 
@@ -545,6 +547,9 @@ class WorkflowEngine:
         # (and all the dependent instances have completed successfully).
         # We can now compile a set of variables for it.
 
+        # Outputs - a list of step files that are workflow inputs.
+        # These are project files that are copied into the step instance.
+        inputs: set[str] = set()
         # Outputs - a list of step files that are workflow outputs.
         # Any step can write files to the Project directory
         # but this only consists of job outputs that are also workflow outputs.
@@ -575,6 +580,8 @@ class WorkflowEngine:
             prime_variables[connector.out] = rwf_variables[connector.in_]
             if is_workflow_output_variable(wf, connector.in_):
                 outputs.add(rwf_variables[connector.in_])
+            elif is_workflow_input_variable(wf, connector.in_):
+                inputs.add(rwf_variables[connector.in_])
 
         # Add any pre-defined variables used in the step's "plumbing"
         for connector in get_step_predefined_variable_connections(
@@ -705,6 +712,7 @@ class WorkflowEngine:
             replica_values=iter_values,
             dependent_instances=dependent_instances,
             outputs=outputs,
+            inputs=inputs,
         )
 
     def _launch(
@@ -780,6 +788,8 @@ class WorkflowEngine:
                 step_replication_number=replica,
                 total_number_of_replicas=total_replicas,
                 step_dependent_instances=step_preparation_response.dependent_instances,
+                step_project_inputs=step_preparation_response.inputs,
+                step_project_outputs=step_preparation_response.outputs,
             )
             lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
             rwfs_id = lr.running_workflow_step_id

@@ -103,6 +103,13 @@ def is_workflow_output_variable(definition: dict[str, Any], variable_name: str) 
     return variable_name in job_definition_decoder.get_outputs(definition)
 
 
+def is_workflow_input_variable(definition: dict[str, Any], variable_name: str) -> bool:
+    """True if the variable name is in the workflow variables inputs list."""
+    # We can safely pass on the workflow definition as its
+    # root-level 'variables' block complies with job-definition variables.
+    return variable_name in job_definition_decoder.get_inputs(definition)
+
+
 def get_workflow_variable_names(definition: dict[str, Any]) -> set[str]:
     """Given a Workflow definition this function returns all the names of the
     variables defined in steps that need to be defined at the workflow level.
