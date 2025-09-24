@@ -334,6 +334,7 @@ class WorkflowEngine:
         _LOGGER.debug("API.get_workflow(%s) returned: -\n%s", wfid, str(wf_response))
 
         # We then inspect the Workflow to determine the next step.
+        _LOGGER.debug("End of RunningWorkflowStep %s (%s)", r_wfsid, r_wfid)
         self._wapi_adapter.set_running_workflow_step_done(
             running_workflow_step_id=r_wfsid,
             success=True,
@@ -401,6 +402,7 @@ class WorkflowEngine:
 
         # If no launch was attempted we can assume this is the end of the running workflow.
         if not launch_attempted:
+            _LOGGER.debug("End of RunningWorkflow %s", r_wfid)
             self._wapi_adapter.set_running_workflow_done(
                 running_workflow_id=r_wfid,
                 success=True,
