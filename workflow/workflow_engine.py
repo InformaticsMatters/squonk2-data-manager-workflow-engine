@@ -1,4 +1,4 @@
-"""The WorkflowEngine execution logic.
+"""The WorkflowEngine - workflow execution logic.
 
 This module realises workflow definitions, turning a definition into a controlled sequence
 of Job executions. The Data Manager is responsible for storing and validating Workflows,
