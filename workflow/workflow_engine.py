@@ -120,9 +120,9 @@ class StepPreparationResponse:
     variables: dict[str, Any] | None = None
     replica_variable: str | None = None
     replica_values: list[str] | None = None
-    dependent_instances: set[str] | None = None
-    outputs: set[str] | None = None
-    inputs: set[str] | None = None
+    dependent_instances: set[str] = set()
+    outputs: set[str] = set()
+    inputs: set[str] = set()
     error_num: int = 0
     error_msg: str | None = None
 
@@ -830,9 +830,11 @@ class WorkflowEngine:
                 step_name=step_name,
                 step_replication_number=replica,
                 total_number_of_replicas=total_replicas,
-                step_dependent_instances=step_preparation_response.dependent_instances,
-                step_project_inputs=step_preparation_response.inputs,
-                step_project_outputs=step_preparation_response.outputs,
+                step_dependent_instances=list(
+                    step_preparation_response.dependent_instances
+                ),
+                step_project_inputs=list(step_preparation_response.inputs),
+                step_project_outputs=list(step_preparation_response.outputs),
             )
             lr: LaunchResult = self._instance_launcher.launch(launch_parameters=lp)
 

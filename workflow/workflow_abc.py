@@ -100,20 +100,20 @@ class LaunchParameters:
     # This cannot be less than 1 and must be grater than any value of
     # 'step_replication_number' that will be used for the same step.
     total_number_of_replicas: int = 1
-    # A set of dependent (prior step) instance directories that are expected to be
+    # The dependent (prior step) instance directories that are expected to be
     # hard-linked into the instance directory the launcher will create.
     # These are required so that the step can access the dependent step's files.
-    # It is a set of instance UUIDs.
-    step_dependent_instances: set[str] | None = None
-    # A set of dependent project files that are expected to be hard-linked
+    # It is a set of instance UUIDs, not instance directories.
+    step_dependent_instances: list[str] | None = None
+    # The dependent Project files that are expected to be hard-linked
     # into the instance directory the launcher will create.
     # These are required so that the step can access project files.
-    # It is a set project-relative filenames (or directories).
-    step_project_inputs: set[str] | None = None
-    # A set of step instance files that are expected to be hard-linked
-    # into the surrounding Project directory.
-    # It is a set instance-relative filenames (or directories).
-    step_project_outputs: set[str] | None = None
+    # It is a list of Project-relative filenames (or directories).
+    step_project_inputs: list[str] | None = None
+    # The step instance files that are expected to be hard-linked
+    # into the enclosing Project directory (a step's outputs).
+    # It is a list of Instance-relative filenames (or directories).
+    step_project_outputs: list[str] | None = None
     # The application ID (a custom resource name)
     # used to identify the 'type' of Instance to create.
     # For DM Jobs this will be 'datamanagerjobs.squonk.it'
