@@ -609,6 +609,8 @@ class WorkflowEngine:
                 name=prior_step_name,
                 running_workflow_id=rwf_id,
             )
+            assert prior_step
+            assert "variables" in prior_step
             # Copy "in" value to "out"...
             for connector in connections:
                 assert connector.in_ in prior_step["variables"]
