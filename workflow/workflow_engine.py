@@ -91,6 +91,7 @@ from .decoder import (
     get_step,
     get_step_predefined_variable_connections,
     get_step_prior_step_connections,
+    get_step_specification,
     get_step_workflow_variable_connections,
     is_workflow_input_variable,
     is_workflow_output_variable,
@@ -590,10 +591,16 @@ class WorkflowEngine:
             assert connector.in_ in self._predefined_variables
             prime_variables[connector.out] = self._predefined_variables[connector.in_]
 
-        # Using the "plumbing" again add any that relate to values used in prior steps.
+        # Using the "plumbing" again so that we can add any variables
+        # that relate to values used in prior steps.
         #
-        # The decoder gives us a map indexed by prior step name that's a list of
-        # "in"/"out" connectors as before.
+        # The decoder gives us a set of "in"/"out" connectors as above
+        # indexed by the prior step name.
+        #
+        # 'inputs' here are not copied to our step's instance directory,
+        # instead we need to prefix any 'input' with the instance directory for the
+        # step the input belongs to. e.g. "file.txt" will become
+        # ".instance-0000/file.txt".
         prior_step_plumbing: dict[str, list[Connector]] = (
             get_step_prior_step_connections(step_definition=step_definition)
         )
@@ -604,19 +611,44 @@ class WorkflowEngine:
             # For a combiner step we only need to inspect the first instance of
             # the prior step (the default replica value is '0').
             # We assume all the combiner's prior (parallel) instances
-            # have the same variables and values.
+            # have the same variables and values. Combiners handle inputs from
+            # prior steps differently - i.e. they must use a directory 'glob'
+            # due to the uncontrolled number of prior steps.
             prior_step, _ = self._wapi_adapter.get_running_workflow_step_by_name(
                 name=prior_step_name,
                 running_workflow_id=rwf_id,
             )
             assert prior_step
-            assert "variables" in prior_step
+            assert "instance_directory" in prior_step
+            p_instance_dir: str = prior_step["instance_directory"]
+            # Get prior step Job (tro look for inputs)
+            # (if we're not a combiner)
+            p_job_inputs: dict[str, Any] = {}
+            if not we_are_a_combiner:
+                p_step_spec: dict[str, Any] = get_step_specification(
+                    wf, prior_step_name
+                )
+                _LOGGER.info("get_step_specification() got %s\n", str(p_step_spec))
+                p_job, _ = self._wapi_adapter.get_job(
+                    collection=p_step_spec["collection"],
+                    job=p_step_spec["job"],
+                    version=p_step_spec["version"],
+                )
+                _LOGGER.info("API.get_job() got %s\n", str(p_job))
+                assert p_job
+                p_job_inputs = job_definition_decoder.get_inputs(p_job)
             # Copy "in" value to "out"...
+            # (prefixing inputs with instance directory if required)
+            assert "variables" in prior_step
             for connector in connections:
                 assert connector.in_ in prior_step["variables"]
-                prime_variables[connector.out] = prior_step["variables"][connector.in_]
+                value: str = prior_step["variables"][connector.in_]
+                if not we_are_a_combiner and connector.in_ in p_job_inputs:
+                    # Prefix with prior-step instance directory
+                    value = f"{p_instance_dir}/{value}"
+                prime_variables[connector.out] = value
 
-        # The step's prime variables are now set.
+        # Our step's prime variables are now set.
 
         # Before we return these to the caller do we have enough
         # to satisfy the step Job's command? It's a simple check -

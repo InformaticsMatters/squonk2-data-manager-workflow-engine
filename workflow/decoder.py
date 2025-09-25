@@ -86,6 +86,17 @@ def get_step(definition: dict[str, Any], name: str) -> dict[str, Any]:
     return {}
 
 
+def get_step_specification(definition: dict[str, Any], name: str) -> dict[str, Any]:
+    """Given a Workflow definition this function returns a named step's specification block
+    (if it exists)."""
+    spec: dict[str, Any] = {}
+    steps: list[dict[str, Any]] = get_steps(definition)
+    for step in steps:
+        if step["name"] == name:
+            spec = step.get("specification", {})
+    return spec
+
+
 def get_name(definition: dict[str, Any]) -> str:
     """Given a Workflow definition this function returns its name."""
     return str(definition.get("name", ""))

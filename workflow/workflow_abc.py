@@ -353,13 +353,6 @@ class WorkflowAPIAdapter(ABC):
         # that is the directory within the Project that's the step's working directory.
         #
         #       "instance_directory": ".instance-00000000-0000-0000-0000-00000000000a",
-        #
-        # For steps that are not the first in a workflow the following field
-        # can be expected in the response: -
-        #
-        #       "prior_running_workflow_step": {
-        #          "id": "r-workflow-step-00000000-0000-0000-0000-000000000001",
-        #       },
 
     @abstractmethod
     def set_running_workflow_step_done(
