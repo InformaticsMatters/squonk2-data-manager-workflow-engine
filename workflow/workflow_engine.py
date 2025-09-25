@@ -136,6 +136,7 @@ class WorkflowEngine:
         wapi_adapter: WorkflowAPIAdapter,
         instance_launcher: InstanceLauncher,
         instance_link_glob: str = ".instance-*",
+        instance_id_dir_prefix: str = ".",
     ):
         """Initialiser, given a Workflow API adapter, Instance launcher,
         and a step (directory) link 'glob' (a convenient directory glob to
@@ -145,6 +146,7 @@ class WorkflowEngine:
         self._wapi_adapter: WorkflowAPIAdapter = wapi_adapter
         self._instance_launcher: InstanceLauncher = instance_launcher
         self._instance_link_glob: str = instance_link_glob
+        self._instance_id_dir_prefix: str = instance_id_dir_prefix
 
         self._predefined_variables: dict[str, Any] = {
             "instance-link-glob": instance_link_glob
@@ -619,8 +621,14 @@ class WorkflowEngine:
                 running_workflow_id=rwf_id,
             )
             assert prior_step
-            assert "instance_directory" in prior_step
-            p_instance_dir: str = prior_step["instance_directory"]
+            _LOGGER.info(
+                "API.get_running_workflow_step_by_name(%s) got %s\n",
+                prior_step_name,
+                str(prior_step),
+            )
+            assert "instance_id" in prior_step
+            p_i_id: str = prior_step["instance_id"]
+            p_i_dir: str = f"{self._instance_id_dir_prefix}{p_i_id}"
             # Get prior step Job (tro look for inputs)
             # (if we're not a combiner)
             p_job_inputs: dict[str, Any] = {}
@@ -644,8 +652,8 @@ class WorkflowEngine:
                 assert connector.in_ in prior_step["variables"]
                 value: str = prior_step["variables"][connector.in_]
                 if not we_are_a_combiner and connector.in_ in p_job_inputs:
-                    # Prefix with prior-step instance directory
-                    value = f"{p_instance_dir}/{value}"
+                    # Prefix with prior-step's instance directory
+                    value = f"{p_i_dir}/{value}"
                 prime_variables[connector.out] = value
 
         # Our step's prime variables are now set.
