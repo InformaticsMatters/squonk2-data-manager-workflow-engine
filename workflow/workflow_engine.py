@@ -70,7 +70,7 @@ variables for the next 'Step'.
 
 import logging
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 import decoder.decoder as job_definition_decoder
@@ -117,12 +117,12 @@ class StepPreparationResponse:
     should contain something useful."""
 
     replicas: int
-    variables: dict[str, Any] | None = None
     replica_variable: str | None = None
-    replica_values: list[str] | None = None
-    dependent_instances: set[str] = set()
-    outputs: set[str] = set()
-    inputs: set[str] = set()
+    variables: dict[str, Any] = field(default_factory=dict)
+    replica_values: list[str] = field(default_factory=list)
+    dependent_instances: set[str] = field(default_factory=set)
+    outputs: set[str] = field(default_factory=set)
+    inputs: set[str] = field(default_factory=set)
     error_num: int = 0
     error_msg: str | None = None
 
@@ -217,7 +217,6 @@ class WorkflowEngine:
         sp_resp = self._prepare_step(
             wf=wf_response, step_definition=first_step, rwf=rwf_response
         )
-        assert sp_resp.variables is not None
         assert sp_resp.error_msg is None
         # Launch it.
         # If there's a launch problem the step (and running workflow) will have
@@ -392,7 +391,6 @@ class WorkflowEngine:
                             )
                         return
 
-                    assert sp_resp.variables is not None
                     self._launch(
                         rwf=rwf_response,
                         step_definition=next_step,
@@ -787,7 +785,6 @@ class WorkflowEngine:
         assert total_replicas >= 1
 
         variables = step_preparation_response.variables
-        assert variables is not None
         for replica in range(step_preparation_response.replicas):
 
             # If we are replicating this step more than once
