@@ -627,9 +627,9 @@ class WorkflowEngine:
             assert "instance_id" in prior_step
             p_i_id: str = prior_step["instance_id"]
             p_i_dir: str = f"{self._instance_id_dir_prefix}{p_i_id}"
-            # Get prior step Job (tro look for inputs)
+            # Get prior step Job (to look for its outputs that are our inputs)
             # (if we're not a combiner)
-            p_job_inputs: dict[str, Any] = {}
+            p_job_outputs: dict[str, Any] = {}
             if not we_are_a_combiner:
                 p_step_spec: dict[str, Any] = get_step_specification(
                     wf, prior_step_name
@@ -642,14 +642,14 @@ class WorkflowEngine:
                 )
                 _LOGGER.info("API.get_job() got %s\n", str(p_job))
                 assert p_job
-                p_job_inputs = job_definition_decoder.get_inputs(p_job)
+                p_job_outputs = job_definition_decoder.get_outputs(p_job)
             # Copy "in" value to "out"...
             # (prefixing inputs with instance directory if required)
             assert "variables" in prior_step
             for connector in connections:
                 assert connector.in_ in prior_step["variables"]
                 value: str = prior_step["variables"][connector.in_]
-                if not we_are_a_combiner and connector.in_ in p_job_inputs:
+                if not we_are_a_combiner and connector.in_ in p_job_outputs:
                     # Prefix with prior-step's instance directory
                     value = f"{p_i_dir}/{value}"
                 prime_variables[connector.out] = value
@@ -769,7 +769,7 @@ class WorkflowEngine:
         rwf_id: str = rwf["id"]
         project_id = rwf["project"]["id"]
 
-        _LOGGER.info("SPR.variable=%s", step_preparation_response.variables)
+        _LOGGER.info("SPR.variables=%s", step_preparation_response.variables)
         _LOGGER.info(
             "SPR.replica_variable=%s", step_preparation_response.replica_variable
         )
