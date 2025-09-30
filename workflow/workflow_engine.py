@@ -417,6 +417,9 @@ class WorkflowEngine:
         # the keys "collection", "job", and "version". Here we assume that
         # the workflow definition has passed the RUN-level validation
         # which means we can get these values.
+        #
+        # The validator should have verified the Job exists, but it might not
+        # when we need it - so this method might return '{}'.
         assert "specification" in step
         step_spec: dict[str, Any] = step["specification"]
         job_collection: str = step_spec["collection"]
@@ -464,6 +467,12 @@ class WorkflowEngine:
         # whose origin is of type 'files'.
 
         our_job_definition: dict[str, Any] = self._get_step_job(step=step_definition)
+        if not our_job_definition:
+            return StepPreparationResponse(
+                replicas=0,
+                error_num=1,
+                error_msg=f"The Job for step '{step_name}' is not present",
+            )
         our_inputs: dict[str, Any] = job_definition_decoder.get_inputs(
             our_job_definition
         )
@@ -540,7 +549,7 @@ class WorkflowEngine:
                 )
                 return StepPreparationResponse(
                     replicas=0,
-                    error_num=1,
+                    error_num=2,
                     error_msg=f"Prior instance of step '{step_name_being_combined}' has failed",
                 )
 
@@ -661,14 +670,16 @@ class WorkflowEngine:
         # we give the step's Job command and our prime variables
         # to the Job decoder - it wil tell us if an important
         # variable is missing....
-        job: dict[str, Any] = self._get_step_job(step=step_definition)
         message, success = job_definition_decoder.decode(
-            job["command"], prime_variables, "command", TextEncoding.JINJA2_3_0
+            our_job_definition["command"],
+            prime_variables,
+            "command",
+            TextEncoding.JINJA2_3_0,
         )
         if not success:
             msg = f"Failed command validation for step {step_name} error_msg={message}"
             _LOGGER.warning(msg)
-            return StepPreparationResponse(replicas=0, error_num=2, error_msg=msg)
+            return StepPreparationResponse(replicas=0, error_num=3, error_msg=msg)
 
         # Do we replicate this step (run it more than once in parallel)?
         #
@@ -699,6 +710,12 @@ class WorkflowEngine:
                 wf_step: dict[str, Any] = get_step(wf, p_step_name)
                 assert wf_step
                 job_definition: dict[str, Any] = self._get_step_job(step=wf_step)
+                if not job_definition:
+                    return StepPreparationResponse(
+                        replicas=0,
+                        error_num=4,
+                        error_msg=f"The Job for step '{p_step_name}' is not present",
+                    )
                 jd_outputs: dict[str, Any] = job_definition_decoder.get_outputs(
                     job_definition
                 )
