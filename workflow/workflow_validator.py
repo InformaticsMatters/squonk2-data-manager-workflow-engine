@@ -171,6 +171,7 @@ class WorkflowValidator:
             )
 
         # All of the jobs must be known to the DM
+        errors: list[str] = []
         for step_name in get_step_names(workflow_definition):
             step_spec = get_step_specification(workflow_definition, step_name)
             j_collection: str = step_spec["collection"]
@@ -182,11 +183,10 @@ class WorkflowValidator:
                 version=j_version,
             )
             if not job:
-                return ValidationResult(
-                    error_num=9,
-                    error_msg=[
-                        f"Step {step_name} Job ({j_collection}|{j_job}|{j_version}) is not present"
-                    ],
+                errors.append(
+                    f"Step {step_name} Job ({j_collection}|{j_job}|{j_version}) is not present"
                 )
+        if errors:
+            return ValidationResult(error_num=9, error_msg=errors)
 
         return _VALIDATION_SUCCESS

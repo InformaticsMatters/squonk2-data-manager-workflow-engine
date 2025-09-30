@@ -280,8 +280,10 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
     def get_job(
         self, *, collection: str, job: str, version: str
     ) -> tuple[dict[str, Any], int]:
-        assert collection == _JOB_DEFINITIONS["collection"]
-        assert job in _JOB_DEFINITIONS["jobs"]
+        if collection != _JOB_DEFINITIONS["collection"]:
+            return {}, 0
+        if job not in _JOB_DEFINITIONS["jobs"]:
+            return {}, 0
         assert version
 
         jd = _JOB_DEFINITIONS["jobs"][job]

@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 import yaml
@@ -13,21 +13,21 @@ _MINIMAL_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__), "workflow-definitions", "minimal.yaml"
 )
 with open(_MINIMAL_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
-    _MINIMAL_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
+    _MINIMAL_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
 assert _MINIMAL_WORKFLOW
 
 _SHORTCUT_EXAMPLE_1_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__), "workflow-definitions", "shortcut-example-1.yaml"
 )
 with open(_SHORTCUT_EXAMPLE_1_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
-    _SHORTCUT_EXAMPLE_1_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
+    _SHORTCUT_EXAMPLE_1_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
 assert _SHORTCUT_EXAMPLE_1_WORKFLOW
 
 _SIMPLE_PYTHON_MOLPROPS_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
 )
 with open(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
-    _SIMPLE_PYTHON_MOLPROPS_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
+    _SIMPLE_PYTHON_MOLPROPS_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
 assert _SIMPLE_PYTHON_MOLPROPS_WORKFLOW
 
 _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW_FILE: str = os.path.join(
@@ -38,7 +38,7 @@ _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW_FILE: str = os.path.join(
 with open(
     _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW_FILE, "r", encoding="utf8"
 ) as workflow_file:
-    _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW: Dict[str, Any] = yaml.safe_load(
+    _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW: dict[str, Any] = yaml.safe_load(
         workflow_file
     )
 assert _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW
@@ -49,7 +49,7 @@ _SIMPLE_PYTHON_PARALLEL_FILE: str = os.path.join(
     "simple-python-parallel.yaml",
 )
 with open(_SIMPLE_PYTHON_PARALLEL_FILE, "r", encoding="utf8") as workflow_file:
-    _SIMPLE_PYTHON_PARALLEL_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
+    _SIMPLE_PYTHON_PARALLEL_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
 assert _SIMPLE_PYTHON_PARALLEL_WORKFLOW
 
 _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
@@ -60,7 +60,7 @@ _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
 with open(
     _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE, "r", encoding="utf8"
 ) as workflow_file:
-    _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW: Dict[str, Any] = yaml.safe_load(
+    _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW: dict[str, Any] = yaml.safe_load(
         workflow_file
     )
 assert _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW

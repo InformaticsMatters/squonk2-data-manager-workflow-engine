@@ -10,6 +10,13 @@ from tests.test_decoder import _MINIMAL_WORKFLOW
 from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.workflow_validator import ValidationLevel, WorkflowValidator
 
+_NO_SUCH_JOB_WORKFLOW_FILE: str = os.path.join(
+    os.path.dirname(__file__), "workflow-definitions", "no-such-job.yaml"
+)
+with open(_NO_SUCH_JOB_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
+    _NO_SUCH_JOB_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
+assert _NO_SUCH_JOB_WORKFLOW
+
 
 @pytest.fixture
 def wapi():
@@ -25,6 +32,22 @@ def test_validate_minimal(wapi):
     error = WorkflowValidator.validate(
         level=ValidationLevel.CREATE,
         workflow_definition=_MINIMAL_WORKFLOW,
+        wapi_adapter=wapi_adapter,
+    )
+
+    # Assert
+    assert error.error_num == 0
+    assert error.error_msg is None
+
+
+def test_validate_no_such_job(wapi):
+    # Arrange
+    wapi_adapter = wapi
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.CREATE,
+        workflow_definition=_NO_SUCH_JOB_WORKFLOW,
         wapi_adapter=wapi_adapter,
     )
 
