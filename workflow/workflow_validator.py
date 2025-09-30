@@ -42,7 +42,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from workflow.workflow_abc import (
+    WorkflowAPIAdapter,
+)
+
 from .decoder import (
+    get_step_names,
+    get_step_specification,
     get_steps,
     get_workflow_variable_names,
     validate_schema,
@@ -53,8 +59,8 @@ class ValidationLevel(Enum):
     """Workflow validation levels."""
 
     CREATE = 1
-    RUN = 2
-    TAG = 3
+    TAG = 2
+    RUN = 3
 
 
 @dataclass
@@ -80,12 +86,13 @@ class WorkflowValidator:
         *,
         level: ValidationLevel,
         workflow_definition: dict[str, Any],
+        wapi_adapter: WorkflowAPIAdapter,
         variables: dict[str, Any] | None = None,
     ) -> ValidationResult:
-        """Validates the workflow definition (and inputs)
-        based on the provided 'level'."""
+        """Validates the workflow definition (and inputs) based on the provided 'level'."""
         assert level in ValidationLevel
         assert isinstance(workflow_definition, dict)
+        assert wapi_adapter
         if variables:
             assert isinstance(variables, dict)
 
@@ -103,6 +110,7 @@ class WorkflowValidator:
         if level == ValidationLevel.RUN:
             level_result = WorkflowValidator._validate_run_level(
                 workflow_definition=workflow_definition,
+                wapi_adapter=wapi_adapter,
                 variables=variables,
             )
             if level_result.error_num:
@@ -141,6 +149,7 @@ class WorkflowValidator:
         cls,
         *,
         workflow_definition: dict[str, Any],
+        wapi_adapter: WorkflowAPIAdapter,
         variables: dict[str, Any] | None = None,
     ) -> ValidationResult:
         assert workflow_definition
@@ -160,5 +169,24 @@ class WorkflowValidator:
                     f"Missing workflow variable values for: {', '.join(missing_values)}"
                 ],
             )
+
+        # All of the jobs must be known to the DM
+        for step_name in get_step_names(workflow_definition):
+            step_spec = get_step_specification(workflow_definition, step_name)
+            j_collection: str = step_spec["collection"]
+            j_job: str = step_spec["job"]
+            j_version: str = step_spec["version"]
+            job, _ = wapi_adapter.get_job(
+                collection=j_collection,
+                job=j_job,
+                version=j_version,
+            )
+            if not job:
+                return ValidationResult(
+                    error_num=9,
+                    error_msg=[
+                        f"Step {step_name} Job ({j_collection}|{j_job}|{j_version}) is not present"
+                    ],
+                )
 
         return _VALIDATION_SUCCESS

@@ -6,11 +6,19 @@ import yaml
 
 pytestmark = pytest.mark.unit
 
+from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.workflow_validator import ValidationLevel, WorkflowValidator
 
 
-def test_validate_example_nop_file():
+@pytest.fixture
+def wapi():
+    wapi_adapter = UnitTestWorkflowAPIAdapter()
+    yield wapi_adapter
+
+
+def test_validate_example_nop_file(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-nop-fail.yaml"
     )
@@ -22,6 +30,7 @@ def test_validate_example_nop_file():
     error = WorkflowValidator.validate(
         level=ValidationLevel.RUN,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -29,8 +38,9 @@ def test_validate_example_nop_file():
     assert error.error_msg is None
 
 
-def test_validate_duplicate_step_names():
+def test_validate_duplicate_step_names(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "duplicate-step-names.yaml"
     )
@@ -42,6 +52,7 @@ def test_validate_duplicate_step_names():
     error = WorkflowValidator.validate(
         level=ValidationLevel.RUN,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -49,8 +60,9 @@ def test_validate_duplicate_step_names():
     assert error.error_msg == ["Duplicate step names found: step-1"]
 
 
-def test_validate_example_smiles_to_file():
+def test_validate_example_smiles_to_file(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-smiles-to-file.yaml"
     )
@@ -63,6 +75,7 @@ def test_validate_example_smiles_to_file():
         level=ValidationLevel.RUN,
         workflow_definition=workflow,
         variables={"smiles": "C", "outputFile": "blob.smi"},
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -70,8 +83,9 @@ def test_validate_example_smiles_to_file():
     assert error.error_msg is None
 
 
-def test_validate_example_two_step_nop():
+def test_validate_example_two_step_nop(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-two-step-nop.yaml"
     )
@@ -83,6 +97,7 @@ def test_validate_example_two_step_nop():
     error = WorkflowValidator.validate(
         level=ValidationLevel.RUN,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -90,8 +105,9 @@ def test_validate_example_two_step_nop():
     assert error.error_msg is None
 
 
-def test_validate_shortcut_example_1():
+def test_validate_shortcut_example_1(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "shortcut-example-1.yaml"
     )
@@ -103,6 +119,7 @@ def test_validate_shortcut_example_1():
     error = WorkflowValidator.validate(
         level=ValidationLevel.RUN,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -110,8 +127,9 @@ def test_validate_shortcut_example_1():
     assert error.error_msg is None
 
 
-def test_validate_simple_python_molprops():
+def test_validate_simple_python_molprops(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
     )
@@ -125,6 +143,7 @@ def test_validate_simple_python_molprops():
         level=ValidationLevel.RUN,
         workflow_definition=workflow,
         variables=variables,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -132,8 +151,9 @@ def test_validate_simple_python_molprops():
     assert error.error_msg is None
 
 
-def test_validate_simple_python_molprops_with_options_when_missing_required():
+def test_validate_simple_python_molprops_with_options_when_missing_required(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__),
         "workflow-definitions",
@@ -154,6 +174,7 @@ def test_validate_simple_python_molprops_with_options_when_missing_required():
         level=ValidationLevel.RUN,
         workflow_definition=workflow,
         variables=variables,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -163,8 +184,9 @@ def test_validate_simple_python_molprops_with_options_when_missing_required():
     ]
 
 
-def test_validate_simple_python_molprops_with_options():
+def test_validate_simple_python_molprops_with_options(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__),
         "workflow-definitions",
@@ -186,6 +208,7 @@ def test_validate_simple_python_molprops_with_options():
         level=ValidationLevel.RUN,
         workflow_definition=workflow,
         variables=variables,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -193,8 +216,9 @@ def test_validate_simple_python_molprops_with_options():
     assert error.error_msg is None
 
 
-def test_validate_simple_python_molprops_with_missing_input():
+def test_validate_simple_python_molprops_with_missing_input(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
     )
@@ -208,6 +232,7 @@ def test_validate_simple_python_molprops_with_missing_input():
         level=ValidationLevel.RUN,
         workflow_definition=workflow,
         variables=variables,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert

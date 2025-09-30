@@ -81,6 +81,7 @@ def start_workflow(
     # 2.
     vr_result: ValidationResult = WorkflowValidator.validate(
         workflow_definition=wf_definition,
+        wapi_adapter=da,
         variables=variables,
         level=ValidationLevel.RUN,
     )

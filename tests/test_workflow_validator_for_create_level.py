@@ -7,16 +7,25 @@ import yaml
 pytestmark = pytest.mark.unit
 
 from tests.test_decoder import _MINIMAL_WORKFLOW
+from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.workflow_validator import ValidationLevel, WorkflowValidator
 
 
-def test_validate_minimal():
+@pytest.fixture
+def wapi():
+    wapi_adapter = UnitTestWorkflowAPIAdapter()
+    yield wapi_adapter
+
+
+def test_validate_minimal(wapi):
     # Arrange
+    wapi_adapter = wapi
 
     # Act
     error = WorkflowValidator.validate(
         level=ValidationLevel.CREATE,
         workflow_definition=_MINIMAL_WORKFLOW,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -24,8 +33,9 @@ def test_validate_minimal():
     assert error.error_msg is None
 
 
-def test_validate_example_nop_file():
+def test_validate_example_nop_file(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-nop-fail.yaml"
     )
@@ -37,6 +47,7 @@ def test_validate_example_nop_file():
     error = WorkflowValidator.validate(
         level=ValidationLevel.CREATE,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -44,8 +55,9 @@ def test_validate_example_nop_file():
     assert error.error_msg is None
 
 
-def test_validate_example_smiles_to_file():
+def test_validate_example_smiles_to_file(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-smiles-to-file.yaml"
     )
@@ -57,6 +69,7 @@ def test_validate_example_smiles_to_file():
     error = WorkflowValidator.validate(
         level=ValidationLevel.CREATE,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -64,8 +77,9 @@ def test_validate_example_smiles_to_file():
     assert error.error_msg is None
 
 
-def test_validate_example_two_step_nop():
+def test_validate_example_two_step_nop(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-two-step-nop.yaml"
     )
@@ -77,6 +91,7 @@ def test_validate_example_two_step_nop():
     error = WorkflowValidator.validate(
         level=ValidationLevel.CREATE,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -84,8 +99,9 @@ def test_validate_example_two_step_nop():
     assert error.error_msg is None
 
 
-def test_validate_shortcut_example_1():
+def test_validate_shortcut_example_1(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "shortcut-example-1.yaml"
     )
@@ -97,6 +113,7 @@ def test_validate_shortcut_example_1():
     error = WorkflowValidator.validate(
         level=ValidationLevel.CREATE,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -104,8 +121,9 @@ def test_validate_shortcut_example_1():
     assert error.error_msg is None
 
 
-def test_validate_simple_python_molprops():
+def test_validate_simple_python_molprops(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
     )
@@ -117,6 +135,7 @@ def test_validate_simple_python_molprops():
     error = WorkflowValidator.validate(
         level=ValidationLevel.CREATE,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -124,8 +143,9 @@ def test_validate_simple_python_molprops():
     assert error.error_msg is None
 
 
-def test_validate_simple_python_molprops_with_options():
+def test_validate_simple_python_molprops_with_options(wapi):
     # Arrange
+    wapi_adapter = wapi
     workflow_filename: str = os.path.join(
         os.path.dirname(__file__),
         "workflow-definitions",
@@ -139,6 +159,7 @@ def test_validate_simple_python_molprops_with_options():
     error = WorkflowValidator.validate(
         level=ValidationLevel.CREATE,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
