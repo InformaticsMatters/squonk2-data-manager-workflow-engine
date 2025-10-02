@@ -38,8 +38,10 @@ def test_validate_no_such_job(wapi):
     assert error.error_num != 0
     assert error.error_msg != None
     assert len(error.error_msg) == 1
-    assert error.error_msg[0].startswith("Step ")
-    assert error.error_msg[0].endswith(" is not present")
+    assert (
+        error.error_msg[0]
+        == "The job for step 'step-1' is not present (a|no-such-job|1.0.0)"
+    )
 
 
 def test_validate_example_nop_file(wapi):
