@@ -184,7 +184,8 @@ class WorkflowValidator:
             )
             if not job:
                 errors.append(
-                    f"Step {step_name} Job ({j_collection}|{j_job}|{j_version}) is not present"
+                    f"The job for step '{step_name}' is not present"
+                    f" ({j_collection}|{j_job}|{j_version})"
                 )
         if errors:
             return ValidationResult(error_num=9, error_msg=errors)
