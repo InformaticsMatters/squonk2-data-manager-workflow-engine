@@ -737,11 +737,22 @@ class WorkflowEngine:
                                 output_variable=connector.in_,
                             )
                         )
+                        _LOGGER.info(
+                            "API.get_running_workflow_step_output_values_for_output() got %s\n",
+                            str(result),
+                        )
                         iter_values = result["output"].copy()
                         break
                 # Stop if we've got an iteration variable
                 if iter_variable:
                     break
+
+        # If we've set an iteration variable we should have at least one value.
+        # If not we cannot continue.
+        if iter_variable and len(iter_values) == 0:
+            msg = f"The step prior to step '{step_name}' had no outputs. At least one is needed"
+            _LOGGER.warning(msg)
+            return StepPreparationResponse(replicas=0, error_num=5, error_msg=msg)
 
         # Get the list of instances we depend upon.
         #
