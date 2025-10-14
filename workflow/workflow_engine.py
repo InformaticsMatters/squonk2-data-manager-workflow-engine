@@ -557,7 +557,7 @@ class WorkflowEngine:
         # (and all the dependent instances have completed successfully).
         # We can now compile a set of variables for it.
 
-        # Outputs - a list of step files that are workflow inputs.
+        # Inputs - a list of step files that are workflow inputs.
         # These are project files that are copied into the step instance.
         inputs: set[str] = set()
         # Outputs - a list of step files that are workflow outputs.
