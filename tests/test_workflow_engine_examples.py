@@ -399,6 +399,7 @@ def test_workflow_engine_simple_python_molprops_with_options(basic_engine):
     assert project_file_exists(output_file_2)
 
 
+@pytest.mark.skip(reason="Relies on files in instance directories")
 def test_workflow_engine_simple_python_split_combine(basic_engine):
     # Arrange
     md, da = basic_engine
