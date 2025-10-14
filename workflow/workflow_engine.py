@@ -118,6 +118,7 @@ class StepPreparationResponse:
 
     replicas: int
     replica_variable: str | None = None
+    replica_instance_id: str | None = None
     variables: dict[str, Any] = field(default_factory=dict)
     replica_values: list[str] = field(default_factory=list)
     dependent_instances: set[str] = field(default_factory=set)
@@ -520,7 +521,7 @@ class WorkflowEngine:
             # and undo our assumption if not...
             all_step_instances_done: bool = True
 
-            # If anything' still running we must leave.
+            # If anything is still running we must leave.
             # If anything's failed we must 'fail' the running workflow.
             all_step_instances_successful: bool = True
             for status in response["status"]:
@@ -703,6 +704,7 @@ class WorkflowEngine:
         # 3 times, with each being given a different file as its input.
         iter_values: list[str] = []
         iter_variable: str | None = None
+        iter_instance_id: str | None = None
         if not we_are_a_combiner:
             for p_step_name, connections in plumbing_of_prior_steps.items():
                 # We need to get the Job definition for each step
@@ -731,6 +733,8 @@ class WorkflowEngine:
                         )
                         rwfs_id = response["id"]
                         assert rwfs_id
+                        iter_instance_id = response["instance_id"]
+                        assert iter_instance_id
                         result, _ = (
                             self._wapi_adapter.get_running_workflow_step_output_values_for_output(
                                 running_workflow_step_id=rwfs_id,
@@ -778,6 +782,7 @@ class WorkflowEngine:
             replicas=num_step_instances,
             replica_variable=iter_variable,
             replica_values=iter_values,
+            replica_instance_id=iter_instance_id,
             dependent_instances=dependent_instances,
             outputs=outputs,
             inputs=inputs,
@@ -823,15 +828,20 @@ class WorkflowEngine:
                 assert step_preparation_response.replica_values
                 iter_value: str = step_preparation_response.replica_values[replica]
                 _LOGGER.info(
-                    "Replicating step: %s replica=%s variable=%s value=%s",
+                    "Replicating step: %s replica=%s variable=%s value=%s origin=%s",
                     step_name,
                     replica,
                     step_preparation_response.replica_variable,
                     iter_value,
+                    step_preparation_response.replica_instance_id,
                 )
                 # Over-write the replicating variable
                 # and set the replication number to a unique +ve non-zero value...
-                variables[step_preparation_response.replica_variable] = iter_value
+                variables[step_preparation_response.replica_variable] = (
+                    f"{self._instance_id_dir_prefix}"
+                    f"{step_preparation_response.replica_instance_id}"
+                    f"/{iter_value}"
+                )
 
             _LOGGER.info(
                 "Launching step: %s RunningWorkflow=%s (name=%s)"
