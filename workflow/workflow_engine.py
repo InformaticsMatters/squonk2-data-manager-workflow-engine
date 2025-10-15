@@ -473,6 +473,8 @@ class WorkflowEngine:
         # We are a combiner if a variable in our step's plumbing refers to an input
         # whose origin is of type 'files'.
 
+        _LOGGER.info("Preparing step '%s'...", step_name)
+
         our_job_definition: dict[str, Any] = self._get_step_job(step=step_definition)
         if not our_job_definition:
             return StepPreparationResponse(
@@ -487,6 +489,11 @@ class WorkflowEngine:
         # If we're a combiner we will have variables based on prior steps.
         plumbing_of_prior_steps: dict[str, list[Connector]] = (
             get_step_prior_step_connections(step_definition=step_definition)
+        )
+
+        _LOGGER.debug("Step '%s' inputs=%s", step_name, our_inputs)
+        _LOGGER.debug(
+            "Step '%s' prior step plumbing=%s", step_name, plumbing_of_prior_steps
         )
 
         we_are_a_combiner: bool = False
@@ -506,6 +513,8 @@ class WorkflowEngine:
                     break
             if step_name_being_combined:
                 break
+
+        _LOGGER.debug("Step '%s' is combiner (%s)", step_name, we_are_a_combiner)
 
         # If we are a combiner
         # we must make suer that all the step instances we're combining are done.
