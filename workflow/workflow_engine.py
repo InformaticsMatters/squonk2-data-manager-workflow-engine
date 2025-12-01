@@ -679,14 +679,6 @@ class WorkflowEngine:
                     value = f"{p_i_dir}/{value}"
                 prime_variables[connector.out] = value
 
-        # Combiner's automatically get the 'instance-link-glob' pre-defined variable.
-        # It's injected into the step variables as the _INSTANCE_LINK_GLOB_VARIABLE,
-        # which the combiner is expected to handle.
-        if we_are_a_combiner:
-            prime_variables[_INSTANCE_LINK_GLOB_VARIABLE] = self._predefined_variables[
-                "instance-link-glob"
-            ]
-
         # Our step's prime variables are now set.
 
         # Before we return these to the caller do we have enough
