@@ -8,5 +8,5 @@ steps:
 - name: step-1
   specification:
     collection: a
-    job: b
+    job: no-such-job
     version: "1.0.0"

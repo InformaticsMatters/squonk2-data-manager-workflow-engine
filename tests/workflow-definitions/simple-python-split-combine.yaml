@@ -1,0 +1,58 @@
+---
+kind: DataManagerWorkflow
+kind-version: "2025.2"
+name: python-workflow
+description: >-
+  A simple parallel workflow. The input is split into chunks and a number outputFile
+  parallel steps processes these outputs. Finally a combine step concatenates the
+  files.
+
+steps:
+- name: split
+  description: Split an input file
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: splitsmiles
+    version: "1.0.0"
+    variables:
+      outputBase: chunk
+  plumbing:
+  - variable: inputFile
+    from-workflow:
+      variable: candidateMolecules
+
+- name: parallel
+  description: Add some params
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: append-col
+    version: "1.0.0"
+    variables:
+      name: desc1
+      value: "777"
+      outputFile: results.smi
+  plumbing:
+  - variable: inputFile
+    from-step:
+      name: split
+      variable: outputBase
+
+- name: combine
+  description: Combine the parallel files
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: concatenate
+    version: "1.0.0"
+    variables:
+      outputFile: results.smi
+  plumbing:
+  - variable: outputFile
+    from-workflow:
+      variable: combination
+  - variable: inputFile
+    from-step:
+      name: parallel
+      variable: outputFile
+  - variable: inputDirPrefix
+    from-predefined:
+      variable: instance-link-glob

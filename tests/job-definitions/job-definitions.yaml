@@ -131,4 +131,36 @@ jobs:
 
   concatenate:
     command: >-
-      concatenate.py {% for ifile in  inputFile %}{{ ifile }} {% endfor %} --outputFile {{ outputFile }}
+      concatenate.py --inputFile {{ inputFile }} --outputFile {{ outputFile }}
+    # Simulate a multiple input files Job (combiner)...
+    variables:
+      inputs:
+        properties:
+          inputFile:
+            type: files
+      options:
+        type: object
+        properties:
+          inputDirPrefix:
+            title: Optional inoput directory prefix
+            type: string
+      outputs:
+        properties:
+          outputBase:
+            creates: '{{ outputFile }}'
+            type: file
+
+  splitsmiles:
+    command: >-
+      copyf.py {{ inputFile }}
+    # Simulate a multiple output files Job (splitetr)...
+    variables:
+      inputs:
+        properties:
+          inputFile:
+            type: file
+      outputs:
+        properties:
+          outputBase:
+            creates: '{{ outputBase }}_*.smi'
+            type: files

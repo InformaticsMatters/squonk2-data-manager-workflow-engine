@@ -3,6 +3,7 @@ dist/
 **/__pycache__/
 **/*.pickle
 tests/project-root/project-*/
+**/.DS_Store
 
 # temp files
 *~

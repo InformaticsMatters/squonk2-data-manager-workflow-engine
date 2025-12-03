@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 import yaml
@@ -13,21 +13,21 @@ _MINIMAL_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__), "workflow-definitions", "minimal.yaml"
 )
 with open(_MINIMAL_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
-    _MINIMAL_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
+    _MINIMAL_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
 assert _MINIMAL_WORKFLOW
 
 _SHORTCUT_EXAMPLE_1_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__), "workflow-definitions", "shortcut-example-1.yaml"
 )
 with open(_SHORTCUT_EXAMPLE_1_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
-    _SHORTCUT_EXAMPLE_1_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
+    _SHORTCUT_EXAMPLE_1_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
 assert _SHORTCUT_EXAMPLE_1_WORKFLOW
 
 _SIMPLE_PYTHON_MOLPROPS_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
 )
 with open(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
-    _SIMPLE_PYTHON_MOLPROPS_WORKFLOW: Dict[str, Any] = yaml.safe_load(workflow_file)
+    _SIMPLE_PYTHON_MOLPROPS_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
 assert _SIMPLE_PYTHON_MOLPROPS_WORKFLOW
 
 _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW_FILE: str = os.path.join(
@@ -38,23 +38,19 @@ _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW_FILE: str = os.path.join(
 with open(
     _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW_FILE, "r", encoding="utf8"
 ) as workflow_file:
-    _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW: Dict[str, Any] = yaml.safe_load(
+    _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW: dict[str, Any] = yaml.safe_load(
         workflow_file
     )
 assert _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW
 
-_DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
+_SIMPLE_PYTHON_PARALLEL_FILE: str = os.path.join(
     os.path.dirname(__file__),
     "workflow-definitions",
-    "duplicate-workflow-variable-names.yaml",
+    "simple-python-parallel.yaml",
 )
-with open(
-    _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW_FILE, "r", encoding="utf8"
-) as workflow_file:
-    _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW: Dict[str, Any] = yaml.safe_load(
-        workflow_file
-    )
-assert _DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW
+with open(_SIMPLE_PYTHON_PARALLEL_FILE, "r", encoding="utf8") as workflow_file:
+    _SIMPLE_PYTHON_PARALLEL_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
+assert _SIMPLE_PYTHON_PARALLEL_WORKFLOW
 
 _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__),
@@ -64,19 +60,10 @@ _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
 with open(
     _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE, "r", encoding="utf8"
 ) as workflow_file:
-    _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW: Dict[str, Any] = yaml.safe_load(
+    _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW: dict[str, Any] = yaml.safe_load(
         workflow_file
     )
 assert _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW
-
-_WORKFLOW_OPTIONS_WORKFLOW_FILE: str = os.path.join(
-    os.path.dirname(__file__),
-    "workflow-definitions",
-    "workflow-options.yaml",
-)
-with open(_WORKFLOW_OPTIONS_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
-    _WORKFLOW_OPTIONS: Dict[str, Any] = yaml.safe_load(workflow_file)
-assert _WORKFLOW_OPTIONS
 
 
 def test_validate_schema_for_minimal():
@@ -121,7 +108,7 @@ def test_workflow_name_with_spaces():
 
     # Assert
     assert (
-        error == "'workflow with spaces' does not match '^[a-z][a-z0-9-]{,63}(?<!-)$'"
+        error == "'workflow with spaces' does not match '^[a-z][a-z0-9-]{0,63}$(?<!-)'"
     )
 
 
@@ -135,7 +122,7 @@ def test_validate_schema_for_shortcut_example_1():
     assert error is None
 
 
-def test_validate_schema_for_python_simple_molprops():
+def test_validate_schema_for_simple_python_molprops():
     # Arrange
 
     # Act
@@ -155,21 +142,11 @@ def test_validate_schema_for_step_specification_variable_names():
     assert error is None
 
 
-def test_validate_schema_for_workflow_options():
-    # Arrange
-
-    # Act
-    error = decoder.validate_schema(_WORKFLOW_OPTIONS)
-
-    # Assert
-    assert error is None
-
-
 def test_get_workflow_variables_for_smiple_python_molprops():
     # Arrange
 
     # Act
-    wf_variables = decoder.get_variable_names(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
+    wf_variables = decoder.get_workflow_variable_names(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW)
 
     # Assert
     assert len(wf_variables) == 2
@@ -207,125 +184,3 @@ def test_get_workflow_steps():
     assert len(steps) == 2
     assert steps[0]["name"] == "step1"
     assert steps[1]["name"] == "step2"
-
-
-def test_get_workflow_variables_for_duplicate_variables():
-    # Arrange
-
-    # Act
-    names = decoder.get_variable_names(_DUPLICATE_WORKFLOW_VARIABLE_NAMES_WORKFLOW)
-
-    # Assert
-    assert len(names) == 2
-    assert names[0] == "x"
-    assert names[1] == "x"
-
-
-def test_get_required_variable_names_for_simnple_python_molprops_with_options():
-    # Arrange
-
-    # Act
-    rqd_variables = decoder.get_required_variable_names(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW
-    )
-
-    # Assert
-    assert len(rqd_variables) == 2
-    assert "candidateMolecules" in rqd_variables
-    assert "rdkitPropertyValue" in rqd_variables
-
-
-def test_set_variables_from_options_for_step_for_simnple_python_molprops_with_options():
-    # Arrange
-    variables = {
-        "rdkitPropertyName": "propertyName",
-        "rdkitPropertyValue": "propertyValue",
-    }
-
-    # Act
-    new_variables = decoder.set_variables_from_options_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW,
-        variables,
-        "step1",
-    )
-
-    # Assert
-    assert len(new_variables) == 2
-    assert "name" in new_variables
-    assert "value" in new_variables
-    assert new_variables["name"] == "propertyName"
-    assert new_variables["value"] == "propertyValue"
-
-
-def test_get_workflow_inputs_for_step_with_name_step1():
-    # Arrange
-
-    # Act
-    inputs = decoder.get_workflow_job_input_names_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step1"
-    )
-
-    # Assert
-    assert len(inputs) == 1
-    assert "inputFile" in inputs
-
-
-def test_get_workflow_inputs_for_step_with_name_step2():
-    # Arrange
-
-    # Act
-    inputs = decoder.get_workflow_job_input_names_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step2"
-    )
-
-    # Assert
-    assert not inputs
-
-
-def test_get_workflow_inputs_for_step_with_unkown_step_name():
-    # Arrange
-
-    # Act
-    inputs = decoder.get_workflow_job_input_names_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "unknown"
-    )
-
-    # Assert
-    assert not inputs
-
-
-def test_get_workflow_outputs_for_step_with_name_step1():
-    # Arrange
-
-    # Act
-    outputs = decoder.get_workflow_output_values_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step1"
-    )
-
-    # Assert
-    assert not outputs
-
-
-def test_get_workflow_outputs_for_step_with_name_step2():
-    # Arrange
-
-    # Act
-    outputs = decoder.get_workflow_output_values_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "step2"
-    )
-
-    # Assert
-    assert len(outputs) == 1
-    assert "clustered-molecules.smi" in outputs
-
-
-def test_get_workflow_outputs_for_step_with_unkown_step_name():
-    # Arrange
-
-    # Act
-    outputs = decoder.get_workflow_output_values_for_step(
-        _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW, "unknown"
-    )
-
-    # Assert
-    assert not outputs

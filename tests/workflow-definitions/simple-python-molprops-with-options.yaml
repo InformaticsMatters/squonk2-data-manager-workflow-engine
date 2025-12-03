@@ -1,94 +1,28 @@
 ---
 kind: DataManagerWorkflow
-kind-version: "2025.1"
+kind-version: "2025.2"
 name: python-workflow
 description: A simple python experimental workflow
 
-# Some meaningless variables.
-# Just to make sure the decoder accepts this.
-# The Workflow engin eis not (yet) interested in this block.
-variables:
-  inputs:
-    type: object
-    required:
-    - inputFile
-    properties:
-      inputFile:
-        title: Molecules to pick from
-        mime-types:
-        - squonk/x-smiles
-        type: file
-      seeds:
-        title: Molecules that are already picked
-        mime-types:
-        - squonk/x-smiles
-        type: file
-        multiple: true
-  outputs:
-    type: object
-    properties:
-      outputFile:
-        title: Output file
-        mime-types:
-        - chemical/x-csv
-        creates: '{{ outputFile }}'
-        type: file
-  options:
-    type: object
-    required:
-    - count
-    properties:
-      outputFile:
-        title: Output file name
-        type: string
-        pattern: "^[A-Za-z0-9_/\\.\\-]+$"
-        default: diverse.smi
-      count:
-        title: Number of molecules to pick
-        type: integer
-        minimum: 1
-      threshold:
-        title: Similarity threshold
-        type: number
-        minimum: 0
-        maximum: 1
-
-variable-mapping:
-  inputs:
-  - name: candidateMolecules
-    type: squonk/x-smiles
-  outputs:
-  - name: clusteredMolecules
-    from:
-      step: step2
-      output: outputFile
-    as: clustered-molecules.smi
-  options:
-  - name: rdkitPropertyName
-    default: name
-    as:
-    - option: name
-      step: step1
-  - name: rdkitPropertyValue
-    as:
-    - option: value
-      step: step1
-
 steps:
-
 - name: step1
   description: Add column 1
   specification:
     collection: workflow-engine-unit-test-jobs
     job: rdkit-molprops
     version: "1.0.0"
-  inputs:
-  - input: inputFile
-    from:
-      workflow-input: candidateMolecules
-  outputs:
-  - output: outputFile
-    as: step1.out.smi
+    variables:
+      outputFile: step1.out.smi
+  plumbing:
+  - variable: inputFile
+    from-workflow:
+      variable: candidateMolecules
+  - variable: name
+    from-workflow:
+      variable: rdkitPropertyName
+  - variable: value
+    from-workflow:
+      variable: rdkitPropertyValue
 
 - name: step2
   description: Add column 2
@@ -99,11 +33,11 @@ steps:
     variables:
       name: "col2"
       value: "999"
-  inputs:
-  - input: inputFile
-    from:
-      step: step1
-      output: outputFile
-  outputs:
-  - output: outputFile
-    as: step2.out.smi
+  plumbing:
+  - variable: inputFile
+    from-step:
+      name: step1
+      variable: outputFile
+  - variable: outputFile
+    from-workflow:
+      variable: clusteredMolecules

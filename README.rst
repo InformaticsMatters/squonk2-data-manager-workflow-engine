@@ -38,10 +38,9 @@ The project's written in Python and uses `Poetry`_ for dependency and package
 management. We also use `pre-commit`_ to manage our pre-commit hooks, which
 rely on `black`_, `mypy`_, `pylint`_, amongst others.
 
-Create your environment::
+From within a VS Code `devcontainer`_ environment (recommended)::
 
-    poetry shell
-    poetry install --with dev
+    poetry install --with dev --sync
     pre-commit install -t commit-msg -t pre-commit
 
 And then start by running the pre-commit hooks to ensure you're stating with a
@@ -51,9 +50,10 @@ _clean_ project::
 
 And then run the tests::
 
-    coverage run -m pytest
-    coverage report
+    poetry run coverage run -m pytest
+    poetry run coverage report
 
+.. _devcontainer: https://code.visualstudio.com/docs/devcontainers/containers
 .. _Poetry: https://python-poetry.org
 .. _pre-commit: https://pre-commit.com
 .. _black: https://github.com/psf/black

@@ -15,6 +15,7 @@ Job definitions are loaded (statically) from the content of the
 method.
 """
 
+import copy
 import os
 from http import HTTPStatus
 from multiprocessing import Lock
@@ -49,6 +50,7 @@ _RUNNING_WORKFLOW_STEP_PICKLE_FILE: str = (
     f"{_PICKLE_DIRECTORY}/running-workflow-step.pickle"
 )
 _INSTANCE_PICKLE_FILE: str = f"{_PICKLE_DIRECTORY}/instance.pickle"
+_MOCK_STEP_OUTPUT_FILE: str = f"{_PICKLE_DIRECTORY}/mock-output.pickle"
 
 
 class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
@@ -73,12 +75,13 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             _RUNNING_WORKFLOW_PICKLE_FILE,
             _RUNNING_WORKFLOW_STEP_PICKLE_FILE,
             _INSTANCE_PICKLE_FILE,
+            _MOCK_STEP_OUTPUT_FILE,
         ]:
             with open(file, "wb") as pickle_file:
                 Pickler(pickle_file).dump({})
         UnitTestWorkflowAPIAdapter.lock.release()
 
-    def get_workflow(self, *, workflow_id: str) -> dict[str, Any]:
+    def get_workflow(self, *, workflow_id: str) -> tuple[dict[str, Any], int]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_WORKFLOW_PICKLE_FILE, "rb") as pickle_file:
             workflow = Unpickler(pickle_file).load()
@@ -109,6 +112,26 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         # Does nothing at the moment - this is used for the STOP logic.
         return {"count": 0, "steps": []}, 0
 
+    def get_status_of_all_step_instances_by_name(
+        self, *, running_workflow_id: str, name: str
+    ) -> tuple[dict[str, Any], int]:
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
+            running_workflow_step = Unpickler(pickle_file).load()
+        UnitTestWorkflowAPIAdapter.lock.release()
+
+        steps: list[dict[str, Any]] = []
+        for rwfs_id, record in running_workflow_step.items():
+            if record["running_workflow"]["id"] != running_workflow_id:
+                continue
+            if record["name"] == name:
+                response = record
+                response["id"] = rwfs_id
+                if record["replica"] == 0:
+                    _ = response.pop("replica")
+                steps.append(response)
+        return {"count": len(steps), "status": steps}, 0
+
     def set_running_workflow_done(
         self,
         *,
@@ -136,8 +159,13 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         *,
         running_workflow_id: str,
         step: str,
-        prior_running_workflow_step_id: str | None = None,
-    ) -> dict[str, Any]:
+        instance_id: str,
+        replica: int = 0,
+        replicas: int = 1,
+    ) -> tuple[dict[str, Any], int]:
+        assert replica >= 0
+        assert replicas > replica
+
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
@@ -150,13 +178,12 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             "name": step,
             "done": False,
             "success": False,
+            "replica": replica,
+            "replicas": replicas,
             "variables": {},
             "running_workflow": {"id": running_workflow_id},
+            "instance_id": instance_id,
         }
-        if prior_running_workflow_step_id:
-            record["prior_running_workflow_step"] = {
-                "id": prior_running_workflow_step_id
-            }
         running_workflow_step[running_workflow_step_id] = record
 
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "wb") as pickle_file:
@@ -167,7 +194,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
     def get_running_workflow_step(
         self, *, running_workflow_step_id: str
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], int]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
@@ -177,24 +204,28 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             return {}, 0
         response = running_workflow_step[running_workflow_step_id]
         response["id"] = running_workflow_step_id
+        if response["replica"] == 0:
+            _ = response.pop("replica")
         return response, 0
 
     def get_running_workflow_step_by_name(
-        self, *, name: str, running_workflow_id: str
-    ) -> dict[str, Any]:
+        self, *, name: str, running_workflow_id: str, replica: int = 0
+    ) -> tuple[dict[str, Any], int]:
+        if replica:
+            assert replica > 0
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
         UnitTestWorkflowAPIAdapter.lock.release()
 
-        print(f"name={name} running_workflow_id={running_workflow_id}")
         for rwfs_id, record in running_workflow_step.items():
-            print(f"rwfs_id={rwfs_id} record={record}")
             if record["running_workflow"]["id"] != running_workflow_id:
                 continue
-            if record["name"] == name:
+            if record["name"] == name and record["replica"] == replica:
                 response = record
                 response["id"] = rwfs_id
+                if record["replica"] == 0:
+                    _ = response.pop("replica")
                 return response, 0
         return {}, 0
 
@@ -237,45 +268,7 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
             Pickler(pickle_file).dump(running_workflow_step)
         UnitTestWorkflowAPIAdapter.lock.release()
 
-    def get_workflow_steps_driving_this_step(
-        self,
-        *,
-        running_workflow_step_id: str,
-    ) -> tuple[dict[str, Any], int]:
-        # To accomplish this we get the running workflow for the step,
-        # then the workflow, then the steps from that workflow.
-        # We return a dictionary and an HTTP response code.
-        UnitTestWorkflowAPIAdapter.lock.acquire()
-        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
-            running_workflow_step = Unpickler(pickle_file).load()
-        UnitTestWorkflowAPIAdapter.lock.release()
-
-        assert running_workflow_step_id in running_workflow_step
-
-        running_workflow_id: str = running_workflow_step[running_workflow_step_id][
-            "running_workflow"
-        ]["id"]
-        rwf_response, _ = self.get_running_workflow(
-            running_workflow_id=running_workflow_id
-        )
-        assert rwf_response
-        workflow_id: str = rwf_response["workflow"]["id"]
-        wf_response, _ = self.get_workflow(workflow_id=workflow_id)
-        assert wf_response
-        # Find the caller's python in the step sequence (-1 if not found)
-        caller_step_index: int = -1
-        index: int = 0
-        for step in wf_response["steps"]:
-            if step["name"] == running_workflow_step[running_workflow_step_id]["name"]:
-                caller_step_index = index
-                break
-            index += 1
-        return {
-            "caller_step_index": caller_step_index,
-            "steps": wf_response["steps"].copy(),
-        }, 0
-
-    def get_instance(self, *, instance_id: str) -> dict[str, Any]:
+    def get_instance(self, *, instance_id: str) -> tuple[dict[str, Any], int]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_INSTANCE_PICKLE_FILE, "rb") as pickle_file:
             instances = Unpickler(pickle_file).load()
@@ -284,9 +277,13 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         response = {} if instance_id not in instances else instances[instance_id]
         return response, 0
 
-    def get_job(self, *, collection: str, job: str, version: str) -> dict[str, Any]:
-        assert collection == _JOB_DEFINITIONS["collection"]
-        assert job in _JOB_DEFINITIONS["jobs"]
+    def get_job(
+        self, *, collection: str, job: str, version: str
+    ) -> tuple[dict[str, Any], int]:
+        if collection != _JOB_DEFINITIONS["collection"]:
+            return {}, 0
+        if job not in _JOB_DEFINITIONS["jobs"]:
+            return {}, 0
         assert version
 
         jd = _JOB_DEFINITIONS["jobs"][job]
@@ -349,23 +346,52 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
 
         return {"id": running_workflow_id}
 
-    def create_instance(self, *, running_workflow_step_id: str) -> dict[str, Any]:
+    def create_instance(self) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
         with open(_INSTANCE_PICKLE_FILE, "rb") as pickle_file:
             instances = Unpickler(pickle_file).load()
 
         next_id: int = len(instances) + 1
         instance_id: str = _INSTANCE_ID_FORMAT.format(id=next_id)
+
         record = {
-            "running_workflow_step_id": running_workflow_step_id,
+            "id": "instance_id",
+            "running_workflow_step_id": "",
+            "instance_directory": f".{instance_id}",
         }
         instances[instance_id] = record
 
         with open(_INSTANCE_PICKLE_FILE, "wb") as pickle_file:
             Pickler(pickle_file).dump(instances)
+
         UnitTestWorkflowAPIAdapter.lock.release()
 
         return {"id": instance_id}
+
+    def set_instance_running_workflow_step_id(
+        self, *, instance_id: str, running_workflow_step_id: str
+    ) -> None:
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_INSTANCE_PICKLE_FILE, "rb") as pickle_file:
+            instances = Unpickler(pickle_file).load()
+
+        assert instance_id in instances
+        instances[instance_id]["running_workflow_step_id"] = running_workflow_step_id
+
+        with open(_INSTANCE_PICKLE_FILE, "wb") as pickle_file:
+            Pickler(pickle_file).dump(instances)
+
+        # Use the instance ID as the step's instance-directory (prefixing with '.')
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
+            running_workflow_step = Unpickler(pickle_file).load()
+        assert running_workflow_step_id in running_workflow_step
+        running_workflow_step[running_workflow_step_id][
+            "instance_directory"
+        ] = f".{instance_id}"
+        with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "wb") as pickle_file:
+            Pickler(pickle_file).dump(running_workflow_step)
+
+        UnitTestWorkflowAPIAdapter.lock.release()
 
     def get_running_workflow_steps(self, *, running_workflow_id: str) -> dict[str, Any]:
         UnitTestWorkflowAPIAdapter.lock.acquire()
@@ -381,9 +407,61 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
                 steps.append(item)
         return {"count": len(steps), "running_workflow_steps": steps}
 
+    def get_running_workflow_step_output_values_for_output(
+        self, *, running_workflow_step_id: str, output_variable: str
+    ) -> tuple[dict[str, Any], int]:
+        """We use the 'mock' data to return output values, otherwise
+        we return an empty list. And we need to get the step in order to get its name.
+        """
+        # The RunningWorkflowStep must exist...
+        step, _ = self.get_running_workflow_step(
+            running_workflow_step_id=running_workflow_step_id
+        )
+        assert step
+        step_name: str = step["name"]
+        # Now we can inspect the 'mock' data...
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_MOCK_STEP_OUTPUT_FILE, "rb") as pickle_file:
+            mock_output = Unpickler(pickle_file).load()
+        UnitTestWorkflowAPIAdapter.lock.release()
+
+        if step_name not in mock_output:
+            return {"output": []}, 0
+        # The record's output variable must match (there's only one record per step atm)
+        assert mock_output[step_name]["output_variable"] == output_variable
+        # Now return what was provided to the mock method...
+        response = {"output": copy.copy(mock_output[step_name]["output"])}
+        return response, 0
+
     def realise_outputs(
-        self, *, running_workflow_step_id: str, outputs: list[str, str]
+        self, *, running_workflow_step_id: str
     ) -> tuple[dict[str, Any], int]:
         del running_workflow_step_id
-        del outputs
         return {}, HTTPStatus.OK
+
+    # Custom (test) methods
+    # Methods not declared in the ABC
+
+    def mock_get_running_workflow_step_output_values_for_output(
+        self, *, step_name: str, output_variable: str, output: list[str] | str
+    ) -> None:
+        """Sets the output response for a step.
+        Limitation is that there can only be one record for each step name
+        so, for now, the output_variable is superfluous and only used
+        to check the output variable name matches."""
+        assert isinstance(step_name, str)
+        assert isinstance(output_variable, str)
+
+        UnitTestWorkflowAPIAdapter.lock.acquire()
+        with open(_MOCK_STEP_OUTPUT_FILE, "rb") as pickle_file:
+            mock_output = Unpickler(pickle_file).load()
+
+        record = {
+            "output_variable": output_variable,
+            "output": output,
+        }
+        mock_output[step_name] = record
+
+        with open(_MOCK_STEP_OUTPUT_FILE, "wb") as pickle_file:
+            Pickler(pickle_file).dump(mock_output)
+        UnitTestWorkflowAPIAdapter.lock.release()

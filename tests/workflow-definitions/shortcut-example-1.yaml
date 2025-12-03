@@ -1,6 +1,6 @@
 ---
 kind: DataManagerWorkflow
-kind-version: "2025.1"
+kind-version: "2025.2"
 name: shortcut-example-1
 description: The shortcut example 1 workflow
 
@@ -12,9 +12,6 @@ steps:
     collection: workflow-engine-unit-test-jobs
     job: shortcut-example-1-process-a
     version: "1.0.0"
-  outputs:
-  - output: 'outputFile'
-    as: 'a.sdf'
 
 - name: example-1-step-2
   description: The first step
@@ -22,11 +19,8 @@ steps:
     collection: workflow-engine-unit-test-jobs
     job: shortcut-example-1-process-b
     version: "1.0.0"
-  inputs:
-  - input: 'inputFile'
-    from:
-      step: example-1-step-1
-      output: 'outputFile'
-  outputs:
-  - output: 'outputFile'
-    as: 'b.sdf'
+  plumbing:
+  - variable: inputFile
+    from-step:
+      name: example-1-step-1
+      variable: outputFile

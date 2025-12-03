@@ -1,5 +1,5 @@
 ---
-# The JSONSchema for 'Workflow' YAML files.
+# The schema for 'Workflow' YAML files.
 #
 # See https://json-schema.org/understanding-json-schema/index.html
 
@@ -17,7 +17,7 @@ properties:
     const: DataManagerWorkflow
   kind-version:
     enum:
-    - '2025.1'
+    - '2025.2'
   name:
     $ref: '#/definitions/rfc1035-label-name'
   description:
@@ -33,24 +33,6 @@ properties:
     # and, like Jobs, has no current schema so we permit anything here.
     type: object
     additionalProperties: true
-  variable-mapping:
-    # Workflow-specific variable declarations,
-    # used (at the moment) to map workflow variables to steps.
-    type: object
-    additionalProperties: false
-    properties:
-      inputs:
-        type: array
-        items:
-          $ref: "#/definitions/workflow-input-parameter"
-      outputs:
-        type: array
-        items:
-          $ref: "#/definitions/workflow-output-parameter"
-      options:
-        type: array
-        items:
-          $ref: "#/definitions/workflow-option-parameter"
 required:
 - kind
 - kind-version
@@ -65,7 +47,7 @@ definitions:
   # See https://kubernetes.io/docs/concepts/overview/working-with-objects/names/
   rfc1035-label-name:
     type: string
-    pattern: ^[a-z][a-z0-9-]{,63}(?<!-)$
+    pattern: ^[a-z][a-z0-9-]{0,63}$(?<!-)
     description: >-
       A value compatible with Kubernetes variables
       to allow it to be used ins Pod Label
@@ -73,147 +55,72 @@ definitions:
   # What does a Job specification template variable look like?
   # The values found in Jinja variables like '{{ x }}'.
   # Stuff like 'candidateMolecules' or 'clustered_molecules'
-  template-variable-name:
+  variable-name:
     type: string
-    pattern: ^[a-zA-Z_][a-zA-Z0-9_]*$
+    pattern: ^[a-zA-Z_][a-zA-Z0-9_-]*$
 
-  # What does a filename look like?
-  # We do not (at the moment) permit spaces!
-  file-name:
-    type: string
-    pattern: ^[a-zA-Z0-9._-]+$
-
-  # An input parameter has a name and a (MIME) type.
-  workflow-input-parameter:
+  # A Step variable
+  # (whose value is derived from a variable used in a prior step)
+  step-variable-from-step:
     type: object
     additionalProperties: false
     properties:
-      name:
-        $ref: '#/definitions/template-variable-name'
-      type:
-        type: string
-        description: The MIME type of the parameter
+      variable:
+        $ref: '#/definitions/variable-name'
+      from-step:
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            $ref: '#/definitions/rfc1035-label-name'
+          variable:
+            $ref: '#/definitions/variable-name'
+        required:
+        - name
+        - variable
     required:
-    - name
-    - type
+    - variable
+    - from-step
 
-  # A workflow output parameter is essentially a file
-  # taken from the output of a step with a default (as) value.
-  workflow-output-parameter:
+  # A Step variable
+  # (whose value is derived from a workflow variable)
+  step-variable-from-workflow:
     type: object
     additionalProperties: false
     properties:
-      name:
-        $ref: '#/definitions/template-variable-name'
-      from:
-        $ref: '#/definitions/from-step-output'
-      as:
-        $ref: '#/definitions/file-name'
+      variable:
+        $ref: '#/definitions/variable-name'
+      from-workflow:
+        type: object
+        additionalProperties: false
+        properties:
+          variable:
+            $ref: '#/definitions/variable-name'
+        required:
+        - variable
     required:
-    - name
-    - as
+    - variable
+    - from-workflow
 
-  # Declaration of a step option value from a workflow option (variable)
-  as-step-option:
+  # A Step variable
+  # (whose value is set to the value of a pre-defined engine variable)
+  step-variable-from-predefined:
     type: object
     additionalProperties: false
     properties:
-      option:
-        $ref: '#/definitions/template-variable-name'
-      step:
-        $ref: '#/definitions/rfc1035-label-name'
+      variable:
+        $ref: '#/definitions/variable-name'
+      from-predefined:
+        type: object
+        additionalProperties: false
+        properties:
+          variable:
+            $ref: '#/definitions/variable-name'
+        required:
+        - variable
     required:
-    - option
-    - step
-
-
-  # Declaration of a value from a workflow input (variable)
-  from-workflow-input:
-    type: object
-    additionalProperties: false
-    properties:
-      workflow-input:
-        $ref: '#/definitions/template-variable-name'
-    required:
-    - workflow-input
-
-  # Declaration of a value from another step
-  from-step-output:
-    type: object
-    additionalProperties: false
-    properties:
-      step:
-        $ref: '#/definitions/rfc1035-label-name'
-      output:
-        $ref: '#/definitions/template-variable-name'
-    required:
-    - step
-    - output
-
-  # A workflow option used as a step option
-  workflow-option-parameter:
-    type: object
-    additionalProperties: false
-    properties:
-      name:
-        $ref: '#/definitions/template-variable-name'
-      description:
-        type: string
-      default:
-        oneOf:
-        - type: string
-        - type: number
-        - type: boolean
-      minimum:
-        type: number
-      maximum:
-        type: number
-      as:
-        type: array
-        items:
-          $ref: '#/definitions/as-step-option'
-    required:
-    - name
-    - as
-
-  # A Step input (from an output of a prior step)
-  step-input-from-step:
-    type: object
-    additionalProperties: false
-    properties:
-      input:
-        $ref: '#/definitions/template-variable-name'
-      from:
-        $ref: '#/definitions/from-step-output'
-    required:
-    - input
-
-  # A Step input (from a workflow input)
-  step-input-from-workflow:
-    type: object
-    additionalProperties: false
-    properties:
-      input:
-        $ref: '#/definitions/template-variable-name'
-      from:
-        $ref: '#/definitions/from-workflow-input'
-    required:
-    - input
-    - from
-
-  # A Step output (with an 'as' - a declared value)
-  step-output-as:
-    type: object
-    additionalProperties: false
-    properties:
-      output:
-        $ref: '#/definitions/template-variable-name'
-      as:
-        $ref: '#/definitions/file-name'
-    required:
-    - output
-    - as
-
+    - variable
+    - from-predefined
 
   # A step specification variable
   # (there must be at least one if a variables block is defined).
@@ -256,23 +163,32 @@ definitions:
     additionalProperties: false
     properties:
       name:
+        # A unique name for the step
         $ref: '#/definitions/rfc1035-label-name'
       description:
+        # An optional description
         type: string
         description: A description of the step
       specification:
+        # The step Job specification.
+        # This MUST define `collection`, a 'job', and a 'version'.
+        # 'variables' (a map of name and value)can also be provided.
+        # The format of this is essentially identical to the specification
+        # used when a Job is launched via the DM API.
         $ref: '#/definitions/step-specification'
-      inputs:
+      plumbing:
+        # The map of the source of the step's variables.
+        # All variables the step needs (that aren't already in the specification)
+        # need to be declared here. They either come "from" a prior step
+        # or are expected to be a workflow variable. Here we simply
+        # associate every required variable to a source.
         type: array
         items:
           anyOf:
-          - $ref: "#/definitions/step-input-from-step"
-          - $ref: "#/definitions/step-input-from-workflow"
-      outputs:
-        type: array
-        items:
-          anyOf:
-          - $ref: "#/definitions/step-output-as"
+          - $ref: "#/definitions/step-variable-from-step"
+          - $ref: "#/definitions/step-variable-from-workflow"
+          - $ref: "#/definitions/step-variable-from-predefined"
+        minItems: 1
     required:
     - name
     - specification

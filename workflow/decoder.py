@@ -1,11 +1,26 @@
-"""A module to validate and decode workflow definitions.
+"""A module to validate and decode workflow (and step) definitions.
 
-This is typically used by the Data Manager's Workflow Engine.
+Module philosophy
+-----------------
+The _main_ purpose of this module is to provide a 'validate_schema()' function
+to check that a workflow definition (a dictionary) that is expected to comply with
+the 'workflow-schema,yaml' schema. This function returns a string (an error) if there's
+a problem with the definition.
+
+The decoder module also provides a number of additional functions based on the needs
+of the engine. As a developer you are 'encouraged' to place any logic that is expected
+to navigate the scheme content in a function in this module. Any code that
+is supposed to know _where_ to get content should be encoded as a function here.
+For example, rather than external code navigating the 'plumbing' blocks
+we have a function 'get_workflow_variable_names()' that returns the names of workflow
+variables.
 """
 
 import os
+from dataclasses import dataclass
 from typing import Any
 
+import decoder.decoder as job_definition_decoder
 import jsonschema
 import yaml
 
@@ -21,6 +36,15 @@ assert os.path.isfile(_WORKFLOW_SCHEMA_FILE)
 with open(_WORKFLOW_SCHEMA_FILE, "r", encoding="utf8") as schema_file:
     _WORKFLOW_SCHEMA: dict[str, Any] = yaml.load(schema_file, Loader=yaml.FullLoader)
 assert _WORKFLOW_SCHEMA
+
+
+@dataclass
+class Connector:
+    """A connection - connects a plumbing source variable ("in_")
+    to destination variable ("out")."""
+
+    in_: str
+    out: str
 
 
 def validate_schema(workflow: dict[str, Any]) -> str | None:
@@ -52,6 +76,27 @@ def get_steps(definition: dict[str, Any]) -> list[dict[str, Any]]:
     return response
 
 
+def get_step(definition: dict[str, Any], name: str) -> dict[str, Any]:
+    """Given a Workflow definition this function returns a named step
+    (if it exists)."""
+    steps: list[dict[str, Any]] = get_steps(definition)
+    for step in steps:
+        if step["name"] == name:
+            return step
+    return {}
+
+
+def get_step_specification(definition: dict[str, Any], name: str) -> dict[str, Any]:
+    """Given a Workflow definition this function returns a named step's specification block
+    (if it exists)."""
+    spec: dict[str, Any] = {}
+    steps: list[dict[str, Any]] = get_steps(definition)
+    for step in steps:
+        if step["name"] == name:
+            spec = step.get("specification", {})
+    return spec
+
+
 def get_name(definition: dict[str, Any]) -> str:
     """Given a Workflow definition this function returns its name."""
     return str(definition.get("name", ""))
@@ -62,183 +107,88 @@ def get_description(definition: dict[str, Any]) -> str | None:
     return definition.get("description")
 
 
-def get_variable_names(definition: dict[str, Any]) -> list[str]:
+def is_workflow_output_variable(definition: dict[str, Any], variable_name: str) -> bool:
+    """True if the variable name is in the workflow variables outputs list."""
+    # We can safely pass on the workflow definition as its
+    # root-level 'variables' block complies with job-definition variables.
+    return variable_name in job_definition_decoder.get_outputs(definition)
+
+
+def is_workflow_input_variable(definition: dict[str, Any], variable_name: str) -> bool:
+    """True if the variable name is in the workflow variables inputs list."""
+    # We can safely pass on the workflow definition as its
+    # root-level 'variables' block complies with job-definition variables.
+    return variable_name in job_definition_decoder.get_inputs(definition)
+
+
+def get_workflow_variable_names(definition: dict[str, Any]) -> set[str]:
     """Given a Workflow definition this function returns all the names of the
-    variables defined at the workflow level. These are the 'names' for inputs,
-    outputs and options. This function DOES NOT de-duplicate names,
-    that is the role of the validator."""
-    wf_variable_names: list[str] = []
-    variables: dict[str, Any] | None = definition.get("variable-mapping")
-    if variables:
-        wf_variable_names.extend(
-            input_variable["name"] for input_variable in variables.get("inputs", [])
-        )
-        wf_variable_names.extend(
-            output_variable["name"] for output_variable in variables.get("outputs", [])
-        )
-        wf_variable_names.extend(
-            option_variable["name"] for option_variable in variables.get("options", [])
-        )
+    variables defined in steps that need to be defined at the workflow level.
+    These are the 'variables' used in every step's 'plumbing' block.
+    """
+    wf_variable_names: set[str] = set()
+    steps: list[dict[str, Any]] = get_steps(definition)
+    for step in steps:
+        if v_map := step.get("plumbing"):
+            for v in v_map:
+                if "from-workflow" in v:
+                    wf_variable_names.add(v["from-workflow"]["variable"])
     return wf_variable_names
 
 
-def get_workflow_job_input_names_for_step(
-    definition: dict[str, Any], name: str
-) -> list[str]:
-    """Given a Workflow definition and a step name we return a list of step Job input
-    variable names the step expects. To do this we iterate through the step's
-    inputs to find those that are declared 'from->workflow-input'."""
-    inputs: list[str] = []
-    for step in definition.get("steps", {}):
-        if step["name"] == name and "inputs" in step:
-            # Find all the workflow inputs.
-            # This gives us the name of the workflow input variable
-            # and the name of the step input (Job) variable.
-            inputs.extend(
-                step_input["input"]
-                for step_input in step["inputs"]
-                if "from" in step_input and "workflow-input" in step_input["from"]
-            )
-    return inputs
+def get_step_workflow_variable_connections(
+    *, step_definition: dict[str, Any]
+) -> list[Connector]:
+    """Returns a list of connectors that connect a workflow variable name
+    to a step variable name for the given step definition."""
+    connections: list[Connector] = []
+    if "plumbing" in step_definition:
+        for v_map in step_definition["plumbing"]:
+            if "from-workflow" in v_map:
+                connections.append(
+                    Connector(
+                        in_=v_map["from-workflow"]["variable"], out=v_map["variable"]
+                    )
+                )
+    return connections
 
 
-def get_workflow_output_values_for_step(
-    definition: dict[str, Any], name: str
-) -> list[str]:
-    """Given a Workflow definition and a step name we return a list of workflow
-    out variable names the step creates. To do this we iterate through the workflows's
-    outputs to find those that are declared 'from' our step."""
-    wf_outputs = definition.get("variable-mapping", {}).get("outputs", {})
-    outputs: list[str] = []
-    outputs.extend(
-        output["as"]
-        for output in wf_outputs
-        if "from" in output
-        and "step" in output["from"]
-        and output["from"]["step"] == name
-    )
-    return outputs
+def get_step_predefined_variable_connections(
+    *, step_definition: dict[str, Any]
+) -> list[Connector]:
+    """Returns the set of connections of pre-defined variables (in) to
+    step variables (out)."""
+    connections: list[Connector] = []
+    if "plumbing" in step_definition:
+        for v_map in step_definition["plumbing"]:
+            if "from-predefined" in v_map:
+                connections.append(
+                    Connector(
+                        in_=v_map["from-predefined"]["variable"], out=v_map["variable"]
+                    )
+                )
+    return connections
 
 
-def set_variables_from_options_for_step(
-    definition: dict[str, Any], variables: dict[str, Any], step_name: str
-) -> dict[str, Any]:
-    """Given a Workflow definition, an existing map of variables and values,
-    and a step name this function returns a new set of variables by adding
-    variables and values that are required for the step that have been defined in the
-    workflow's variables->options block.
-
-    As an example, the following option, which is used if the step name is 'step1',
-    expects 'rdkitPropertyName' to exist in the current set of variables,
-    and should be copied into the new set of variables using the key 'propertyName'
-    and value that is the same as the one provided in the original 'rdkitPropertyName': -
-
-        name: rdkitPropertyName
-        default: propertyName
-        as:
-        - option: propertyName
-          step: step1
-
-    And ... in the above example ... if the input variables map
-    is {"rdkitPropertyName": "rings"} then the output map would be
-    {"rdkitPropertyName": "rings", "propertyName": "rings"}
-
-    The function returns a new variable map, with and an optional error string on error.
-    """
-
-    assert isinstance(definition, dict)
-    assert step_name
-
-    result = {}
-    options = definition.get("variable-mapping", {}).get("options", [])
-
-    for opt in options:
-        for step_alias in opt["as"]:
-            if step_alias["step"] == step_name:
-                result[step_alias["option"]] = variables[opt["name"]]
-                # can break the loop because a variable can be a step
-                # variable only once
-                break
-
-    # Success...
-    return result
-
-
-def get_required_variable_names(definition: dict[str, Any]) -> list[str]:
-    """Given a Workflow definition this function returns all the names of the
-    variables that are required to be defined when it is RUN - i.e.
-    all those the user needs to provide."""
-    required_variables: list[str] = []
-    variables: dict[str, Any] | None = definition.get("variable-mapping")
-    if variables:
-        # All inputs are required (no defaults atm)...
-        required_variables.extend(
-            input_variable["name"] for input_variable in variables.get("inputs", [])
-        )
-        # Options without defaults are required...
-        # It is the role of the engine to provide the actual default for those
-        # that have defaults but no user-defined value.
-        required_variables.extend(
-            option_variable["name"]
-            for option_variable in variables.get("options", [])
-            if "default" not in option_variable
-        )
-    return required_variables
-
-
-def set_step_variables(
-    *,
-    workflow: dict[str, Any],
-    inputs: list[dict[str, Any]],
-    outputs: list[dict[str, Any]],
-    previous_step_outputs: list[dict[str, Any]],
-    workflow_variables: dict[str, Any],
-    step_name: str,
-) -> dict[str, Any]:
-    """Prepare input- and output variables for the following step.
-
-    Inputs are defined in step definition but their values may
-    come from previous step outputs.
-    """
-    result = {}
-
-    for item in inputs:
-        p_key = item["input"]
-        p_val = ""
-        val = item["from"]
-        if "workflow-input" in val.keys():
-            p_val = workflow_variables[val["workflow-input"]]
-            result[p_key] = p_val
-        elif "step" in val.keys():
-            for out in previous_step_outputs:
-                if out["output"] == val["output"]:
-                    p_val = out["as"]
-
-                    # this bit handles multiple inputs: if a step
-                    # requires input from multiple steps, add them to
-                    # the list in result dict. this is the reason for
-                    # mypy ignore statements, mypy doesn't understand
-                    # redefinition
-                    if p_key in result:
-                        if not isinstance(result[p_key], set):
-                            result[p_key] = {result[p_key]}  # type: ignore [assignment]
-                        result[p_key].add(p_val)  # type: ignore [attr-defined]
-                    else:
-                        result[p_key] = p_val
-
-    for item in outputs:
-        p_key = item["output"]
-        p_val = item["as"]
-        result[p_key] = p_val
-
-    options = set_variables_from_options_for_step(
-        definition=workflow,
-        variables=workflow_variables,
-        step_name=step_name,
-    )
-
-    result |= options
-
-    print("final step vars", result)
-
-    return result
+def get_step_prior_step_connections(
+    *, step_definition: dict[str, Any]
+) -> dict[str, list[Connector]]:
+    """Returns list of variable Connections, indexed by prior step name,
+    that identify a source step variable name (an output) to an input variable in this
+    step (an input)."""
+    plumbing: dict[str, list[Connector]] = {}
+    if "plumbing" in step_definition:
+        for v_map in step_definition["plumbing"]:
+            if "from-step" in v_map:
+                step_name = v_map["from-step"]["name"]
+                step_variable = v_map["from-step"]["variable"]
+                # Tuple is "from" -> "to"
+                if step_name in plumbing:
+                    plumbing[step_name].append(
+                        Connector(in_=step_variable, out=v_map["variable"])
+                    )
+                else:
+                    plumbing[step_name] = [
+                        Connector(in_=step_variable, out=v_map["variable"])
+                    ]
+    return plumbing

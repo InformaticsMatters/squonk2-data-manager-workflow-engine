@@ -9,8 +9,8 @@
 commitizen:
   name: cz_customize
   customize:
-    schema_pattern: "^(?P<change_type>feat|fix|perf|refactor|remove|style|test|build|docs|chore|ci|BREAKING CHANGE)(?:\\((?P<scope>[^()\\r\\n]*)\\)|\\()?(?P<breaking>!)?:\\s(?P<message>.*)?"
-    commit_parser: "^(?P<change_type>feat|fix|perf|refactor|remove|style|test|build|docs|chore|ci|BREAKING CHANGE)(?:\\((?P<scope>[^()\\r\\n]*)\\)|\\()?(?P<breaking>!)?:\\s(?P<message>.*)?"
+    schema_pattern: "^(?P<change_type>feat|fix|perf|refactor|remove|style|test|build|docs|chore|ci|dev|BREAKING CHANGE)(?:\\((?P<scope>[^()\\r\\n]*)\\)|\\()?(?P<breaking>!)?:\\s(?P<message>.*)?"
+    commit_parser: "^(?P<change_type>feat|fix|perf|refactor|remove|style|test|build|docs|chore|ci|dev|BREAKING CHANGE)(?:\\((?P<scope>[^()\\r\\n]*)\\)|\\()?(?P<breaking>!)?:\\s(?P<message>.*)?"
     # The changelog_pattern identifies the commit types
     # that will be included.
     # Build the changelog with 'cz ch' on the staging or production branches.

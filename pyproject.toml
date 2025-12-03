@@ -14,7 +14,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.12"
 im-protobuf = "^8.2.0"
-im-data-manager-job-decoder = "^2.1.0"
+im-data-manager-job-decoder = "^2.5.0"
 jsonschema = "^4.21.1"
 pyyaml = ">= 5.3.1, < 7.0"
 

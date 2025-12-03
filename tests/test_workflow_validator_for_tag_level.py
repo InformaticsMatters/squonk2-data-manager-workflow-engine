@@ -6,22 +6,32 @@ import yaml
 
 pytestmark = pytest.mark.unit
 
+from tests.wapi_adapter import UnitTestWorkflowAPIAdapter
 from workflow.workflow_validator import ValidationLevel, WorkflowValidator
 
+_NO_SUCH_JOB_WORKFLOW_FILE: str = os.path.join(
+    os.path.dirname(__file__), "workflow-definitions", "no-such-job.yaml"
+)
+with open(_NO_SUCH_JOB_WORKFLOW_FILE, "r", encoding="utf8") as workflow_file:
+    _NO_SUCH_JOB_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
+assert _NO_SUCH_JOB_WORKFLOW
 
-def test_validate_example_nop_file():
+
+@pytest.fixture
+def wapi():
+    wapi_adapter = UnitTestWorkflowAPIAdapter()
+    yield wapi_adapter
+
+
+def test_validate_no_such_job(wapi):
     # Arrange
-    workflow_file: str = os.path.join(
-        os.path.dirname(__file__), "workflow-definitions", "example-nop-fail.yaml"
-    )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
-        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
-    assert workflow
+    wapi_adapter = wapi
 
     # Act
     error = WorkflowValidator.validate(
         level=ValidationLevel.TAG,
-        workflow_definition=workflow,
+        workflow_definition=_NO_SUCH_JOB_WORKFLOW,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -29,12 +39,13 @@ def test_validate_example_nop_file():
     assert error.error_msg is None
 
 
-def test_validate_duplicate_step_names():
+def test_validate_example_nop_file(wapi):
     # Arrange
-    workflow_file: str = os.path.join(
-        os.path.dirname(__file__), "workflow-definitions", "duplicate-step-names.yaml"
+    wapi_adapter = wapi
+    workflow_filename: str = os.path.join(
+        os.path.dirname(__file__), "workflow-definitions", "example-nop-fail.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -42,6 +53,29 @@ def test_validate_duplicate_step_names():
     error = WorkflowValidator.validate(
         level=ValidationLevel.TAG,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
+    )
+
+    # Assert
+    assert error.error_num == 0
+    assert error.error_msg is None
+
+
+def test_validate_duplicate_step_names(wapi):
+    # Arrange
+    wapi_adapter = wapi
+    workflow_filename: str = os.path.join(
+        os.path.dirname(__file__), "workflow-definitions", "duplicate-step-names.yaml"
+    )
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
+        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
+    assert workflow
+
+    # Act
+    error = WorkflowValidator.validate(
+        level=ValidationLevel.TAG,
+        workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -49,12 +83,13 @@ def test_validate_duplicate_step_names():
     assert error.error_msg == ["Duplicate step names found: step-1"]
 
 
-def test_validate_example_smiles_to_file():
+def test_validate_example_smiles_to_file(wapi):
     # Arrange
-    workflow_file: str = os.path.join(
+    wapi_adapter = wapi
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-smiles-to-file.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -62,6 +97,7 @@ def test_validate_example_smiles_to_file():
     error = WorkflowValidator.validate(
         level=ValidationLevel.TAG,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -69,12 +105,13 @@ def test_validate_example_smiles_to_file():
     assert error.error_msg is None
 
 
-def test_validate_example_two_step_nop():
+def test_validate_example_two_step_nop(wapi):
     # Arrange
-    workflow_file: str = os.path.join(
+    wapi_adapter = wapi
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "example-two-step-nop.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -82,6 +119,7 @@ def test_validate_example_two_step_nop():
     error = WorkflowValidator.validate(
         level=ValidationLevel.TAG,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -89,12 +127,13 @@ def test_validate_example_two_step_nop():
     assert error.error_msg is None
 
 
-def test_validate_shortcut_example_1():
+def test_validate_shortcut_example_1(wapi):
     # Arrange
-    workflow_file: str = os.path.join(
+    wapi_adapter = wapi
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "shortcut-example-1.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -102,6 +141,7 @@ def test_validate_shortcut_example_1():
     error = WorkflowValidator.validate(
         level=ValidationLevel.TAG,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -109,12 +149,13 @@ def test_validate_shortcut_example_1():
     assert error.error_msg is None
 
 
-def test_validate_simple_python_molprops():
+def test_validate_simple_python_molprops(wapi):
     # Arrange
-    workflow_file: str = os.path.join(
+    wapi_adapter = wapi
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__), "workflow-definitions", "simple-python-molprops.yaml"
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -122,6 +163,7 @@ def test_validate_simple_python_molprops():
     error = WorkflowValidator.validate(
         level=ValidationLevel.TAG,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
@@ -129,14 +171,15 @@ def test_validate_simple_python_molprops():
     assert error.error_msg is None
 
 
-def test_validate_simple_python_molprops_with_options():
+def test_validate_simple_python_molprops_with_options(wapi):
     # Arrange
-    workflow_file: str = os.path.join(
+    wapi_adapter = wapi
+    workflow_filename: str = os.path.join(
         os.path.dirname(__file__),
         "workflow-definitions",
         "simple-python-molprops-with-options.yaml",
     )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
+    with open(workflow_filename, "r", encoding="utf8") as workflow_file:
         workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
     assert workflow
 
@@ -144,30 +187,9 @@ def test_validate_simple_python_molprops_with_options():
     error = WorkflowValidator.validate(
         level=ValidationLevel.TAG,
         workflow_definition=workflow,
+        wapi_adapter=wapi_adapter,
     )
 
     # Assert
     assert error.error_num == 0
     assert error.error_msg is None
-
-
-def test_validate_duplicate_workflow_variable_names():
-    # Arrange
-    workflow_file: str = os.path.join(
-        os.path.dirname(__file__),
-        "workflow-definitions",
-        "duplicate-workflow-variable-names.yaml",
-    )
-    with open(workflow_file, "r", encoding="utf8") as workflow_file:
-        workflow: dict[str, Any] = yaml.load(workflow_file, Loader=yaml.FullLoader)
-    assert workflow
-
-    # Act
-    error = WorkflowValidator.validate(
-        level=ValidationLevel.TAG,
-        workflow_definition=workflow,
-    )
-
-    # Assert
-    assert error.error_num == 6
-    assert error.error_msg == ["Duplicate workflow variable names found: x"]
