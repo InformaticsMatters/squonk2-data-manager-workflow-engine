@@ -204,7 +204,9 @@ class WorkflowEngine:
 
         The first step is relatively easy (?) - all the variables
         (for the first step's 'command') will (must) be defined
-        in the RunningWorkflow's variables."""
+        in the RunningWorkflow's variables.
+
+        The step is not launched if there's an error preparing the step."""
 
         rwf_response, _ = self._wapi_adapter.get_running_workflow(
             running_workflow_id=r_wfid
@@ -224,7 +226,15 @@ class WorkflowEngine:
         sp_resp = self._prepare_step(
             wf=wf_response, step_definition=first_step, rwf=rwf_response
         )
-        assert sp_resp.error_msg is None
+        if sp_resp.error_msg:
+            self._wapi_adapter.set_running_workflow_done(
+                running_workflow_id=r_wfid,
+                success=False,
+                error_num=sp_resp.error_num,
+                error_msg=sp_resp.error_msg,
+            )
+            return
+
         # Launch it.
         # If there's a launch problem the step (and running workflow) will have
         # and error, stopping it. There will be no Pod event as the launch has failed.
