@@ -43,15 +43,6 @@ with open(
     )
 assert _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW
 
-_SIMPLE_PYTHON_PARALLEL_FILE: str = os.path.join(
-    os.path.dirname(__file__),
-    "workflow-definitions",
-    "simple-python-parallel.yaml",
-)
-with open(_SIMPLE_PYTHON_PARALLEL_FILE, "r", encoding="utf8") as workflow_file:
-    _SIMPLE_PYTHON_PARALLEL_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
-assert _SIMPLE_PYTHON_PARALLEL_WORKFLOW
-
 _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__),
     "workflow-definitions",
