@@ -15,10 +15,14 @@ appropriately by: -
     (when it receives a Workflow 'START' message)
 -   Stopping the execution of an exiting Workflow
     (when it receives a Workflow 'STOP' message)
--   Progressing an exiting running workflow to its next Step
-    (when it receives a Pod message)
+-   Progressing an exiting running workflow by launching any Step that its
+    prior Steps have unblocked (when it receives a Pod message)
 
-When running a workflow, once the engine determines the action (the Step to run)
+Both message types are handled the same way - the engine works out which Steps
+are READY and launches all of them. This logic lives in '_launch_ready_steps()',
+supported by '_get_step_states()' and '_get_ready_steps()'.
+
+When running a workflow, once the engine determines the action (the Steps to run)
 its most complex logic lies in the preparation of a set variables for the Step (Job).
 This logic is confined to '_prepare_step()', which returns a 'StepPreparationResponse'
 dataclass object. This object is used by the second key method in this module,
@@ -28,7 +32,7 @@ providing each with an appropriate set of command variables.
 
 Module philosophy
 -----------------
-The module's role is to translate a pre-validated workflow definition into the ordered
+The module's role is to translate a pre-validated workflow definition into the
 execution of Step "Jobs" that manifest as Pod "Instances" running in a project directory
 under the control of the DM.
 
@@ -36,10 +40,25 @@ Workflow messages are used to initiate (START) and terminate (STOP) workflows.
 Pod messages signal the end of a previously launched step and carry the exit code
 of the executed Job.
 
-The engine uses START messages to launch the first "step" in a workflow, while Pod
-messages signal the success (or failure) of a prior step. A step's success is used,
-along with it's original workflow definition to determine the next action - either
-the execution of a new step or the conclusion of the Workflow.
+The engine does not follow the order the steps happen to be written in. Instead,
+each time it handles a message it examines every step in the workflow and launches
+those that are READY. A step is READY when it has not already been launched and
+every step it depends on has finished successfully. Dependencies come from the
+step's "plumbing" - a step that takes no values from another step depends on
+nothing and so is READY the moment the workflow starts. This means a workflow can
+begin with several steps at once, that independent branches run concurrently, and
+that a step drawing on two prior steps waits for both.
+
+That design makes it essential that a step is launched only once. The engine
+re-assesses steps that have already run, and excludes them by asking the DM
+whether they were launched. This check cannot be atomic with the launch itself,
+so the guarantee ultimately rests on 'InstanceLauncher.launch()' being idempotent
+for a given (running workflow, step name, replica) - see 'workflow_abc.py'.
+
+A running workflow is finished when nothing is running and nothing new could be
+launched. If steps remain that were never launched, the workflow has stalled -
+which a validated definition should make impossible - and it is failed rather
+than being reported as a success.
 
 The engine does has no persistence and not create database records. Instead it relies
 on an API 'wrapper' to retrieve records and alter them.
@@ -50,7 +69,7 @@ to the engine when the DM creates it. passing them through the class initialiser
 The engine is designed not to retain any state persistence, it reacts to messages,
 reconstructing its state based on Workflow, RunningWorkflow, and RunningWorkflowStep
 records maintained by the DM. There's no real 'pattern' here - it's simply complex
-custom sequential logic that is executed from the context of 'handle_message()'
+custom logic that is executed from the context of 'handle_message()'
 that has to translate a workflow definition into running Job Instances.
 
 If there is a pattern its closest approximation is probably a State pattern, closely
