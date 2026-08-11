@@ -184,3 +184,37 @@ def test_get_workflow_steps():
     assert len(steps) == 2
     assert steps[0]["name"] == "step1"
     assert steps[1]["name"] == "step2"
+
+
+def test_get_step_dependencies_when_step_has_none():
+    # Arrange
+    step = decoder.get_step(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW, "step1")
+
+    # Act
+    dependencies = decoder.get_step_dependencies(step_definition=step)
+
+    # Assert
+    assert dependencies == set()
+
+
+def test_get_step_dependencies_when_step_has_one():
+    # Arrange
+    step = decoder.get_step(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW, "step2")
+
+    # Act
+    dependencies = decoder.get_step_dependencies(step_definition=step)
+
+    # Assert
+    assert dependencies == {"step1"}
+
+
+def test_get_step_dependencies_when_step_has_no_plumbing():
+    # Arrange
+    step = decoder.get_step(_MINIMAL_WORKFLOW, "step-1")
+    assert "plumbing" not in step
+
+    # Act
+    dependencies = decoder.get_step_dependencies(step_definition=step)
+
+    # Assert
+    assert dependencies == set()

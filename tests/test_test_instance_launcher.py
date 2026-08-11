@@ -121,3 +121,87 @@ def test_launch_smiles_to_file(basic_launcher):
     assert result.command.endswith(
         "tests/jobs/smiles-to-file.py --smiles C1=CC=CC=C1 --output output.smi"
     )
+
+
+def test_launch_is_idempotent_for_the_same_step_replica(basic_launcher):
+    """A launch is uniquely identified by its running workflow, step name and
+    replica number. Launching the same triple twice must not create a second
+    Instance or RunningWorkflowStep - the engine re-assesses every step on every
+    event, so it must be safe for it to ask twice."""
+    # Arrange
+    utaa = basic_launcher[0]
+    launcher = basic_launcher[1]
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    response = utaa.create_running_workflow(
+        user_id="dlister",
+        workflow_id=response["id"],
+        project_id=TEST_PROJECT_ID,
+        variables={},
+    )
+    rwfid = response["id"]
+    lp: LaunchParameters = LaunchParameters(
+        project_id=TEST_PROJECT_ID,
+        name="Test Instance",
+        launching_user_name="dlister",
+        launching_user_api_token="1234567890",
+        running_workflow_id=rwfid,
+        step_name="step-1",
+        specification={"collection": "workflow-engine-unit-test-jobs", "job": "nop"},
+    )
+
+    # Act
+    first_result = launcher.launch(launch_parameters=lp)
+    second_result = launcher.launch(launch_parameters=lp)
+
+    # Assert
+    assert first_result.error_num == 0
+    assert not first_result.already_launched
+    # The second launch must be a no-op that reports the original step...
+    assert second_result.error_num == 0
+    assert second_result.already_launched
+    assert (
+        second_result.running_workflow_step_id == first_result.running_workflow_step_id
+    )
+    # ...and only one RunningWorkflowStep must exist.
+    response = utaa.get_running_workflow_steps(running_workflow_id=rwfid)
+    assert response["count"] == 1
+
+
+def test_launch_creates_a_step_for_each_replica(basic_launcher):
+    """Replicas of the same step are distinct launches and must each create
+    their own RunningWorkflowStep."""
+    # Arrange
+    utaa = basic_launcher[0]
+    launcher = basic_launcher[1]
+    response = utaa.create_workflow(workflow_definition={"name": "blah"})
+    response = utaa.create_running_workflow(
+        user_id="dlister",
+        workflow_id=response["id"],
+        project_id=TEST_PROJECT_ID,
+        variables={},
+    )
+    rwfid = response["id"]
+
+    # Act
+    for replica in range(2):
+        result = launcher.launch(
+            launch_parameters=LaunchParameters(
+                project_id=TEST_PROJECT_ID,
+                name="Test Instance",
+                launching_user_name="dlister",
+                launching_user_api_token="1234567890",
+                running_workflow_id=rwfid,
+                step_name="step-1",
+                step_replication_number=replica,
+                total_number_of_replicas=2,
+                specification={
+                    "collection": "workflow-engine-unit-test-jobs",
+                    "job": "nop",
+                },
+            )
+        )
+        assert not result.already_launched
+
+    # Assert
+    response = utaa.get_running_workflow_steps(running_workflow_id=rwfid)
+    assert response["count"] == 2

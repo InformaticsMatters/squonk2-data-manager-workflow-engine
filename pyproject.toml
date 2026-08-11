@@ -56,6 +56,10 @@ disable = [
     "too-few-public-methods",
     "too-many-arguments",
 ]
+# 'workflow_engine.py' is deliberately one large module - see the "Module
+# philosophy" note in its docstring, which is explicit that it should not be
+# split up merely to reduce its size.
+max-module-lines = 1200
 ignored-classes = [
     "PodMessage",
 ]

@@ -1,0 +1,34 @@
+---
+kind: DataManagerWorkflow
+kind-version: "2025.2"
+name: steps-out-of-order
+description: >-
+  A two step workflow whose steps are deliberately declared in the "wrong"
+  order - the consumer is declared before the provider it depends on.
+  The engine runs whichever steps are READY rather than following the order
+  of the definition, so "provider" must run first and "consumer" second.
+
+steps:
+
+- name: consumer
+  description: Depends on a step declared after it
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: shortcut-example-1-process-b
+    version: "1.0.0"
+    variables:
+      outputFile: consumer.out
+  plumbing:
+  - variable: inputFile
+    from-step:
+      name: provider
+      variable: outputFile
+
+- name: provider
+  description: Depends on nothing, so it is READY immediately
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: shortcut-example-1-process-a
+    version: "1.0.0"
+    variables:
+      outputFile: provider.out

@@ -150,6 +150,24 @@ jobs:
             creates: '{{ outputFile }}'
             type: file
 
+  merge:
+    command: >-
+      merge.py --inputFileA {{ inputFileA }} --inputFileB {{ inputFileB }} --outputFile {{ outputFile }}
+    # Simulate a Job that takes two distinct (singular) input files,
+    # so that a step can depend on two prior steps without being a "combiner"...
+    variables:
+      inputs:
+        properties:
+          inputFileA:
+            type: file
+          inputFileB:
+            type: file
+      outputs:
+        properties:
+          outputFile:
+            creates: '{{ outputFile }}'
+            type: file
+
   splitsmiles:
     command: >-
       copyf.py {{ inputFile }}

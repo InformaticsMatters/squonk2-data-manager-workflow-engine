@@ -129,6 +129,13 @@ class LaunchResult:
     # and an error message if the error number is not zero.
     error_num: int = 0
     error_msg: str | None = None
+    # True if this launch was a no-op because the step (replica) had already
+    # been launched for the running workflow. This is not an error - the engine
+    # re-assesses every step on every message it handles, so it can legitimately
+    # ask for the same step twice. When this is set no new Instance or
+    # RunningWorkflowStep will have been created and the IDs below (if provided)
+    # refer to the records made by the original launch.
+    already_launched: bool = False
     # The following optional properties
     # may not be present if there's a launch error.
     #
@@ -156,7 +163,22 @@ class InstanceLauncher(ABC):
         launch_parameters: LaunchParameters,
         **kwargs: Any,
     ) -> LaunchResult:
-        """Launch a (Job) Instance"""
+        """Launch a (Job) Instance.
+
+        A launch is uniquely identified by the combination of
+        'running_workflow_id', 'step_name', and 'step_replication_number'.
+        An implementation MUST NOT create a second Instance or RunningWorkflowStep
+        for a combination it has already launched. Instead it must do nothing and
+        return a result with 'already_launched' set (which is not an error),
+        ideally carrying the IDs of the records created by the original launch.
+
+        This matters because the engine decides what to run by re-assessing every
+        step of the workflow each time it handles a message. It checks whether a
+        step has already been launched before calling this method, but that check
+        and this call are not atomic, so this method is the only place the
+        'launch a step once' guarantee can actually be enforced. Implementations
+        are expected to back it with a uniqueness constraint in the database
+        rather than an application-level check alone."""
 
         # launch() provides the instance launcher with sufficient information
         # to not only create an instance but also create any RunningWorkflow
@@ -253,6 +275,14 @@ class WorkflowAPIAdapter(ABC):
     ) -> tuple[dict[str, Any], int]:
         """Get a list of step execution statuses for the named step.
         This includes their step UUID (and instance UUID if available).
+
+        Each status must carry 'replicas' - the total number of replicas the step
+        was launched with. The engine needs this to tell a step that has finished
+        from one that is still being fanned out: while replicas are being created
+        the number of records returned here climbs towards 'replicas', and every
+        record present may legitimately be 'done' before the last one exists.
+        A step is only complete when the number of records matches 'replicas'
+        and all of them are done.
         """
         # Should return:
         # {
@@ -261,12 +291,14 @@ class WorkflowAPIAdapter(ABC):
         #       {
         #           "done": True,
         #           "success": True,
+        #           "replicas": 2,
         #           "running_workflow_step_id": "step-0001",
         #           "instance_id": "instance-0001"
         #       },
         #       {
         #           "done": False,
         #           "success": False,
+        #           "replicas": 2,
         #           "running_workflow_step_id": "step-0002",
         #           "instance_id": "instance-0002"
         #       }
