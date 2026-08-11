@@ -496,11 +496,16 @@ class WorkflowEngine:
             # every message, so steps that have run are still sitting here.
             if step_states[step_name].launched:
                 continue
+            # A dependency on a step that isn't in the workflow can never be
+            # satisfied, so the step is never READY. Validation should stop a
+            # definition like that reaching us, but if one does we leave the
+            # step unlaunched and let the caller report a stalled workflow -
+            # which is far kinder than launching it and failing an assertion
+            # while preparing its variables.
             dependencies: set[str] = get_step_dependencies(step_definition=step)
             if all(
-                step_states[dependency].success
+                dependency in step_states and step_states[dependency].success
                 for dependency in dependencies
-                if dependency in step_states
             ):
                 ready.append(step)
         return ready

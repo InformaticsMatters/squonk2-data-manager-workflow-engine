@@ -365,6 +365,27 @@ def test_workflow_engine_example_fan_in_waits_for_every_branch(manual_engine):
     assert not running_workflow["done"]
 
 
+def test_workflow_engine_example_unsatisfiable_step(basic_engine):
+    """A step that can never become READY must fail the running workflow,
+    not leave it hanging and not be mistaken for a successful finish."""
+    # Arrange
+    md, da = basic_engine
+
+    # Act
+    r_wfid = start_workflow(md, da, "example-unsatisfiable-step", {})
+
+    # Assert
+    wait_for_workflow(da, r_wfid, expect_success=False)
+    # Additional, detailed checks...
+    # The runnable step must still have run...
+    response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert response["count"] == 1
+    assert response["running_workflow_steps"][0]["name"] == "provider"
+    # ...and the workflow must say which step it could not run.
+    running_workflow, _ = da.get_running_workflow(running_workflow_id=r_wfid)
+    assert "consumer" in running_workflow["error_msg"]
+
+
 def test_workflow_engine_example_two_step_nop(basic_engine):
     # Arrange
     md, da = basic_engine

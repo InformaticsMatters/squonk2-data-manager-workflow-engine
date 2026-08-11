@@ -1,0 +1,34 @@
+---
+kind: DataManagerWorkflow
+kind-version: "2025.2"
+name: unsatisfiable-step
+description: >-
+  A workflow with a step that depends on a step that does not exist, so it can
+  never become READY. Once "provider" has run the engine has nothing left it
+  can launch, and must fail the running workflow rather than declare it a
+  success. TAG-level validation is expected to reject definitions like this
+  long before they are run - this exists to pin the engine's behaviour if one
+  ever reaches it.
+
+steps:
+
+- name: provider
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: shortcut-example-1-process-a
+    version: "1.0.0"
+    variables:
+      outputFile: provider.out
+
+- name: consumer
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: shortcut-example-1-process-b
+    version: "1.0.0"
+    variables:
+      outputFile: consumer.out
+  plumbing:
+  - variable: inputFile
+    from-step:
+      name: no-such-step
+      variable: outputFile
