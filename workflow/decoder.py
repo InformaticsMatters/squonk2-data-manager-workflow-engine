@@ -170,6 +170,15 @@ def get_step_predefined_variable_connections(
     return connections
 
 
+def get_step_dependencies(*, step_definition: dict[str, Any]) -> set[str]:
+    """Returns the names of the prior steps the given step depends on.
+
+    A step depends on a prior step if its "plumbing" takes a variable value from it.
+    This is the only way a workflow definition expresses step ordering, so a step
+    with an empty dependency set can run as soon as its workflow is started."""
+    return set(get_step_prior_step_connections(step_definition=step_definition))
+
+
 def get_step_prior_step_connections(
     *, step_definition: dict[str, Any]
 ) -> dict[str, list[Connector]]:

@@ -70,20 +70,45 @@ the launcher creates `Instance` and `RunningWorkflowStep`.
 
 `handle_message()` takes protobuf messages from the DM's queue and is the whole entry point:
 
-- `WorkflowMessage` with `action == "START"` → launch the first step of the workflow.
+- `WorkflowMessage` with `action == "START"` → launch every **READY** step (see below).
 - `WorkflowMessage` with `action == "STOP"` → mark the running workflow done (only if no
   steps are still running).
 - `PodMessage` → a previously launched step finished. Non-zero `exit_code` fails the step
-  *and* the running workflow; zero means find the next step and launch it, or, if there is
-  no next step, mark the running workflow successfully done.
+  *and* the running workflow; zero means re-assess the workflow and launch every step that
+  is now READY.
 
 State is reconstructed from DM records on every message — nothing is cached between calls.
+
+### READY steps
+
+The engine does **not** follow the order steps are written in. On every message it scans
+all the steps and launches those that are READY — `_launch_ready_steps()`, backed by
+`_get_step_states()` and `_get_ready_steps()`. A step is READY when it has not already
+been launched *and* every step it depends on has finished successfully. Dependencies are
+the `from-step` entries in a step's `plumbing`, via `decoder.get_step_dependencies()`;
+nothing else in the schema expresses ordering, so a step with no `from-step` entries is
+READY at START. Consequences: a workflow can start several steps at once, independent
+branches run concurrently, and a step drawing on two prior steps waits for both.
+
+Two rules follow from re-scanning every step every time:
+
+- **A step must be launched exactly once.** The engine checks the DM's records before
+  launching, but that check is not atomic with the launch, so `InstanceLauncher.launch()`
+  is required to be idempotent for a given `(running_workflow_id, step_name,
+  step_replication_number)` and to report a repeat via `LaunchResult.already_launched`.
+  The DM is expected to back this with a database uniqueness constraint.
+- **Finishing is no longer "the last step in the list finished".** When nothing can be
+  launched and nothing is running, the workflow is done — successfully if every step ran,
+  and as a failure if steps remain that will never become READY (a stall, which a
+  validated definition should make impossible).
 
 ### Terminology (used consistently throughout)
 
 A **Step** is a definition inside a **Workflow**. Running a Step means running a DM **Job**,
 which manifests as an **Instance** (a Pod, and a DM database row). A **RunningWorkflow** is
 one execution of a Workflow; a **RunningWorkflowStep** is one execution of one Step.
+A Step is **READY** when it can be launched right now — it has not already been launched
+and every Step it depends on has completed successfully.
 
 ### The hard part: `_prepare_step()` and `_launch()`
 
@@ -96,8 +121,9 @@ instances, project inputs/outputs). Two behaviours drive its shape:
   `replica_variable`/`replica_values` carry that, and `_launch()` loops, overwriting the
   variable with `<instance-dir>/<file>` for each replica.
 - **Combining (fan-in)** — if a variable in the plumbing maps to one of *this* step's
-  *inputs* whose type is `files`, the step is a combiner. It refuses to launch until every
-  replica of the step it combines is done, and fails the workflow if any of them failed.
+  *inputs* whose type is `files`, the step is a combiner. Waiting for the steps it combines
+  is not its job — READY already guarantees they have all finished successfully — so the
+  flag only selects how inputs are handled, and suppresses replication.
   Combiners reference prior outputs through a directory glob rather than named files: the
   step's plumbing pulls the engine's only pre-defined variable, `instance-link-glob`, via a
   `from-predefined` entry. (The `_INSTANCE_LINK_GLOB_VARIABLE = "dirsGlob"` constant in

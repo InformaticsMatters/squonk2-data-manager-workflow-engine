@@ -15,10 +15,14 @@ appropriately by: -
     (when it receives a Workflow 'START' message)
 -   Stopping the execution of an exiting Workflow
     (when it receives a Workflow 'STOP' message)
--   Progressing an exiting running workflow to its next Step
-    (when it receives a Pod message)
+-   Progressing an exiting running workflow by launching any Step that its
+    prior Steps have unblocked (when it receives a Pod message)
 
-When running a workflow, once the engine determines the action (the Step to run)
+Both message types are handled the same way - the engine works out which Steps
+are READY and launches all of them. This logic lives in '_launch_ready_steps()',
+supported by '_get_step_states()' and '_get_ready_steps()'.
+
+When running a workflow, once the engine determines the action (the Steps to run)
 its most complex logic lies in the preparation of a set variables for the Step (Job).
 This logic is confined to '_prepare_step()', which returns a 'StepPreparationResponse'
 dataclass object. This object is used by the second key method in this module,
@@ -28,7 +32,7 @@ providing each with an appropriate set of command variables.
 
 Module philosophy
 -----------------
-The module's role is to translate a pre-validated workflow definition into the ordered
+The module's role is to translate a pre-validated workflow definition into the
 execution of Step "Jobs" that manifest as Pod "Instances" running in a project directory
 under the control of the DM.
 
@@ -36,10 +40,25 @@ Workflow messages are used to initiate (START) and terminate (STOP) workflows.
 Pod messages signal the end of a previously launched step and carry the exit code
 of the executed Job.
 
-The engine uses START messages to launch the first "step" in a workflow, while Pod
-messages signal the success (or failure) of a prior step. A step's success is used,
-along with it's original workflow definition to determine the next action - either
-the execution of a new step or the conclusion of the Workflow.
+The engine does not follow the order the steps happen to be written in. Instead,
+each time it handles a message it examines every step in the workflow and launches
+those that are READY. A step is READY when it has not already been launched and
+every step it depends on has finished successfully. Dependencies come from the
+step's "plumbing" - a step that takes no values from another step depends on
+nothing and so is READY the moment the workflow starts. This means a workflow can
+begin with several steps at once, that independent branches run concurrently, and
+that a step drawing on two prior steps waits for both.
+
+That design makes it essential that a step is launched only once. The engine
+re-assesses steps that have already run, and excludes them by asking the DM
+whether they were launched. This check cannot be atomic with the launch itself,
+so the guarantee ultimately rests on 'InstanceLauncher.launch()' being idempotent
+for a given (running workflow, step name, replica) - see 'workflow_abc.py'.
+
+A running workflow is finished when nothing is running and nothing new could be
+launched. If steps remain that were never launched, the workflow has stalled -
+which a validated definition should make impossible - and it is failed rather
+than being reported as a success.
 
 The engine does has no persistence and not create database records. Instead it relies
 on an API 'wrapper' to retrieve records and alter them.
@@ -50,7 +69,7 @@ to the engine when the DM creates it. passing them through the class initialiser
 The engine is designed not to retain any state persistence, it reacts to messages,
 reconstructing its state based on Workflow, RunningWorkflow, and RunningWorkflowStep
 records maintained by the DM. There's no real 'pattern' here - it's simply complex
-custom sequential logic that is executed from the context of 'handle_message()'
+custom logic that is executed from the context of 'handle_message()'
 that has to translate a workflow definition into running Job Instances.
 
 If there is a pattern its closest approximation is probably a State pattern, closely
@@ -89,10 +108,13 @@ from workflow.workflow_abc import (
 from .decoder import (
     Connector,
     get_step,
+    get_step_dependencies,
+    get_step_names,
     get_step_predefined_variable_connections,
     get_step_prior_step_connections,
     get_step_specification,
     get_step_workflow_variable_connections,
+    get_steps,
     is_workflow_input_variable,
     is_workflow_output_variable,
 )
@@ -106,6 +128,18 @@ _LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 # This variable gets set to the engine's 'instance-link-glob'
 # pre-defined variable
 _INSTANCE_LINK_GLOB_VARIABLE: str = "dirsGlob"
+
+
+@dataclass
+class StepState:
+    """The execution state of one Step, across all of its replicas.
+    A Step is only 'done' once every replica it was launched with exists
+    and has finished - while a Step is being fanned out the replicas that
+    do exist may all be 'done' while others are yet to be created."""
+
+    launched: bool
+    done: bool
+    success: bool
 
 
 @dataclass
@@ -198,15 +232,16 @@ class WorkflowEngine:
 
     def _handle_workflow_start_message(self, r_wfid: str) -> None:
         """Logic to handle a START message. This is the beginning of a new
-        running workflow. We use the running workflow (and workflow) to find the
-        first step in the Workflow and launch it, passing the running workflow variables
+        running workflow. We use the running workflow (and workflow) to find every
+        step that is READY and launch it, passing the running workflow variables
         to the launcher.
 
-        The first step is relatively easy (?) - all the variables
-        (for the first step's 'command') will (must) be defined
-        in the RunningWorkflow's variables.
+        At this point nothing has run, so the READY steps are those that do not
+        depend on any other step - all the variables for their commands will
+        (must) be defined in the RunningWorkflow's variables. There is usually
+        one such step, but there can be several and all of them are launched.
 
-        The step is not launched if there's an error preparing the step."""
+        A step is not launched if there's an error preparing it."""
 
         rwf_response, _ = self._wapi_adapter.get_running_workflow(
             running_workflow_id=r_wfid
@@ -220,29 +255,14 @@ class WorkflowEngine:
         wf_response, _ = self._wapi_adapter.get_workflow(workflow_id=wfid)
         _LOGGER.debug("API.get_workflow(%s) returned: -\n%s", wfid, str(wf_response))
 
-        # Now find the first step (index 0)...
-        first_step: dict[str, Any] = wf_response["steps"][0]
-
-        sp_resp = self._prepare_step(
-            wf=wf_response, step_definition=first_step, rwf=rwf_response
-        )
-        if sp_resp.error_msg:
-            self._wapi_adapter.set_running_workflow_done(
-                running_workflow_id=r_wfid,
-                success=False,
-                error_num=sp_resp.error_num,
-                error_msg=sp_resp.error_msg,
-            )
-            return
-
-        # Launch it.
+        # Launch whatever's READY.
         # If there's a launch problem the step (and running workflow) will have
-        # and error, stopping it. There will be no Pod event as the launch has failed.
-        self._launch(
-            rwf=rwf_response,
-            step_definition=first_step,
-            step_preparation_response=sp_resp,
-        )
+        # an error, stopping it. There will be no Pod event as the launch has failed.
+        if not self._launch_ready_steps(wf=wf_response, rwf=rwf_response):
+            # Nothing could be started, so nothing will ever send us a Pod message
+            # to move this workflow on. Unless a step preparation error has
+            # already stopped the workflow, this workflow cannot run.
+            self._set_running_workflow_done_if_stalled(wf=wf_response, rwf=rwf_response)
 
     def _handle_workflow_stop_message(self, r_wfid: str) -> None:
         """Logic to handle a STOP message."""
@@ -361,72 +381,180 @@ class WorkflowEngine:
             success=True,
         )
 
-        # We have the step from the Instance that's just finished,
-        # so we can use that to find the next step in the Workflow definition.
-        # (using the name of the completed step step as an index).
-        # Once found, we can launch it (with any variables we think we need).
+        # A step has just finished, so steps that were waiting on it may now be
+        # READY. We re-assess the whole workflow and launch everything we can -
+        # this step may have been the last thing several steps were waiting for.
         #
-        # If there are no more steps then the RunningWorkflow is set to
-        # finished (done).
+        # A major piece of work to accomplish is to get ourselves into a position
+        # that allows us to check the step command can be executed.
+        # We do this by compiling a map of variables we believe each step needs.
+        if self._launch_ready_steps(wf=wf_response, rwf=rwf_response):
+            # Something was started (or there was a launch error and the step
+            # and running workflow error will have been set).
+            # Regardless we can stop now - a Pod message will bring us back.
+            return
 
-        launch_attempted: bool = False
-        for step in wf_response["steps"]:
-            if step["name"] == step_name:
+        # Nothing was launched. Either the workflow still has steps running
+        # (in which case their Pod messages will bring us back) or it has
+        # reached its end.
+        self._set_running_workflow_done_if_stalled(wf=wf_response, rwf=rwf_response)
 
-                step_index = wf_response["steps"].index(step)
-                if step_index + 1 < len(wf_response["steps"]):
+    def _set_running_workflow_done_if_stalled(
+        self, *, wf: dict[str, Any], rwf: dict[str, Any]
+    ) -> None:
+        """Called when nothing could be launched. If any step is still running
+        we do nothing - its Pod message will bring us back. Otherwise the running
+        workflow has stopped moving and we record why.
 
-                    # There's another step!
-                    # For this simple logic it is the next step.
-                    next_step = wf_response["steps"][step_index + 1]
+        Every step launched and finished is a successful workflow. Anything else
+        means steps remain that will never become READY - which a validated
+        workflow should make impossible, so it is an error rather than success."""
+        r_wfid: str = rwf["id"]
 
-                    # A major piece of work to accomplish is to get ourselves into a position
-                    # that allows us to check the step command can be executed.
-                    # We do this by compiling a map of variables we believe the step needs.
+        # Do nothing if the running workflow has already been stopped
+        # (a step or preparation error will have done this).
+        rwf_response, _ = self._wapi_adapter.get_running_workflow(
+            running_workflow_id=r_wfid
+        )
+        if rwf_response.get("done"):
+            _LOGGER.debug("Running workflow already stopped (%s)", r_wfid)
+            return
 
-                    # If the step about to be launched is based on a prior step
-                    # that generates multiple outputs (files) then we have to
-                    # exit unless all of the step instances have completed.
-                    #
-                    # Do we need a 'prepare variables' function?
-                    # One that returns a map of variables or nothing
-                    # (e.g. 'nothing' when a step launch cannot be attempted)
-                    sp_resp = self._prepare_step(
-                        wf=wf_response, step_definition=next_step, rwf=rwf_response
-                    )
-                    if sp_resp.replicas == 0:
-                        # Cannot prepare variables for this step,
-                        # it might be a step dependent on more than one prior step
-                        # (like a 'combiner') and some prior steps may still
-                        # be running ... or something's gone wrong.
-                        if sp_resp.error_num:
-                            self._wapi_adapter.set_running_workflow_done(
-                                running_workflow_id=r_wfid,
-                                success=False,
-                                error_num=sp_resp.error_num,
-                                error_msg=sp_resp.error_msg,
-                            )
-                        return
+        step_states: dict[str, StepState] = self._get_step_states(wf=wf, rwf_id=r_wfid)
+        if any(state.launched and not state.done for state in step_states.values()):
+            _LOGGER.debug("Steps are still running for %s", r_wfid)
+            return
 
-                    self._launch(
-                        rwf=rwf_response,
-                        step_definition=next_step,
-                        step_preparation_response=sp_resp,
-                    )
-
-                    # Something was started (or there was a launch error and the step
-                    # and running workflow error will have been set).
-                    # Regardless we can stop now.
-                    launch_attempted = True
-                    break
-
-        # If no launch was attempted we can assume this is the end of the running workflow.
-        if not launch_attempted:
-            _LOGGER.debug("End of RunningWorkflow %s", r_wfid)
+        if unrunnable := [
+            step_name for step_name, state in step_states.items() if not state.launched
+        ]:
+            msg: str = (
+                "The following steps could not be run:"
+                f" {', '.join(sorted(unrunnable))}"
+            )
+            _LOGGER.warning("%s (%s)", msg, r_wfid)
             self._wapi_adapter.set_running_workflow_done(
                 running_workflow_id=r_wfid,
-                success=True,
+                success=False,
+                error_num=6,
+                error_msg=msg,
             )
+            return
+
+        _LOGGER.debug("End of RunningWorkflow %s", r_wfid)
+        self._wapi_adapter.set_running_workflow_done(
+            running_workflow_id=r_wfid,
+            success=True,
+        )
+
+    def _get_step_states(
+        self, *, wf: dict[str, Any], rwf_id: str
+    ) -> dict[str, StepState]:
+        """Returns the execution state of every Step in the given Workflow,
+        indexed by step name. State is reconstructed from the DM's records -
+        the engine caches nothing between messages."""
+        states: dict[str, StepState] = {}
+        for step_name in get_step_names(wf):
+            response, _ = self._wapi_adapter.get_status_of_all_step_instances_by_name(
+                name=step_name,
+                running_workflow_id=rwf_id,
+            )
+            assert "count" in response
+            count: int = response["count"]
+            if not count:
+                states[step_name] = StepState(launched=False, done=False, success=False)
+                continue
+            # Every replica that was launched must exist and have finished
+            # before we can call the step 'done'. The 'replicas' value tells us
+            # how many to expect - a step that is still being fanned out will
+            # have fewer records than that.
+            statuses: list[dict[str, Any]] = response["status"]
+            expected_replicas: int = statuses[0].get("replicas", count)
+            done: bool = count == expected_replicas and all(
+                status["done"] for status in statuses
+            )
+            states[step_name] = StepState(
+                launched=True,
+                done=done,
+                success=done and all(status["success"] for status in statuses),
+            )
+        return states
+
+    def _get_ready_steps(
+        self, *, wf: dict[str, Any], step_states: dict[str, StepState]
+    ) -> list[dict[str, Any]]:
+        """Returns the definitions of every Step that can be launched right now.
+
+        A Step is READY when it has not already been launched and every step it
+        depends on has finished successfully. A Step that depends on nothing is
+        therefore READY the moment its workflow starts. Steps are returned in
+        definition order so that launches are deterministic."""
+        ready: list[dict[str, Any]] = []
+        for step in get_steps(wf):
+            step_name: str = step["name"]
+            # Never launch a step twice. The engine re-assesses every step on
+            # every message, so steps that have run are still sitting here.
+            if step_states[step_name].launched:
+                continue
+            # A dependency on a step that isn't in the workflow can never be
+            # satisfied, so the step is never READY. Validation should stop a
+            # definition like that reaching us, but if one does we leave the
+            # step unlaunched and let the caller report a stalled workflow -
+            # which is far kinder than launching it and failing an assertion
+            # while preparing its variables.
+            dependencies: set[str] = get_step_dependencies(step_definition=step)
+            if all(
+                dependency in step_states and step_states[dependency].success
+                for dependency in dependencies
+            ):
+                ready.append(step)
+        return ready
+
+    def _launch_ready_steps(self, *, wf: dict[str, Any], rwf: dict[str, Any]) -> int:
+        """Finds every READY Step and launches it, returning the number of steps
+        that were launched. Zero is not an error - it usually just means the
+        workflow is waiting on steps that are still running.
+
+        If a step cannot be prepared the running workflow is failed and we stop."""
+        rwf_id: str = rwf["id"]
+        step_states: dict[str, StepState] = self._get_step_states(wf=wf, rwf_id=rwf_id)
+        ready_steps: list[dict[str, Any]] = self._get_ready_steps(
+            wf=wf, step_states=step_states
+        )
+        _LOGGER.info(
+            "Ready steps for %s: %s",
+            rwf_id,
+            [step["name"] for step in ready_steps],
+        )
+
+        launched: int = 0
+        for step in ready_steps:
+            sp_resp: StepPreparationResponse = self._prepare_step(
+                wf=wf, step_definition=step, rwf=rwf
+            )
+            if sp_resp.error_num:
+                self._wapi_adapter.set_running_workflow_done(
+                    running_workflow_id=rwf_id,
+                    success=False,
+                    error_num=sp_resp.error_num,
+                    error_msg=sp_resp.error_msg,
+                )
+                return launched
+            if sp_resp.replicas == 0:
+                # Not an error - the step cannot be prepared yet,
+                # so we'll re-assess it when a later message arrives.
+                _LOGGER.info(
+                    "Step '%s' is not yet preparable - deferring", step["name"]
+                )
+                continue
+            if self._launch(
+                rwf=rwf,
+                step_definition=step,
+                step_preparation_response=sp_resp,
+            ):
+                launched += 1
+
+        return launched
 
     def _get_step_job(self, *, step: dict[str, Any]) -> dict[str, Any]:
         """Gets the Job definition for a given Step."""
@@ -506,82 +634,23 @@ class WorkflowEngine:
             "Step '%s' prior step plumbing=%s", step_name, plumbing_of_prior_steps
         )
 
-        we_are_a_combiner: bool = False
-
-        # What step might we be combining?
-        # It'll remain None after the next block if we're not combining.
-        step_name_being_combined: str | None = None
-        # If we are a combiner, what is the variable (identifying a set of files)
-        # that is bing combined? There can only be one.
-        combiner_input_variable: str | None = None
-        for p_step_name, connections in plumbing_of_prior_steps.items():
-            for connector in connections:
-                if our_inputs.get(connector.out, {}).get("type") == "files":
-                    step_name_being_combined = p_step_name
-                    combiner_input_variable = connector.out
-                    we_are_a_combiner = True
-                    break
-            if step_name_being_combined:
-                break
+        # We are a combiner if a variable in our step's plumbing refers to one of
+        # our own inputs whose type is 'files'. Combiners handle their prior-step
+        # inputs differently (a directory glob rather than named files) and are
+        # never replicated, which is all this flag is used for.
+        #
+        # We do not need to check here that the steps we combine have finished.
+        # A step is only prepared once it is READY, and READY already requires
+        # every step it depends on to have completed successfully.
+        we_are_a_combiner: bool = any(
+            our_inputs.get(connector.out, {}).get("type") == "files"
+            for connections in plumbing_of_prior_steps.values()
+            for connector in connections
+        )
 
         _LOGGER.debug("Step '%s' is combiner (%s)", step_name, we_are_a_combiner)
 
-        # If we are a combiner
-        # we must make suer that all the step instances we're combining are done.
-        # If not, we must leave.
-        if we_are_a_combiner:
-            assert step_name_being_combined
-            assert combiner_input_variable
-
-            response, _ = self._wapi_adapter.get_status_of_all_step_instances_by_name(
-                name=step_name_being_combined,
-                running_workflow_id=rwf_id,
-            )
-            assert "count" in response
-            num_step_recplicas_being_combined = response["count"]
-            assert num_step_recplicas_being_combined > 0
-            assert "status" in response
-
-            # Assume all the dependent prior step instances are done
-            # and undo our assumption if not...
-            all_step_instances_done: bool = True
-
-            # If anything is still running we must leave.
-            # If anything's failed we must 'fail' the running workflow.
-            all_step_instances_successful: bool = True
-            for status in response["status"]:
-                if not status["done"]:
-                    all_step_instances_done = False
-                    break
-                if not status["success"]:
-                    all_step_instances_successful = False
-                    break
-            if not all_step_instances_done:
-                # Can't move on - instances still need to finish
-                _LOGGER.debug(
-                    "Assessing start of combiner step (%s)"
-                    " but not all steps (%s) to be combined are done",
-                    step_name,
-                    step_name_being_combined,
-                )
-                return StepPreparationResponse(replicas=0)
-            elif not all_step_instances_successful:
-                # Can't move on - at least one instance was not successful
-                _LOGGER.warning(
-                    "Assessing start of combiner step (%s)"
-                    " but at least one step (%s) to be combined failed",
-                    step_name,
-                    step_name_being_combined,
-                )
-                return StepPreparationResponse(
-                    replicas=0,
-                    error_num=2,
-                    error_msg=f"Prior instance of step '{step_name_being_combined}' has failed",
-                )
-
-        # We're not a combiner or we are
-        # (and all the dependent instances have completed successfully).
-        # We can now compile a set of variables for it.
+        # We can now compile a set of variables for the step.
 
         # Inputs - a list of step files that are workflow inputs.
         # These are project files that are copied into the step instance.
@@ -819,10 +888,11 @@ class WorkflowEngine:
         rwf: dict[str, Any],
         step_definition: dict[str, Any],
         step_preparation_response: StepPreparationResponse,
-    ) -> None:
+    ) -> bool:
         """Given a runningWorkflow record, a step definition (from the Workflow),
         and the step's variables (in a preparation object) this method launches
-        one or more instances of the given step."""
+        one or more instances of the given step. Returns True if at least one
+        instance was launched."""
         step_name: str = step_definition["name"]
         rwf_id: str = rwf["id"]
         project_id = rwf["project"]["id"]
@@ -842,6 +912,7 @@ class WorkflowEngine:
         total_replicas: int = step_preparation_response.replicas
         assert total_replicas >= 1
 
+        launched: bool = False
         variables = step_preparation_response.variables
         for replica in range(step_preparation_response.replicas):
 
@@ -906,15 +977,27 @@ class WorkflowEngine:
                     lr.error_num,
                     lr.error_msg,
                 )
+            elif lr.already_launched:
+                # Not an error. We asked for a step that had already been
+                # launched, so nothing new is running and nothing new will
+                # report back. We simply lost a race with another launch.
+                _LOGGER.info(
+                    "Step '%s' (replica %s) was already launched - ignoring",
+                    step_name,
+                    replica,
+                )
             else:
                 # No error - there must be a RunningWorkflowStep ID
                 assert lr.running_workflow_step_id
+                launched = True
                 _LOGGER.info(
                     "Launched step '%s' step_id=%s (command=%s)",
                     step_name,
                     lr.running_workflow_step_id,
                     lr.command,
                 )
+
+        return launched
 
     def _set_step_error(
         self,

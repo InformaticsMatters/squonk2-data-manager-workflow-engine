@@ -170,6 +170,19 @@ class UnitTestWorkflowAPIAdapter(WorkflowAPIAdapter):
         with open(_RUNNING_WORKFLOW_STEP_PICKLE_FILE, "rb") as pickle_file:
             running_workflow_step = Unpickler(pickle_file).load()
 
+        # A step replica can only be created once for a running workflow.
+        # This simulates the uniqueness constraint the DM is expected to place on
+        # (running_workflow, name, replica) - it is what makes the launcher's
+        # 'launch a step once' guarantee real. Return the original record's ID.
+        for rwfs_id, record in running_workflow_step.items():
+            if (
+                record["running_workflow"]["id"] == running_workflow_id
+                and record["name"] == step
+                and record["replica"] == replica
+            ):
+                UnitTestWorkflowAPIAdapter.lock.release()
+                return {"id": rwfs_id, "already_exists": True}, 0
+
         next_id: int = len(running_workflow_step) + 1
         running_workflow_step_id: str = _RUNNING_WORKFLOW_STEP_ID_FORMAT.format(
             id=next_id

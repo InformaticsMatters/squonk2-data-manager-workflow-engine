@@ -99,6 +99,20 @@ class UnitTestInstanceLauncher(InstanceLauncher):
         )
         assert "id" in response
         rwfs_id: str = response["id"]
+
+        # This step replica has been launched before - do nothing.
+        # We must not run the Job again, and there will be no PodMessage
+        # because there is no new instance.
+        if response.get("already_exists"):
+            print(
+                f"Step {launch_parameters.step_name}"
+                f" (replica {launch_parameters.step_replication_number})"
+                f" already launched as {rwfs_id} - ignoring"
+            )
+            return LaunchResult(
+                already_launched=True,
+                running_workflow_step_id=rwfs_id,
+            )
         # And add the variables we've been provided with
         if launch_parameters.variables:
             _ = self._api_adapter.set_running_workflow_step_variables(

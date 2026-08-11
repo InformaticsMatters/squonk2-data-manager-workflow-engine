@@ -1,0 +1,67 @@
+---
+kind: DataManagerWorkflow
+kind-version: "2025.2"
+name: diamond
+description: >-
+  A diamond-shaped workflow. One step fans out to two independent steps,
+  which then fan back in to a final step. Both "branch-a" and "branch-b"
+  become READY when "split" finishes, so both are expected to be launched
+  from the same message. "merge" depends on both of them and must not be
+  launched until they have both finished.
+
+steps:
+
+- name: split
+  description: Produces the file both branches consume
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: shortcut-example-1-process-a
+    version: "1.0.0"
+    variables:
+      outputFile: split.out
+
+- name: branch-a
+  description: One of two steps that depend only on "split"
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: shortcut-example-1-process-b
+    version: "1.0.0"
+    variables:
+      outputFile: branch-a.out
+  plumbing:
+  - variable: inputFile
+    from-step:
+      name: split
+      variable: outputFile
+
+- name: branch-b
+  description: The other step that depends only on "split"
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: shortcut-example-1-process-b
+    version: "1.0.0"
+    variables:
+      outputFile: branch-b.out
+  plumbing:
+  - variable: inputFile
+    from-step:
+      name: split
+      variable: outputFile
+
+- name: merge
+  description: Depends on both branches, so waits for both
+  specification:
+    collection: workflow-engine-unit-test-jobs
+    job: merge
+    version: "1.0.0"
+    variables:
+      outputFile: merged.out
+  plumbing:
+  - variable: inputFileA
+    from-step:
+      name: branch-a
+      variable: outputFile
+  - variable: inputFileB
+    from-step:
+      name: branch-b
+      variable: outputFile

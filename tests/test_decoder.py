@@ -43,15 +43,6 @@ with open(
     )
 assert _SIMPLE_PYTHON_MOLPROPS_WITH_OPTIONS_WORKFLOW
 
-_SIMPLE_PYTHON_PARALLEL_FILE: str = os.path.join(
-    os.path.dirname(__file__),
-    "workflow-definitions",
-    "simple-python-parallel.yaml",
-)
-with open(_SIMPLE_PYTHON_PARALLEL_FILE, "r", encoding="utf8") as workflow_file:
-    _SIMPLE_PYTHON_PARALLEL_WORKFLOW: dict[str, Any] = yaml.safe_load(workflow_file)
-assert _SIMPLE_PYTHON_PARALLEL_WORKFLOW
-
 _STEP_SPECIFICATION_VARIABLE_NAMES_WORKFLOW_FILE: str = os.path.join(
     os.path.dirname(__file__),
     "workflow-definitions",
@@ -184,3 +175,37 @@ def test_get_workflow_steps():
     assert len(steps) == 2
     assert steps[0]["name"] == "step1"
     assert steps[1]["name"] == "step2"
+
+
+def test_get_step_dependencies_when_step_has_none():
+    # Arrange
+    step = decoder.get_step(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW, "step1")
+
+    # Act
+    dependencies = decoder.get_step_dependencies(step_definition=step)
+
+    # Assert
+    assert dependencies == set()
+
+
+def test_get_step_dependencies_when_step_has_one():
+    # Arrange
+    step = decoder.get_step(_SIMPLE_PYTHON_MOLPROPS_WORKFLOW, "step2")
+
+    # Act
+    dependencies = decoder.get_step_dependencies(step_definition=step)
+
+    # Assert
+    assert dependencies == {"step1"}
+
+
+def test_get_step_dependencies_when_step_has_no_plumbing():
+    # Arrange
+    step = decoder.get_step(_MINIMAL_WORKFLOW, "step-1")
+    assert "plumbing" not in step
+
+    # Act
+    dependencies = decoder.get_step_dependencies(step_definition=step)
+
+    # Assert
+    assert dependencies == set()

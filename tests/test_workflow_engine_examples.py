@@ -9,6 +9,7 @@ import yaml
 
 pytestmark = pytest.mark.unit
 
+from informaticsmatters.protobuf.datamanager.pod_message_pb2 import PodMessage
 from informaticsmatters.protobuf.datamanager.workflow_message_pb2 import WorkflowMessage
 
 from tests.config import TEST_PROJECT_ID
@@ -49,6 +50,66 @@ def basic_engine():
     message_queue.stop()
     message_queue.join()
     print("Stopped")
+
+
+@pytest.fixture
+def manual_engine():
+    """An engine whose message queue is NOT running, so nothing consumes the
+    PodMessages its launcher produces. Messages have to be handed to
+    'handle_message()' by the test, which lets a test observe exactly what the
+    engine did in response to one message."""
+    wapi_adapter = UnitTestWorkflowAPIAdapter()
+    message_queue = UnitTestMessageQueue()
+    message_dispatcher = UnitTestMessageDispatcher(msg_queue=message_queue)
+    instance_launcher = UnitTestInstanceLauncher(
+        wapi_adapter=wapi_adapter, msg_dispatcher=message_dispatcher
+    )
+    workflow_engine = WorkflowEngine(
+        wapi_adapter=wapi_adapter, instance_launcher=instance_launcher
+    )
+    return [workflow_engine, wapi_adapter]
+
+
+def create_running_workflow(da, workflow_file_name: str, variables=None) -> str:
+    """Loads a workflow definition and creates a RunningWorkflow record from it,
+    returning the running workflow ID. Unlike 'start_workflow()' this sends no
+    START message - the caller decides how the engine gets to hear about it."""
+    workflow_path = os.path.join(
+        os.path.dirname(__file__), "workflow-definitions", f"{workflow_file_name}.yaml"
+    )
+    with open(workflow_path, "r", encoding="utf8") as wf_file:
+        wf_definition = yaml.load(wf_file, Loader=yaml.FullLoader)
+    assert wf_definition
+    wf_response = da.create_workflow(workflow_definition=wf_definition)
+    response = da.create_running_workflow(
+        user_id="dlister",
+        workflow_id=wf_response["id"],
+        project_id=TEST_PROJECT_ID,
+        variables=variables or {},
+    )
+    return str(response["id"])
+
+
+def pod_message_for(instance_id: str, exit_code: int = 0) -> PodMessage:
+    """Builds the PodMessage the DM would send when an Instance finishes."""
+    msg = PodMessage()
+    msg.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
+    msg.phase = "Completed"
+    msg.instance = instance_id
+    msg.has_exit_code = True
+    msg.exit_code = exit_code
+    return msg
+
+
+def assert_each_step_launched_once(da, r_wfid) -> None:
+    """The engine re-assesses every step each time it handles a message, so a
+    step that has already run must never be launched a second time."""
+    response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    launches = [
+        (step["name"], step.get("replica", 0))
+        for step in response["running_workflow_steps"]
+    ]
+    assert len(launches) == len(set(launches)), f"Duplicate step launches: {launches}"
 
 
 def start_workflow(
@@ -146,6 +207,183 @@ def wait_for_workflow(
     assert response
     assert response["done"]
     assert response["success"] == expect_success
+
+
+def test_workflow_engine_start_launches_every_ready_step(manual_engine):
+    """Two steps, neither depending on the other, must BOTH be launched by the
+    single START message - i.e. without waiting for a PodMessage. The queue is
+    not running here, so the two step records can only have come from START."""
+    # Arrange
+    we, da = manual_engine
+    r_wfid = create_running_workflow(da, "example-two-independent-nops")
+    msg = WorkflowMessage()
+    msg.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
+    msg.action = "START"
+    msg.running_workflow = r_wfid
+
+    # Act
+    we.handle_message(msg)
+
+    # Assert
+    response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert response["count"] == 2
+    assert {step["name"] for step in response["running_workflow_steps"]} == {
+        "step-1",
+        "step-2",
+    }
+
+
+def test_workflow_engine_start_only_launches_ready_steps(manual_engine):
+    """The counterpart to the test above - a step that depends on another must
+    NOT be launched by START, even when it is the first in the definition."""
+    # Arrange
+    we, da = manual_engine
+    r_wfid = create_running_workflow(da, "example-steps-out-of-order")
+    msg = WorkflowMessage()
+    msg.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
+    msg.action = "START"
+    msg.running_workflow = r_wfid
+
+    # Act
+    we.handle_message(msg)
+
+    # Assert
+    # "consumer" is declared first but depends on "provider", so only
+    # "provider" is READY.
+    response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert response["count"] == 1
+    assert response["running_workflow_steps"][0]["name"] == "provider"
+
+
+def test_workflow_engine_example_two_independent_nops(basic_engine):
+    # Arrange
+    md, da = basic_engine
+
+    # Act
+    r_wfid = start_workflow(md, da, "example-two-independent-nops", {})
+
+    # Assert
+    wait_for_workflow(da, r_wfid)
+    # Additional, detailed checks...
+    response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert response["count"] == 2
+    for step in response["running_workflow_steps"]:
+        assert step["done"]
+        assert step["success"]
+    assert_each_step_launched_once(da, r_wfid)
+
+
+def test_workflow_engine_example_steps_out_of_order(basic_engine):
+    """The step that runs first is the one that is READY, not the one that
+    happens to be first in the definition."""
+    # Arrange
+    md, da = basic_engine
+
+    # Act
+    r_wfid = start_workflow(md, da, "example-steps-out-of-order", {})
+
+    # Assert
+    wait_for_workflow(da, r_wfid)
+    # Additional, detailed checks...
+    response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert response["count"] == 2
+    for step in response["running_workflow_steps"]:
+        assert step["done"]
+        assert step["success"]
+    # The provider is second in the definition but must have been launched first.
+    launch_order = [step["name"] for step in response["running_workflow_steps"]]
+    assert launch_order == ["provider", "consumer"]
+    assert_each_step_launched_once(da, r_wfid)
+
+
+def test_workflow_engine_example_diamond(basic_engine):
+    """One step fans out to two, which fan back in to a fourth."""
+    # Arrange
+    md, da = basic_engine
+    assert not project_file_exists("merged.out")
+
+    # Act
+    r_wfid = start_workflow(md, da, "example-diamond", {})
+
+    # Assert
+    wait_for_workflow(da, r_wfid)
+    # Additional, detailed checks...
+    response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert response["count"] == 4
+    for step in response["running_workflow_steps"]:
+        assert step["done"]
+        assert step["success"]
+    steps = {step["name"]: step for step in response["running_workflow_steps"]}
+    assert set(steps) == {"split", "branch-a", "branch-b", "merge"}
+    # The fan-in step must have taken an input from each branch...
+    assert steps["merge"]["variables"]["inputFileA"] == "branch-a.out"
+    assert steps["merge"]["variables"]["inputFileB"] == "branch-b.out"
+    # ...and it must have been launched last, after both branches.
+    launch_order = [step["name"] for step in response["running_workflow_steps"]]
+    assert launch_order[0] == "split"
+    assert launch_order[3] == "merge"
+    assert_each_step_launched_once(da, r_wfid)
+    # The merged file must contain the output of both branches
+    assert project_file_exists("merged.out")
+
+
+def test_workflow_engine_example_fan_in_waits_for_every_branch(manual_engine):
+    """The fan-in step must not launch when only one of its two branches is
+    done. Here only 'branch-a' is complete, so 'merge' must stay unlaunched."""
+    # Arrange
+    we, da = manual_engine
+    r_wfid = create_running_workflow(da, "example-diamond")
+    msg = WorkflowMessage()
+    msg.timestamp = f"{datetime.now(timezone.utc).isoformat()}Z"
+    msg.action = "START"
+    msg.running_workflow = r_wfid
+    we.handle_message(msg)
+    # START launches 'split' only. Completing it makes both branches READY.
+    steps = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert steps["count"] == 1
+    split = steps["running_workflow_steps"][0]
+    we.handle_message(pod_message_for(split["instance_id"]))
+    # Both branches must now exist. Complete only one of them.
+    steps = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert {s["name"] for s in steps["running_workflow_steps"]} == {
+        "split",
+        "branch-a",
+        "branch-b",
+    }
+    branch_a = next(
+        s for s in steps["running_workflow_steps"] if s["name"] == "branch-a"
+    )
+
+    # Act
+    we.handle_message(pod_message_for(branch_a["instance_id"]))
+
+    # Assert
+    steps = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert "merge" not in {s["name"] for s in steps["running_workflow_steps"]}
+    # And the workflow must not have been declared finished.
+    running_workflow, _ = da.get_running_workflow(running_workflow_id=r_wfid)
+    assert not running_workflow["done"]
+
+
+def test_workflow_engine_example_unsatisfiable_step(basic_engine):
+    """A step that can never become READY must fail the running workflow,
+    not leave it hanging and not be mistaken for a successful finish."""
+    # Arrange
+    md, da = basic_engine
+
+    # Act
+    r_wfid = start_workflow(md, da, "example-unsatisfiable-step", {})
+
+    # Assert
+    wait_for_workflow(da, r_wfid, expect_success=False)
+    # Additional, detailed checks...
+    # The runnable step must still have run...
+    response = da.get_running_workflow_steps(running_workflow_id=r_wfid)
+    assert response["count"] == 1
+    assert response["running_workflow_steps"][0]["name"] == "provider"
+    # ...and the workflow must say which step it could not run.
+    running_workflow, _ = da.get_running_workflow(running_workflow_id=r_wfid)
+    assert "consumer" in running_workflow["error_msg"]
 
 
 def test_workflow_engine_example_two_step_nop(basic_engine):
