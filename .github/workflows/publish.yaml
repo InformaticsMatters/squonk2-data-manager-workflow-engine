@@ -32,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+      contents: write  # Required to create the GitHub Release
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -52,3 +53,17 @@ jobs:
         poetry build --format wheel
     - name: Publish
       uses: pypa/gh-action-pypi-publish@release/v1
+    # Create the corresponding GitHub Release.
+    # Releases used to be written by hand, which meant they could be (and were)
+    # forgotten - the package would be on PyPI with nothing on the releases page.
+    # The release is named after its tag and its notes are generated from the
+    # pull requests merged since the previous tag. Both can be edited afterwards
+    # if a more descriptive title is wanted.
+    # Any semver pre-release tag (i.e. one with a '-', like '3.0.0-rc.1') is
+    # marked as a pre-release so it does not become the repository's "Latest".
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: ${{ github.ref_name }}
+        generate_release_notes: true
+        prerelease: ${{ contains(github.ref_name, '-') }}
