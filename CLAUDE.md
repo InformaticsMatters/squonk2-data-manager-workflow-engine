@@ -12,21 +12,26 @@ state logic. It is published to PyPI as `im-data-manager-workflow-engine`.
 
 ## Commands
 
-Everything runs through Poetry, and **tests must be run from the repository root** —
+Everything runs through [uv], and **tests must be run from the repository root** —
 the unit-test instance launcher uses the relative path `tests/project-root/<project-id>`
 as its simulated project directory.
 
 ```bash
-poetry install --with dev --sync
-pre-commit install -t commit-msg -t pre-commit
+uv sync                             # installs the project editable, so workflow/ imports from the tree
+uv run pre-commit install -t commit-msg -t pre-commit
 
-pre-commit run --all-files          # black, isort, mypy (strict, workflow/ only), pylint, yamllint
-poetry run coverage run -m pytest   # what CI runs (CI adds -Werror)
-poetry run coverage report
+uv run pre-commit run --all-files   # black, isort, mypy (strict, workflow/ only), pylint, yamllint
+uv run coverage run -m pytest       # what CI runs (CI adds -Werror)
+uv run coverage report
 
-poetry run pytest tests/test_workflow_engine_examples.py                                    # one file
-poetry run pytest tests/test_workflow_engine_examples.py::test_workflow_engine_example_nop_fail  # one test
+uv run pytest tests/test_workflow_engine_examples.py                                    # one file
+uv run pytest tests/test_workflow_engine_examples.py::test_workflow_engine_example_nop_fail  # one test
 ```
+
+The Python version is pinned in `.python-version` and must satisfy the `requires-python`
+floor in `pyproject.toml`; `uv` installs it for you if it is missing.
+
+[uv]: https://docs.astral.sh/uv/
 
 Every test file carries `pytestmark = pytest.mark.unit`; the other markers declared in
 `pytest.ini` (`integration`, `job`, `soak`, …) are inherited convention and unused here.

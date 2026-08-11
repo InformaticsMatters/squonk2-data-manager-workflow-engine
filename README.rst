@@ -34,27 +34,30 @@ formed from the definition YAML file) with:
 Contributing
 ============
 
-The project's written in Python and uses `Poetry`_ for dependency and package
+The project's written in Python and uses `uv`_ for dependency and package
 management. We also use `pre-commit`_ to manage our pre-commit hooks, which
 rely on `black`_, `mypy`_, `pylint`_, amongst others.
 
+The Python version is pinned in ``.python-version``; uv will install it for you
+if you don't have it.
+
 From within a VS Code `devcontainer`_ environment (recommended)::
 
-    poetry install --with dev --sync
-    pre-commit install -t commit-msg -t pre-commit
+    uv sync
+    uv run pre-commit install -t commit-msg -t pre-commit
 
 And then start by running the pre-commit hooks to ensure you're stating with a
 _clean_ project::
 
-    pre-commit run --all-files
+    uv run pre-commit run --all-files
 
 And then run the tests::
 
-    poetry run coverage run -m pytest
-    poetry run coverage report
+    uv run coverage run -m pytest
+    uv run coverage report
 
 .. _devcontainer: https://code.visualstudio.com/docs/devcontainers/containers
-.. _Poetry: https://python-poetry.org
+.. _uv: https://docs.astral.sh/uv
 .. _pre-commit: https://pre-commit.com
 .. _black: https://github.com/psf/black
 .. _mypy: https://github.com/python/mypy
