@@ -34,7 +34,8 @@
     }
   },
   "postCreateCommand": {
-		"Install Python requirements": "pip3 install --user -r requirements.txt",
+		"Install uv": "pip3 install --user uv",
+		"Install Python requirements": "uv sync",
     "Fix Volume Permissions": "sudo chown -R $(whoami): /commandhistory"
 	},
   "forwardPorts": []
